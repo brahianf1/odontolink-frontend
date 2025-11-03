@@ -1,0 +1,19 @@
+/* Application-wide Layout Styles */
+#root {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Ensure all containers respect viewport width */
+.MuiContainer-root {
+  max-width: 100% !important;
+}
+
+/* Prevent horizontal overflow */
+* {
+  max-width: 100%;
+}
