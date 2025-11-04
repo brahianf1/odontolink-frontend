@@ -22,8 +22,10 @@ import {
   Paper,
   Stack,
   Badge,
+  IconButton,
+  alpha,
 } from '@mui/material';
-import { Add, CheckCircle, RateReview } from '@mui/icons-material';
+import { Add, CheckCircle, RateReview, Close, Description, Star } from '@mui/icons-material';
 import {
   getMyAttentions,
   getProgressNotes,
@@ -365,14 +367,59 @@ export default function AttentionsPage() {
       )}
 
       {/* Notes Dialog */}
-      <Dialog open={notesDialogOpen} onClose={handleCloseNotes} maxWidth="md" fullWidth>
-        <DialogTitle>
-          Evoluciones - {selectedAttention?.patientName}
-          <Typography variant="caption" display="block" color="text.secondary">
-            {selectedAttention?.treatmentName}
-          </Typography>
+      <Dialog 
+        open={notesDialogOpen} 
+        onClose={handleCloseNotes} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: (theme) => theme.shadows[10],
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            pb: 1,
+            pt: 3,
+            px: 3,
+            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.02),
+            borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: 1 }}>
+            <Description sx={{ color: 'primary.main', fontSize: 28, mt: 0.3 }} />
+            <Box>
+              <Typography variant="h6" fontWeight={700}>
+                Evoluciones - {selectedAttention?.patientName}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                {selectedAttention?.treatmentName}
+              </Typography>
+            </Box>
+          </Box>
+          <IconButton
+            edge="end"
+            color="inherit"
+            onClick={handleCloseNotes}
+            aria-label="cerrar"
+            size="small"
+            sx={{
+              color: 'text.secondary',
+              '&:hover': {
+                backgroundColor: (theme) => alpha(theme.palette.error.main, 0.1),
+                color: 'error.main',
+              },
+            }}
+          >
+            <Close />
+          </IconButton>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ px: 3, pt: 3 }}>
           <Box sx={{ pt: 2 }}>
             {progressNotes.length === 0 ? (
               <Alert severity="info">No hay notas de evolución registradas</Alert>
@@ -421,23 +468,91 @@ export default function AttentionsPage() {
             )}
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseNotes}>Cerrar</Button>
+        <DialogActions
+          sx={{
+            px: 3,
+            py: 2.5,
+            backgroundColor: (theme) => alpha(theme.palette.background.default, 0.5),
+            borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+          }}
+        >
+          <Button 
+            onClick={handleCloseNotes}
+            variant="contained"
+            sx={{
+              fontSize: '0.9rem',
+              fontWeight: 700,
+              borderRadius: 2,
+              px: 3,
+              py: 1,
+              boxShadow: (theme) => theme.shadows[3],
+              '&:hover': {
+                boxShadow: (theme) => theme.shadows[6],
+              },
+            }}
+          >
+            Cerrar
+          </Button>
         </DialogActions>
       </Dialog>
 
       {/* Feedback Dialog */}
-      <Dialog open={feedbackDialogOpen} onClose={handleCloseFeedback} maxWidth="md" fullWidth>
-        <DialogTitle>
-          Feedback de la Atención
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            Paciente: {selectedAttention?.patientName}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {selectedAttention?.treatmentName}
-          </Typography>
+      <Dialog 
+        open={feedbackDialogOpen} 
+        onClose={handleCloseFeedback} 
+        maxWidth="md" 
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            boxShadow: (theme) => theme.shadows[10],
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            pb: 1,
+            pt: 3,
+            px: 3,
+            backgroundColor: (theme) => alpha(theme.palette.info.main, 0.02),
+            borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: 1 }}>
+            <Star sx={{ color: 'info.main', fontSize: 28, mt: 0.3 }} />
+            <Box>
+              <Typography variant="h6" fontWeight={700}>
+                Feedback de la Atención
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                Paciente: {selectedAttention?.patientName}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {selectedAttention?.treatmentName}
+              </Typography>
+            </Box>
+          </Box>
+          <IconButton
+            edge="end"
+            color="inherit"
+            onClick={handleCloseFeedback}
+            aria-label="cerrar"
+            size="small"
+            sx={{
+              color: 'text.secondary',
+              '&:hover': {
+                backgroundColor: (theme) => alpha(theme.palette.error.main, 0.1),
+                color: 'error.main',
+              },
+            }}
+          >
+            <Close />
+          </IconButton>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ px: 3, pt: 3 }}>
           <Box sx={{ pt: 2 }}>
             {feedbackList.length === 0 ? (
               <Alert severity="info">No hay feedback registrado para esta atención</Alert>
@@ -505,8 +620,31 @@ export default function AttentionsPage() {
             )}
           </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseFeedback}>Cerrar</Button>
+        <DialogActions
+          sx={{
+            px: 3,
+            py: 2.5,
+            backgroundColor: (theme) => alpha(theme.palette.background.default, 0.5),
+            borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+          }}
+        >
+          <Button 
+            onClick={handleCloseFeedback}
+            variant="contained"
+            sx={{
+              fontSize: '0.9rem',
+              fontWeight: 700,
+              borderRadius: 2,
+              px: 3,
+              py: 1,
+              boxShadow: (theme) => theme.shadows[3],
+              '&:hover': {
+                boxShadow: (theme) => theme.shadows[6],
+              },
+            }}
+          >
+            Cerrar
+          </Button>
         </DialogActions>
       </Dialog>
 
@@ -519,21 +657,54 @@ export default function AttentionsPage() {
         PaperProps={{
           sx: {
             borderRadius: 3,
+            boxShadow: (theme) => theme.shadows[10],
           }
         }}
       >
-        <DialogTitle sx={{ pb: 1 }}>
-          <Typography variant="h5" fontWeight={600}>
-            Calificar Paciente
-          </Typography>
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            {selectedAttention?.patientName}
-          </Typography>
-          <Typography variant="caption" color="text.secondary">
-            {selectedAttention?.treatmentName}
-          </Typography>
+        <DialogTitle
+          sx={{
+            pb: 1,
+            pt: 3,
+            px: 3,
+            backgroundColor: (theme) => alpha(theme.palette.warning.main, 0.02),
+            borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
+            display: 'flex',
+            alignItems: 'flex-start',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: 1 }}>
+            <Star sx={{ color: 'warning.main', fontSize: 28, mt: 0.3 }} />
+            <Box>
+              <Typography variant="h6" fontWeight={700}>
+                Calificar Paciente
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                {selectedAttention?.patientName}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                {selectedAttention?.treatmentName}
+              </Typography>
+            </Box>
+          </Box>
+          <IconButton
+            edge="end"
+            color="inherit"
+            onClick={handleCloseCreateFeedback}
+            aria-label="cerrar"
+            size="small"
+            sx={{
+              color: 'text.secondary',
+              '&:hover': {
+                backgroundColor: (theme) => alpha(theme.palette.error.main, 0.1),
+                color: 'error.main',
+              },
+            }}
+          >
+            <Close />
+          </IconButton>
         </DialogTitle>
-        <DialogContent>
+        <DialogContent sx={{ px: 3, pt: 3 }}>
           <Box sx={{ pt: 2 }}>
             {/* Rating Section */}
             <Paper 
@@ -602,11 +773,30 @@ export default function AttentionsPage() {
             </Alert>
           </Box>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 3 }}>
+        <DialogActions 
+          sx={{ 
+            px: 3, 
+            py: 2.5,
+            backgroundColor: (theme) => alpha(theme.palette.background.default, 0.5),
+            borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+            gap: 1.5,
+          }}
+        >
           <Button 
             onClick={handleCloseCreateFeedback}
             variant="outlined"
-            sx={{ borderRadius: 2 }}
+            sx={{
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              borderRadius: 2,
+              px: 3,
+              py: 1,
+              borderWidth: 2,
+              '&:hover': {
+                borderWidth: 2,
+                backgroundColor: (theme) => alpha(theme.palette.error.main, 0.05),
+              },
+            }}
           >
             Cancelar
           </Button>
@@ -614,7 +804,22 @@ export default function AttentionsPage() {
             onClick={handleSubmitFeedback}
             variant="contained"
             disabled={!feedbackRating}
-            sx={{ borderRadius: 2 }}
+            sx={{
+              fontSize: '0.9rem',
+              fontWeight: 700,
+              borderRadius: 2,
+              px: 3,
+              py: 1,
+              boxShadow: (theme) => theme.shadows[3],
+              '&:hover': {
+                boxShadow: (theme) => theme.shadows[6],
+                transform: 'translateY(-1px)',
+              },
+              '&:active': {
+                transform: 'translateY(0)',
+              },
+              transition: 'all 0.2s ease',
+            }}
           >
             Enviar Calificación
           </Button>

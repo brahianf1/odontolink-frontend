@@ -200,10 +200,9 @@ export default function PractitionerDashboardPage() {
               sx={{
                 height: '100%',
                 borderRadius: 3,
-                transition: 'transform 0.2s, box-shadow 0.2s',
+                transition: 'box-shadow 0.2s',
                 '&:hover': {
-                  transform: 'translateY(-4px)',
-                  boxShadow: theme.shadows[8],
+                  boxShadow: theme.shadows[4],
                 },
               }}
             >

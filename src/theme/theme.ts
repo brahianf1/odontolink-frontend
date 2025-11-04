@@ -105,23 +105,23 @@ const lightThemeOptions: ThemeOptions = {
     },
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 0,
   },
   components: {
     MuiButton: {
       styleOverrides: {
         root: {
-          borderRadius: 8,
+          borderRadius: 0,
           padding: '10px 24px',
           fontSize: '1rem',
           boxShadow: 'none',
           '&:hover': {
-            boxShadow: '0 4px 12px rgba(13, 124, 102, 0.2)',
+            boxShadow: '0 2px 8px rgba(13, 124, 102, 0.15)',
           },
         },
         contained: {
           '&:hover': {
-            boxShadow: '0 6px 16px rgba(13, 124, 102, 0.3)',
+            boxShadow: '0 4px 12px rgba(13, 124, 102, 0.25)',
           },
         },
       },
@@ -129,10 +129,11 @@ const lightThemeOptions: ThemeOptions = {
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 16,
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+          borderRadius: 0,
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
+          border: '1px solid rgba(0, 0, 0, 0.08)',
           '&:hover': {
-            boxShadow: '0 4px 16px rgba(0, 0, 0, 0.12)',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
           },
         },
       },
@@ -141,7 +142,7 @@ const lightThemeOptions: ThemeOptions = {
       styleOverrides: {
         root: {
           '& .MuiOutlinedInput-root': {
-            borderRadius: 8,
+            borderRadius: 0,
           },
         },
       },
@@ -149,10 +150,30 @@ const lightThemeOptions: ThemeOptions = {
     MuiPaper: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
+          borderRadius: 0,
         },
         elevation1: {
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
+        },
+        elevation2: {
+          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)',
+        },
+        elevation3: {
+          boxShadow: '0 3px 10px rgba(0, 0, 0, 0.15)',
+        },
+      },
+    },
+    MuiDrawer: {
+      styleOverrides: {
+        paper: {
+          borderRadius: 0,
+        },
+      },
+    },
+    MuiAppBar: {
+      styleOverrides: {
+        root: {
+          borderRadius: 0,
         },
       },
     },

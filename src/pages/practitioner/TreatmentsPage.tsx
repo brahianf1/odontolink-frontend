@@ -18,8 +18,13 @@ import {
   IconButton,
   useTheme,
   Grid,
+  alpha,
+  Stack,
+  Divider,
+  Paper,
+  useMediaQuery,
 } from '@mui/material';
-import { Add, Edit, Delete, Schedule } from '@mui/icons-material';
+import { Add, Edit, Delete, Schedule, MedicalServices, Close } from '@mui/icons-material';
 import {
   getMyOfferedTreatments,
   getAllTreatments,
@@ -47,6 +52,7 @@ const DAYS_OF_WEEK = [
 
 export default function TreatmentsPage() {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -252,10 +258,9 @@ export default function TreatmentsPage() {
                   display: 'flex',
                   flexDirection: 'column',
                   borderRadius: 3,
-                  transition: 'transform 0.2s, box-shadow 0.2s',
+                  transition: 'box-shadow 0.2s',
                   '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: theme.shadows[8],
+                    boxShadow: theme.shadows[4],
                   },
                 }}
               >
@@ -327,10 +332,50 @@ export default function TreatmentsPage() {
       )}
 
       {/* Add/Edit Dialog */}
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-        <DialogTitle>{editMode ? 'Editar Tratamiento' : 'Agregar Tratamiento'}</DialogTitle>
-        <DialogContent>
-          <Box sx={{ pt: 2, display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <Dialog 
+        open={dialogOpen} 
+        onClose={handleCloseDialog} 
+        maxWidth="sm" 
+        fullWidth
+        fullScreen={isMobile}
+        PaperProps={{
+          sx: {
+            borderRadius: { xs: 0, sm: 3 },
+            m: { xs: 0, sm: 2 },
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            pb: 2,
+            pt: 2.5,
+            px: { xs: 2, sm: 3 },
+            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.02),
+            borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <MedicalServices sx={{ color: 'primary.main', fontSize: { xs: 24, sm: 28 } }} />
+            <Typography variant="h6" fontWeight={700} fontSize={{ xs: '1.1rem', sm: '1.25rem' }}>
+              {editMode ? 'Editar Tratamiento' : 'Agregar Tratamiento'}
+            </Typography>
+          </Box>
+          <IconButton
+            edge="end"
+            color="inherit"
+            onClick={handleCloseDialog}
+            aria-label="cerrar"
+            size="small"
+            sx={{ color: 'text.secondary' }}
+          >
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 2 }}>
+          <Stack spacing={3}>
             {!editMode && (
               <TextField
                 select
@@ -358,6 +403,7 @@ export default function TreatmentsPage() {
               fullWidth
               required
               inputProps={{ min: 15, max: 240, step: 15 }}
+              helperText="Duración estimada del tratamiento"
             />
 
             <TextField
@@ -366,79 +412,157 @@ export default function TreatmentsPage() {
               onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
               fullWidth
               multiline
-              rows={3}
+              rows={2}
               placeholder="Ej: Traer cepillo dental propio"
             />
 
+            <Divider sx={{ my: 1 }} />
+
             <Box>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="subtitle1" fontWeight={600}>
+                <Typography variant="subtitle1" fontWeight={600} fontSize={{ xs: '0.95rem', sm: '1rem' }}>
                   Disponibilidad Horaria
                 </Typography>
-                <Button startIcon={<Add />} onClick={handleAddSlot} size="small">
-                  Agregar Horario
+                <Button 
+                  startIcon={<Add />} 
+                  onClick={handleAddSlot} 
+                  size="small"
+                  variant="outlined"
+                  sx={{ 
+                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
+                    px: { xs: 1.5, sm: 2 }
+                  }}
+                >
+                  Agregar
                 </Button>
               </Box>
 
-              {formData.availabilitySlots.map((slot, index) => (
-                <Box
-                  key={index}
-                  sx={{
-                    display: 'flex',
-                    gap: 2,
-                    mb: 2,
-                    p: 2,
-                    borderRadius: 2,
-                    backgroundColor: 'action.hover',
-                  }}
-                >
-                  <TextField
-                    select
-                    label="Día"
-                    value={slot.dayOfWeek}
-                    onChange={(e) => handleSlotChange(index, 'dayOfWeek', e.target.value)}
-                    sx={{ flex: 1 }}
-                    size="small"
+              <Stack spacing={2}>
+                {formData.availabilitySlots.map((slot, index) => (
+                  <Paper
+                    key={index}
+                    elevation={0}
+                    sx={{
+                      p: { xs: 1.5, sm: 2 },
+                      border: (theme) => `1px solid ${theme.palette.divider}`,
+                      borderRadius: 2,
+                      backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.02),
+                    }}
                   >
-                    {DAYS_OF_WEEK.map((day) => (
-                      <MenuItem key={day.value} value={day.value}>
-                        {day.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                  <TextField
-                    label="Hora inicio"
-                    type="time"
-                    value={slot.startTime}
-                    onChange={(e) => handleSlotChange(index, 'startTime', e.target.value + ':00')}
-                    sx={{ flex: 1 }}
-                    size="small"
-                    InputLabelProps={{ shrink: true }}
-                  />
-                  <TextField
-                    label="Hora fin"
-                    type="time"
-                    value={slot.endTime}
-                    onChange={(e) => handleSlotChange(index, 'endTime', e.target.value + ':00')}
-                    sx={{ flex: 1 }}
-                    size="small"
-                    InputLabelProps={{ shrink: true }}
-                  />
-                  <IconButton color="error" onClick={() => handleRemoveSlot(index)}>
-                    <Delete />
-                  </IconButton>
-                </Box>
-              ))}
+                    <Stack spacing={2}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" fontWeight={600} color="text.secondary">
+                          Horario {index + 1}
+                        </Typography>
+                        <IconButton 
+                          color="error" 
+                          onClick={() => handleRemoveSlot(index)}
+                          size="small"
+                        >
+                          <Delete fontSize="small" />
+                        </IconButton>
+                      </Box>
+
+                      <TextField
+                        select
+                        label="Día de la semana"
+                        value={slot.dayOfWeek}
+                        onChange={(e) => handleSlotChange(index, 'dayOfWeek', e.target.value)}
+                        fullWidth
+                        size="small"
+                      >
+                        {DAYS_OF_WEEK.map((day) => (
+                          <MenuItem key={day.value} value={day.value}>
+                            {day.label}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+
+                      <Box sx={{ 
+                        display: 'grid', 
+                        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                        gap: 2
+                      }}>
+                        <TextField
+                          label="Hora inicio"
+                          type="time"
+                          value={slot.startTime.substring(0, 5)}
+                          onChange={(e) => handleSlotChange(index, 'startTime', e.target.value + ':00')}
+                          fullWidth
+                          size="small"
+                          InputLabelProps={{ shrink: true }}
+                          inputProps={{
+                            step: 900,
+                          }}
+                        />
+                        <TextField
+                          label="Hora fin"
+                          type="time"
+                          value={slot.endTime.substring(0, 5)}
+                          onChange={(e) => handleSlotChange(index, 'endTime', e.target.value + ':00')}
+                          fullWidth
+                          size="small"
+                          InputLabelProps={{ shrink: true }}
+                          inputProps={{
+                            step: 900,
+                          }}
+                        />
+                      </Box>
+                    </Stack>
+                  </Paper>
+                ))}
+              </Stack>
 
               {formData.availabilitySlots.length === 0 && (
-                <Alert severity="info">Agrega al menos un horario de disponibilidad</Alert>
+                <Alert 
+                  severity="info"
+                  sx={{ 
+                    borderRadius: 2,
+                    fontSize: { xs: '0.8rem', sm: '0.875rem' }
+                  }}
+                >
+                  Agrega al menos un horario de disponibilidad
+                </Alert>
               )}
             </Box>
-          </Box>
+          </Stack>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseDialog}>Cancelar</Button>
-          <Button onClick={handleSubmit} variant="contained">
+        <DialogActions
+          sx={{
+            px: { xs: 2, sm: 3 },
+            py: 2,
+            backgroundColor: (theme) => alpha(theme.palette.background.default, 0.5),
+            borderTop: (theme) => `1px solid ${theme.palette.divider}`,
+            gap: 1.5,
+            flexDirection: { xs: 'column-reverse', sm: 'row' },
+          }}
+        >
+          <Button 
+            onClick={handleCloseDialog}
+            variant="outlined"
+            fullWidth={isMobile}
+            sx={{
+              fontSize: '0.9rem',
+              fontWeight: 600,
+              borderRadius: 2,
+              px: 3,
+              py: 1,
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleSubmit} 
+            variant="contained"
+            fullWidth={isMobile}
+            sx={{
+              fontSize: '0.9rem',
+              fontWeight: 700,
+              borderRadius: 2,
+              px: 3,
+              py: 1,
+            }}
+          >
             {editMode ? 'Guardar Cambios' : 'Agregar Tratamiento'}
           </Button>
         </DialogActions>

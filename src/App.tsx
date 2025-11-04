@@ -10,7 +10,7 @@ import RegisterPatientPage from './pages/RegisterPatientPage';
 import RegisterPractitionerPage from './pages/RegisterPractitionerPage';
 import RegisterSupervisorPage from './pages/RegisterSupervisorPage';
 import ProtectedRoute from './components/ProtectedRoute';
-import DashboardLayout from './components/practitioner/DashboardLayout';
+import DashboardLayout from './layouts/DashboardLayout';
 import PractitionerDashboardPage from './pages/practitioner/PractitionerDashboardPage';
 import TreatmentsPage from './pages/practitioner/TreatmentsPage';
 import AppointmentsPage from './pages/practitioner/AppointmentsPage';
@@ -18,6 +18,13 @@ import AttentionsPage from './pages/practitioner/AttentionsPage';
 import PatientsPage from './pages/practitioner/PatientsPage';
 import FeedbackPage from './pages/practitioner/FeedbackPage';
 import ChatPage from './pages/practitioner/ChatPage';
+import PatientDashboardPage from './pages/patient/PatientDashboardPage';
+import PatientTreatmentsPage from './pages/patient/TreatmentsPage';
+import MyAppointmentsPage from './pages/patient/MyAppointmentsPage';
+import MyAttentionsPage from './pages/patient/MyAttentionsPage';
+import PatientFeedbackPage from './pages/patient/PatientFeedbackPage';
+import PatientChatPage from './pages/patient/PatientChatPage';
+import PatientProfilePage from './pages/patient/PatientProfilePage';
 
 function App() {
   const { mode } = useThemeStore();
@@ -57,6 +64,24 @@ function App() {
             <Route path="patients" element={<PatientsPage />} />
             <Route path="feedback" element={<FeedbackPage />} />
             <Route path="chat" element={<ChatPage />} />
+          </Route>
+
+          {/* Patient Dashboard Routes */}
+          <Route
+            path="/patient/*"
+            element={
+              <ProtectedRoute allowedRoles={['PATIENT']}>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="dashboard" element={<PatientDashboardPage />} />
+            <Route path="treatments" element={<PatientTreatmentsPage />} />
+            <Route path="appointments" element={<MyAppointmentsPage />} />
+            <Route path="attentions" element={<MyAttentionsPage />} />
+            <Route path="feedback" element={<PatientFeedbackPage />} />
+            <Route path="chat" element={<PatientChatPage />} />
+            <Route path="profile" element={<PatientProfilePage />} />
           </Route>
         </Routes>
       </Router>
