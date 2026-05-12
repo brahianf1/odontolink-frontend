@@ -143,31 +143,57 @@ export default function PatientFeedbackPage() {
       ) : (
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           {attentions.map((attention) => (
-            <Paper key={attention.id} sx={{ p: 3 }}>
+            <Paper
+              key={attention.id}
+              sx={{
+                p: 3,
+                borderRadius: 2,
+                border: '1px solid',
+                borderColor: 'divider',
+                transition: 'all 0.3s ease',
+                '&:hover': {
+                  boxShadow: (theme) => theme.shadows[4],
+                  borderColor: 'primary.main',
+                },
+              }}
+            >
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
                 <Box sx={{ flexGrow: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <Typography variant="h6" fontWeight="bold">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+                    <Typography variant="h6" fontWeight={600}>
                       {attention.treatmentName}
                     </Typography>
-                    <Chip label="Completada" color="success" size="small" />
+                    <Chip
+                      label="Completada"
+                      color="success"
+                      size="small"
+                      variant="filled"
+                      sx={{ fontWeight: 500 }}
+                    />
                   </Box>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    Practicante: {attention.practitionerName}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Fecha de inicio: {format(new Date(attention.startDate), "d 'de' MMMM, yyyy", { locale: es })}
-                  </Typography>
-                  {attention.appointments && attention.appointments.length > 0 && (
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                      Total de citas: {attention.appointments.length}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1}}>
+                    <Typography variant="body2" color="text.secondary">
+                      Practicante: <strong>{attention.practitionerName}</strong>
                     </Typography>
-                  )}
+                    <Typography variant="body2" color="text.secondary">
+                      Fecha: {format(new Date(attention.startDate), "d 'de' MMMM, yyyy", { locale: es })}
+                    </Typography>
+                    {attention.appointments && attention.appointments.length > 0 && (
+                      <Typography variant="caption" color="text.secondary">
+                        Citas: {attention.appointments.length}
+                      </Typography>
+                    )}
+                  </Box>
                 </Box>
                 <Button
                   variant="contained"
+                  size="large"
                   startIcon={<StarIcon />}
                   onClick={() => handleOpenFeedbackDialog(attention)}
+                  sx={{
+                    whiteSpace: 'nowrap',
+                    fontWeight: 600,
+                  }}
                 >
                   Calificar
                 </Button>
@@ -179,67 +205,96 @@ export default function PatientFeedbackPage() {
 
       {/* Feedback Dialog */}
       <Dialog open={feedbackDialogOpen} onClose={handleCloseFeedbackDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Calificar Atención</DialogTitle>
-        <DialogContent>
+        <DialogTitle sx={{ pb: 1 }}>
+          <Box>
+            <Typography variant="h5" fontWeight="bold" gutterBottom>
+              Calificar Atención
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Califique su experiencia con el practicante
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
           {selectedAttention && (
-            <Box sx={{ mb: 3, mt: 1 }}>
-              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
+            <Paper
+              variant="outlined"
+              sx={{
+                p: 2.5,
+                mb: 3,
+                backgroundColor: 'action.hover',
+                borderRadius: 2,
+              }}
+            >
+              <Typography variant="subtitle1" fontWeight={600} gutterBottom>
                 {selectedAttention.treatmentName}
               </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Practicante: {selectedAttention.practitionerName}
+              <Typography variant="body2" color="text.secondary" gutterBottom>
+                Practicante: <strong>{selectedAttention.practitionerName}</strong>
               </Typography>
-            </Box>
+              <Typography variant="caption" color="text.secondary">
+                {format(new Date(selectedAttention.startDate), "d 'de' MMMM, yyyy", { locale: es })}
+              </Typography>
+            </Paper>
           )}
 
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 2.5 }}>
               {error}
             </Alert>
           )}
 
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Calificación *
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box sx={{ mb: 3.5 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
+              <Typography variant="subtitle2" fontWeight={600}>
+                Satisfacción general
+              </Typography>
               <Rating
                 value={rating}
                 onChange={(_, newValue) => setRating(newValue || 0)}
                 size="large"
                 precision={1}
+                sx={{
+                  '& .MuiRating-icon': {
+                    fontSize: '2.3rem',
+                  },
+                }}
               />
-              {rating > 0 && (
-                <Typography variant="body2" color="text.secondary">
-                  ({rating} {rating === 1 ? 'estrella' : 'estrellas'})
-                </Typography>
-              )}
             </Box>
           </Box>
 
-          <TextField
-            fullWidth
-            multiline
-            rows={4}
-            label="Comentarios (opcional)"
-            placeholder="Comparte tu experiencia con este practicante..."
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            inputProps={{ maxLength: 1000 }}
-            helperText={`${comment.length}/1000 caracteres`}
-          />
+          <Box>
+            <Typography variant="subtitle2" fontWeight={600} gutterBottom sx={{ mb: 1 }}>
+              Comentarios adicionales (opcional)
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={4}
+              placeholder="Escriba un comentario adicional..."
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              inputProps={{ maxLength: 1000 }}
+              helperText={`${comment.length}/1000 caracteres`}
+              variant="outlined"
+            />
+          </Box>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseFeedbackDialog} disabled={submitting}>
+        <DialogActions sx={{ p: 2.5, gap: 1 }}>
+          <Button
+            onClick={handleCloseFeedbackDialog}
+            disabled={submitting}
+            sx={{ flex: 1 }}
+          >
             Cancelar
           </Button>
           <Button
             onClick={handleSubmitFeedback}
             variant="contained"
             disabled={rating === 0 || submitting}
-            startIcon={submitting ? <CircularProgress size={16} /> : null}
+            sx={{ flex: 1 }}
           >
-            {submitting ? 'Enviando...' : 'Enviar Calificación'}
+            {submitting ? 'Confirmando...' : 'Confirmar Calificación'}
           </Button>
         </DialogActions>
       </Dialog>
