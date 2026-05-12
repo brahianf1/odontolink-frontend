@@ -77,6 +77,7 @@ export default function AppointmentBookingDialog({
   const [loadingSlots, setLoadingSlots] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'calendar' | 'time'>('calendar');
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
 
   // Get available days of week from treatment
   const availableDaysOfWeek = useMemo(() => {
@@ -162,12 +163,17 @@ export default function AppointmentBookingDialog({
     setError(null);
   };
 
-  const handleConfirmBooking = async () => {
+  // Open a confirmation dialog first; perform booking only after user confirms
+  const handleConfirmBooking = () => {
     if (!selectedSlot) {
       setError('Por favor selecciona un horario');
       return;
     }
 
+    setConfirmDialogOpen(true);
+  };
+
+  const performBooking = async () => {
     try {
       setLoading(true);
       setError(null);
@@ -175,6 +181,7 @@ export default function AppointmentBookingDialog({
         offeredTreatmentId: treatment.id,
         appointmentTime: selectedSlot,
       });
+      setConfirmDialogOpen(false);
       onSuccess();
     } catch (err: any) {
       console.error('Error booking appointment:', err);
@@ -712,6 +719,77 @@ export default function AppointmentBookingDialog({
           {loading ? 'Reservando...' : 'Confirmar Reserva'}
         </Button>
       </DialogActions>
+      {/* Confirmation Dialog (styled like feedback modal) */}
+      <Dialog
+        open={confirmDialogOpen}
+        onClose={() => setConfirmDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ pb: 1 }}>
+          <Box>
+            <Typography variant="h5" fontWeight="bold" gutterBottom>
+              Confirmar reserva
+            </Typography>
+            <Typography variant="body2" color="text.secondary">
+              Verifica los detalles de tu turno antes de confirmar
+            </Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Paper
+            variant="outlined"
+            sx={{
+              p: 2.5,
+              mb: 2,
+              backgroundColor: 'action.hover',
+              borderRadius: 2,
+            }}
+          >
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'block' }}>
+                  PRACTICANTE
+                </Typography>
+                <Typography variant="subtitle1" fontWeight={600}>
+                  {treatment.practitionerName}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'block' }}>
+                  FECHA Y HORA
+                </Typography>
+                <Typography variant="subtitle1" fontWeight={600}>
+                  {selectedDate ? format(selectedDate, "d 'de' MMMM - h:mm a", { locale: es }) : ''}
+                </Typography>
+              </Box>
+
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" sx={{ display: 'block' }}>
+                  TRATAMIENTO
+                </Typography>
+                <Typography variant="subtitle1" fontWeight={600}>
+                  {treatment.treatment.name}
+                </Typography>
+              </Box>
+            </Box>
+          </Paper>
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5, gap: 1 }}>
+          <Button onClick={() => setConfirmDialogOpen(false)} disabled={loading} sx={{ flex: 1 }}>
+            Cancelar
+          </Button>
+          <Button
+            onClick={performBooking}
+            variant="contained"
+            disabled={loading}
+            sx={{ flex: 1 }}
+          >
+            {loading ? 'Reservando...' : 'Confirmar'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 }
