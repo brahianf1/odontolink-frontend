@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
   DialogTitle,
@@ -78,6 +79,7 @@ export default function AppointmentBookingDialog({
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<'calendar' | 'time'>('calendar');
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const navigate = useNavigate();
 
   // Get available days of week from treatment
   const availableDaysOfWeek = useMemo(() => {
@@ -183,6 +185,14 @@ export default function AppointmentBookingDialog({
       });
       setConfirmDialogOpen(false);
       onSuccess();
+      // Navigate to confirmation page with booking details
+      navigate('/patient/booking-confirmed', {
+        state: {
+          practitionerName: treatment.practitionerName,
+          date: selectedSlot,
+          treatmentName: treatment.treatment.name,
+        },
+      });
     } catch (err: any) {
       console.error('Error booking appointment:', err);
       setError(err.response?.data?.message || 'Error al reservar el turno');

@@ -25,6 +25,7 @@ import MyAttentionsPage from './pages/patient/MyAttentionsPage';
 import PatientFeedbackPage from './pages/patient/PatientFeedbackPage';
 import PatientChatPage from './pages/patient/PatientChatPage';
 import PatientProfilePage from './pages/patient/PatientProfilePage';
+import BookingConfirmationPage from './pages/patient/BookingConfirmationPage';
 
 function App() {
   const { mode } = useThemeStore();
@@ -67,6 +68,16 @@ function App() {
           </Route>
 
           {/* Patient Dashboard Routes */}
+          {/* Booking confirmation page (no dashboard layout) */}
+          <Route
+            path="/patient/booking-confirmed"
+            element={
+              <ProtectedRoute allowedRoles={["PATIENT"]}>
+                <BookingConfirmationPage />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/patient/*"
             element={
