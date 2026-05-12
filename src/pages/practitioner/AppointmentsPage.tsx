@@ -15,6 +15,7 @@ import {
   CalendarView,
   CancelAppointmentDialog,
   DailyAgendaView,
+  DensityToggle,
   ViewSwitcher,
   useAppointments,
 } from '../../features/practitionerSchedule';
@@ -93,6 +94,7 @@ export default function AppointmentsPage() {
 
         <Stack direction="row" spacing={1.5} alignItems="center">
           <ViewSwitcher value={view} onChange={setView} />
+          {view === 'planning' && <DensityToggle />}
           <Button
             variant="outlined"
             startIcon={<RefreshIcon />}

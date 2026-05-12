@@ -51,3 +51,54 @@ export interface CancelAppointmentPayload {
   appointmentId: number;
   motive: string;
 }
+
+export type ScheduleDensity = 'compact' | 'comfortable' | 'spacious';
+
+/**
+ * Visual tokens applied to the calendar grid and day header. We keep them in
+ * one place so the toggle, the store and the CalendarView all stay in sync.
+ * gridHeight feeds schedule-x's weekOptions; the rest target CSS custom
+ * selectors scoped to our wrapper.
+ */
+export interface DensityTokens {
+  /** Total pixel height of the time grid (with 28 rows of 30min). */
+  gridHeight: number;
+  /** Vertical padding of `.sx__week-grid__date` (each day column header). */
+  dateColumnPaddingY: string;
+  /** Width/height of `.sx__week-grid__date-number` (date circle). */
+  dateNumberSize: string;
+  /** Font size of the date number. */
+  dateNumberFontSize: string;
+  /** Font size of the day name label ("LUN", "MAR", …). */
+  dayNameFontSize: string;
+}
+
+export const DENSITY_TOKENS: Record<ScheduleDensity, DensityTokens> = {
+  compact: {
+    gridHeight: 840,
+    dateColumnPaddingY: '2px',
+    dateNumberSize: '1.4em',
+    dateNumberFontSize: '0.9rem',
+    dayNameFontSize: '0.7rem',
+  },
+  comfortable: {
+    gridHeight: 1120,
+    dateColumnPaddingY: '6px',
+    dateNumberSize: '1.7em',
+    dateNumberFontSize: '1.05rem',
+    dayNameFontSize: '0.75rem',
+  },
+  spacious: {
+    gridHeight: 1400,
+    dateColumnPaddingY: '10px',
+    dateNumberSize: '2em',
+    dateNumberFontSize: '1.2rem',
+    dayNameFontSize: '0.8rem',
+  },
+};
+
+export const DENSITY_LABELS: Record<ScheduleDensity, string> = {
+  compact: 'Compacta',
+  comfortable: 'Cómoda',
+  spacious: 'Espaciosa',
+};
