@@ -125,10 +125,10 @@ export default function Sidebar({ drawerWidth, mobileOpen, onMobileClose }: Side
           title: 'Comunicación',
           items: [
             { 
-              text: 'Calificaciones', 
+              text: 'Feedback Recibido', 
               icon: <FeedbackIcon />, 
               path: '/patient/feedback',
-              description: 'Ver opiniones'
+              description: 'Ver el feedback recibido'
             },
             { 
               text: 'Mensajes', 

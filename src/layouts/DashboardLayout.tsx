@@ -13,7 +13,7 @@ const pageTitles: Record<string, string> = {
   '/patient/treatments': 'Tratamientos Disponibles',
   '/patient/appointments': 'Mis Turnos',
   '/patient/attentions': 'Mis Atenciones',
-  '/patient/feedback': 'Calificaciones',
+  '/patient/feedback': 'Feedback Recibido',
   '/patient/chat': 'Mensajes',
   '/patient/profile': 'Mi Perfil',
   

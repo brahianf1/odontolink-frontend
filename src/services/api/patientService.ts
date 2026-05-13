@@ -46,6 +46,12 @@ const patientService = {
     return response.data;
   },
 
+  // Get feedback received by the authenticated patient
+  getReceivedFeedback: async (): Promise<FeedbackResponseDTO[]> => {
+    const response = await apiClient.get<FeedbackResponseDTO[]>('/api/patient/feedback/received');
+    return response.data;
+  },
+
   // Create feedback for practitioner (RF22)
   createFeedback: async (request: CreateFeedbackRequestDTO): Promise<FeedbackResponseDTO> => {
     const response = await apiClient.post<FeedbackResponseDTO>('/api/feedback', request);
