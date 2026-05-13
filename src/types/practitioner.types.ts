@@ -40,6 +40,9 @@ export interface UpdateOfferedTreatmentRequestDTO {
   requirements?: string;
   durationInMinutes?: number;
   availabilitySlots: AvailabilitySlotDTO[];
+  offerStartDate?: string;
+  offerEndDate?: string;
+  maxCompletedAttentions?: number;
 }
 
 export interface CreateTreatmentRequestDTO {

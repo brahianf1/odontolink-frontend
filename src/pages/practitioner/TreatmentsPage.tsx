@@ -68,11 +68,17 @@ export default function TreatmentsPage() {
     treatmentId: number | '';
     requirements: string;
     durationInMinutes: number | '';
+    offerStartDate: string;
+    offerEndDate: string;
+    maxCompletedAttentions: number | '';
     availabilitySlots: AvailabilitySlotDTO[];
   }>({
     treatmentId: '',
     requirements: '',
     durationInMinutes: '',
+    offerStartDate: '',
+    offerEndDate: '',
+    maxCompletedAttentions: '',
     availabilitySlots: [],
   });
 
@@ -110,6 +116,9 @@ export default function TreatmentsPage() {
       treatmentId: treatment.treatment.id,
       requirements: treatment.requirements || '',
       durationInMinutes: treatment.durationInMinutes,
+      offerStartDate: treatment.offerStartDate || '',
+      offerEndDate: treatment.offerEndDate || '',
+      maxCompletedAttentions: treatment.maxCompletedAttentions ?? '',
       availabilitySlots: treatment.availabilitySlots,
     });
     setEditDialogOpen(true);
@@ -161,11 +170,19 @@ export default function TreatmentsPage() {
         return;
       }
 
+      if (!formData.offerStartDate || !formData.offerEndDate || !formData.maxCompletedAttentions) {
+        setError('Por favor completa el cupo y el período de la oferta');
+        return;
+      }
+
       if (selectedTreatment) {
         const updateData: UpdateOfferedTreatmentRequestDTO = {
           requirements: formData.requirements || undefined,
           durationInMinutes: Number(formData.durationInMinutes),
           availabilitySlots: formData.availabilitySlots,
+          offerStartDate: formData.offerStartDate,
+          offerEndDate: formData.offerEndDate,
+          maxCompletedAttentions: Number(formData.maxCompletedAttentions),
         };
         await updateOfferedTreatment(selectedTreatment.id, updateData);
         setSuccess('Tratamiento actualizado exitosamente');
@@ -325,16 +342,57 @@ export default function TreatmentsPage() {
         </DialogTitle>
         <DialogContent sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 2 }}>
           <Stack spacing={3}>
-            <TextField
-              label="Duración (minutos)"
-              type="number"
-              value={formData.durationInMinutes}
-              onChange={(e) => setFormData({ ...formData, durationInMinutes: Number(e.target.value) })}
-              fullWidth
-              required
-              inputProps={{ min: 15, max: 240, step: 15 }}
-              helperText="Duración estimada del tratamiento"
-            />
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+              <TextField
+                label="Cupo de atenciones"
+                type="number"
+                value={formData.maxCompletedAttentions}
+                onChange={(e) => setFormData({ ...formData, maxCompletedAttentions: Number(e.target.value) })}
+                fullWidth
+                required
+                inputProps={{ min: 1 }}
+                helperText="Cantidad máxima de atenciones completadas"
+              />
+              <TextField
+                label="Duración (minutos)"
+                type="number"
+                value={formData.durationInMinutes}
+                onChange={(e) => setFormData({ ...formData, durationInMinutes: Number(e.target.value) })}
+                fullWidth
+                required
+                inputProps={{ min: 15, max: 240, step: 15 }}
+                helperText="Duración estimada del tratamiento"
+              />
+            </Box>
+
+            <Box>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5 }}>
+                Período de la oferta *
+              </Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr auto 1fr' }, gap: 2, alignItems: 'center' }}>
+                <TextField
+                  label="Fecha inicio"
+                  type="date"
+                  value={formData.offerStartDate}
+                  onChange={(e) => setFormData({ ...formData, offerStartDate: e.target.value })}
+                  fullWidth
+                  required
+                  InputLabelProps={{ shrink: true }}
+                />
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', display: { xs: 'none', sm: 'block' } }}>
+                  hasta
+                </Typography>
+                <TextField
+                  label="Fecha fin"
+                  type="date"
+                  value={formData.offerEndDate}
+                  onChange={(e) => setFormData({ ...formData, offerEndDate: e.target.value })}
+                  fullWidth
+                  required
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Box>
+            </Box>
 
             <TextField
               label="Requisitos"
