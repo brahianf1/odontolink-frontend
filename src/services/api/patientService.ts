@@ -41,8 +41,8 @@ const patientService = {
   },
 
   // Get feedback for a specific attention
-  getFeedbackForAttention: async (attentionId: number): Promise<FeedbackResponseDTO> => {
-    const response = await apiClient.get<FeedbackResponseDTO>(`/api/feedback/attention/${attentionId}`);
+  getFeedbackForAttention: async (attentionId: number): Promise<FeedbackResponseDTO[]> => {
+    const response = await apiClient.get<FeedbackResponseDTO[]>(`/api/feedback/attention/${attentionId}`);
     return response.data;
   },
 

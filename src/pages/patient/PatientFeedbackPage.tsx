@@ -13,13 +13,18 @@ import {
   DialogContent,
   DialogActions,
   Chip,
+  IconButton,
 } from '@mui/material';
-import { Star as StarIcon } from '@mui/icons-material';
+import {
+  Star as StarIcon,
+  Close as CloseIcon,
+} from '@mui/icons-material';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useLocation } from 'react-router-dom';
 import patientService from '../../services/api/patientService';
 import type { AttentionResponseDTO } from '../../types/attention.types';
+import type { FeedbackResponseDTO } from '../../types/feedback.types';
 
 export default function PatientFeedbackPage() {
   const location = useLocation();
@@ -29,8 +34,11 @@ export default function PatientFeedbackPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [attentions, setAttentions] = useState<AttentionResponseDTO[]>([]);
+  const [feedbackByAttentionId, setFeedbackByAttentionId] = useState<Record<number, FeedbackResponseDTO | null>>({});
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
+  const [viewFeedbackDialogOpen, setViewFeedbackDialogOpen] = useState(false);
   const [selectedAttention, setSelectedAttention] = useState<AttentionResponseDTO | null>(null);
+  const [viewingFeedback, setViewingFeedback] = useState<FeedbackResponseDTO | null>(null);
   const [rating, setRating] = useState<number>(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -43,7 +51,7 @@ export default function PatientFeedbackPage() {
     if (preselectedAttentionId && attentions.length > 0) {
       const attention = attentions.find((att) => att.id === preselectedAttentionId);
       if (attention) {
-        handleOpenFeedbackDialog(attention);
+        handleOpenDialog(attention);
       }
     }
   }, [preselectedAttentionId, attentions]);
@@ -55,11 +63,41 @@ export default function PatientFeedbackPage() {
       const data = await patientService.getMyAttentions();
       const completed = data.filter((att) => att.status === 'COMPLETED');
       setAttentions(completed);
+
+      const feedbackStatus = await Promise.all(
+        completed.map(async (attention) => {
+          try {
+            const feedbackList = await patientService.getFeedbackForAttention(attention.id);
+            // If the array has items, feedback exists
+            if (feedbackList && feedbackList.length > 0) {
+              return [attention.id, feedbackList[0]] as const;
+            }
+            return [attention.id, null] as const;
+          } catch {
+            return [attention.id, null] as const;
+          }
+        })
+      );
+
+      setFeedbackByAttentionId(Object.fromEntries(feedbackStatus));
     } catch (err) {
       console.error('Error loading attentions:', err);
       setError('Error al cargar las atenciones completadas');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleOpenDialog = (attention: AttentionResponseDTO) => {
+    const existingFeedback = feedbackByAttentionId[attention.id];
+    if (existingFeedback) {
+      // Feedback already exists → show read-only view
+      setViewingFeedback(existingFeedback);
+      setSelectedAttention(attention);
+      setViewFeedbackDialogOpen(true);
+    } else {
+      // No feedback yet → show create form
+      handleOpenFeedbackDialog(attention);
     }
   };
 
@@ -77,6 +115,12 @@ export default function PatientFeedbackPage() {
     setSelectedAttention(null);
     setRating(0);
     setComment('');
+  };
+
+  const handleCloseViewFeedbackDialog = () => {
+    setViewFeedbackDialogOpen(false);
+    setViewingFeedback(null);
+    setSelectedAttention(null);
   };
 
   const handleSubmitFeedback = async () => {
@@ -189,13 +233,13 @@ export default function PatientFeedbackPage() {
                   variant="contained"
                   size="large"
                   startIcon={<StarIcon />}
-                  onClick={() => handleOpenFeedbackDialog(attention)}
+                  onClick={() => handleOpenDialog(attention)}
                   sx={{
                     whiteSpace: 'nowrap',
                     fontWeight: 600,
                   }}
                 >
-                  Calificar
+                  {feedbackByAttentionId[attention.id] ? 'Ver calificación' : 'Calificar'}
                 </Button>
               </Box>
             </Paper>
@@ -203,7 +247,7 @@ export default function PatientFeedbackPage() {
         </Box>
       )}
 
-      {/* Feedback Dialog */}
+      {/* Create Feedback Dialog */}
       <Dialog open={feedbackDialogOpen} onClose={handleCloseFeedbackDialog} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ pb: 1 }}>
           <Box>
@@ -295,6 +339,111 @@ export default function PatientFeedbackPage() {
             sx={{ flex: 1 }}
           >
             {submitting ? 'Confirmando...' : 'Confirmar Calificación'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* View Existing Feedback Dialog */}
+      <Dialog open={viewFeedbackDialogOpen} onClose={handleCloseViewFeedbackDialog} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ pb: 0, pr: 6 }}>
+          <Typography variant="h5" fontWeight="bold">
+            Tu Calificación
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Calificación enviada para esta atención
+          </Typography>
+          <IconButton
+            aria-label="cerrar"
+            onClick={handleCloseViewFeedbackDialog}
+            sx={{
+              position: 'absolute',
+              right: 12,
+              top: 12,
+              color: 'text.secondary',
+            }}
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ pt: 2 }}>
+          {viewingFeedback && selectedAttention && (
+            <>
+              {/* Attention info card */}
+              <Paper
+                variant="outlined"
+                sx={{
+                  p: 2.5,
+                  mb: 3,
+                  backgroundColor: 'action.hover',
+                  borderRadius: 2,
+                }}
+              >
+                <Typography variant="subtitle1" fontWeight={600}>
+                  {selectedAttention.treatmentName}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  {selectedAttention.practitionerName} • {format(new Date(selectedAttention.startDate), 'dd/MM/yyyy', { locale: es })}
+                </Typography>
+              </Paper>
+
+              {/* Rating display */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="overline" fontWeight={600} color="text.secondary" sx={{ letterSpacing: 1 }}>
+                  Satisfacción General
+                </Typography>
+                <Rating
+                  value={viewingFeedback.rating}
+                  readOnly
+                  size="large"
+                  sx={{
+                    display: 'flex',
+                    mt: 1,
+                    '& .MuiRating-icon': {
+                      fontSize: '2.3rem',
+                    },
+                  }}
+                />
+              </Box>
+
+              {/* Comment display */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="overline" fontWeight={600} color="text.secondary" sx={{ letterSpacing: 1 }}>
+                  Comentario
+                </Typography>
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 2,
+                    mt: 1,
+                    borderRadius: 2,
+                    backgroundColor: 'action.hover',
+                  }}
+                >
+                  <Typography variant="body1">
+                    {viewingFeedback.comment || 'Sin comentario.'}
+                  </Typography>
+                </Paper>
+              </Box>
+
+              {/* Date display */}
+              <Box>
+                <Typography variant="overline" fontWeight={600} color="text.secondary" sx={{ letterSpacing: 1 }}>
+                  Fecha de Calificación
+                </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                  {format(new Date(viewingFeedback.createdAt), "dd/MM/yyyy 'a las' HH:mm", { locale: es })}
+                </Typography>
+              </Box>
+            </>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ p: 2.5 }}>
+          <Button
+            onClick={handleCloseViewFeedbackDialog}
+            variant="contained"
+            fullWidth
+          >
+            Cerrar
           </Button>
         </DialogActions>
       </Dialog>
