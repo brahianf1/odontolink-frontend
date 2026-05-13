@@ -49,10 +49,18 @@ const STATUS_CONFIG = {
   CANCELLED: { label: 'Cancelada', color: 'error' as const },
 };
 
+const isPractitionerRole = (role?: string | null) => {
+  if (!role) return false;
+  const normalizedRole = String(role).toUpperCase();
+  return normalizedRole.includes('PRACT') || normalizedRole.includes('PRAC');
+};
+
 interface AttentionWithFeedback extends AttentionResponseDTO {
   feedbackCount?: number;
   hasMyFeedback?: boolean;
 }
+
+type EvolutionDialogMode = 'history' | 'add';
 
 export default function AttentionsPage() {
   const { user } = useAuthStore();
@@ -66,15 +74,18 @@ export default function AttentionsPage() {
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [createFeedbackDialogOpen, setCreateFeedbackDialogOpen] = useState(false);
+  const [evolutionDialogMode, setEvolutionDialogMode] = useState<EvolutionDialogMode>('history');
   const [noteContent, setNoteContent] = useState('');
   const [feedbackRating, setFeedbackRating] = useState<number | null>(null);
   const [feedbackComment, setFeedbackComment] = useState('');
 
   useEffect(() => {
-    loadAttentions();
-  }, []);
+    if (!user?.userId) return;
 
-  const loadAttentions = async () => {
+    loadAttentions(user.userId);
+  }, [user?.userId]);
+
+  const loadAttentions = async (practitionerId: number) => {
     try {
       setLoading(true);
       setError(null);
@@ -91,7 +102,7 @@ export default function AttentionsPage() {
               // El practicante da feedback AL paciente, así que busco feedback
               // donde YO soy el autor (submittedById) Y mi rol es PRACTITIONER
               const hasMyFeedback = allFeedback.some(
-                (f) => f.submittedByRole === 'PRACTITIONER' && f.submittedById === user?.userId
+                (f) => isPractitionerRole(f.submittedByRole) && Number(f.submittedById) === practitionerId
               );
               
               return { 
@@ -116,13 +127,9 @@ export default function AttentionsPage() {
     }
   };
 
-  const handleOpenNotes = async (attention: AttentionResponseDTO) => {
-    setSelectedAttention(attention);
-    setNotesDialogOpen(true);
-    setNoteContent('');
-
+  const loadProgressNotes = async (attentionId: number) => {
     try {
-      const notes = await getProgressNotes(attention.id);
+      const notes = await getProgressNotes(attentionId);
       setProgressNotes(notes);
     } catch (err) {
       console.error('Error loading notes:', err);
@@ -130,11 +137,29 @@ export default function AttentionsPage() {
     }
   };
 
+  const openEvolutionDialog = async (attention: AttentionResponseDTO, mode: EvolutionDialogMode) => {
+    setSelectedAttention(attention);
+    setNotesDialogOpen(true);
+    setEvolutionDialogMode(mode);
+    setNoteContent('');
+
+    await loadProgressNotes(attention.id);
+  };
+
+  const handleOpenNotes = (attention: AttentionResponseDTO) => {
+    void openEvolutionDialog(attention, 'history');
+  };
+
+  const handleOpenAddNote = (attention: AttentionResponseDTO) => {
+    void openEvolutionDialog(attention, 'add');
+  };
+
   const handleCloseNotes = () => {
     setNotesDialogOpen(false);
     setSelectedAttention(null);
     setProgressNotes([]);
     setNoteContent('');
+    setEvolutionDialogMode('history');
   };
 
   const handleOpenFeedback = async (attention: AttentionResponseDTO) => {
@@ -192,7 +217,9 @@ export default function AttentionsPage() {
       await createFeedback(feedbackData);
       setSuccess('Feedback enviado exitosamente');
       handleCloseCreateFeedback();
-      loadAttentions(); // Recargar para actualizar el estado
+      if (user?.userId) {
+        loadAttentions(user.userId); // Recargar para actualizar el estado
+      }
     } catch (err: any) {
       console.error('Error submitting feedback:', err);
       if (err.response?.status === 400) {
@@ -230,7 +257,9 @@ export default function AttentionsPage() {
       setError(null);
       await finalizeAttention(attentionId);
       setSuccess('Atención finalizada exitosamente');
-      loadAttentions();
+      if (user?.userId) {
+        loadAttentions(user.userId);
+      }
       handleCloseNotes();
     } catch (err) {
       console.error('Error finalizing attention:', err);
@@ -321,8 +350,19 @@ export default function AttentionsPage() {
 
                   <Box sx={{ display: 'flex', gap: 1, mt: 3, flexWrap: 'wrap' }}>
                     <Button variant="outlined" size="small" onClick={() => handleOpenNotes(attention)}>
-                      Ver Evoluciones
+                      Ver evolución
                     </Button>
+                    {attention.status === 'IN_PROGRESS' && (
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        size="small"
+                        startIcon={<Add />}
+                        onClick={() => handleOpenAddNote(attention)}
+                      >
+                        Agregar evolución
+                      </Button>
+                    )}
                     {attention.status === 'COMPLETED' && attention.feedbackCount !== undefined && (
                       <Badge badgeContent={attention.feedbackCount} color="primary">
                         <Button 
@@ -395,7 +435,7 @@ export default function AttentionsPage() {
             <Description sx={{ color: 'primary.main', fontSize: 28, mt: 0.3 }} />
             <Box>
               <Typography variant="h6" fontWeight={700}>
-                Evoluciones - {selectedAttention?.patientName}
+                {evolutionDialogMode === 'history' ? 'Historial de evoluciones' : 'Agregar evolución'} - {selectedAttention?.patientName}
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                 {selectedAttention?.treatmentName}
@@ -421,32 +461,36 @@ export default function AttentionsPage() {
         </DialogTitle>
         <DialogContent sx={{ px: 3, pt: 3 }}>
           <Box sx={{ pt: 2 }}>
-            {progressNotes.length === 0 ? (
-              <Alert severity="info">No hay notas de evolución registradas</Alert>
-            ) : (
-              <List>
-                {progressNotes.map((note, index) => (
-                  <Box key={note.id}>
-                    <ListItem alignItems="flex-start">
-                      <ListItemText
-                        primary={note.note}
-                        secondary={
-                          <>
-                            {format(parseISO(note.createdAt), "dd/MM/yyyy HH:mm", { locale: es })} - {note.authorName}
-                          </>
-                        }
-                      />
-                    </ListItem>
-                    {index < progressNotes.length - 1 && <Divider />}
-                  </Box>
-                ))}
-              </List>
+            {evolutionDialogMode === 'history' && (
+              <>
+                {progressNotes.length === 0 ? (
+                  <Alert severity="info">No hay notas de evolución registradas</Alert>
+                ) : (
+                  <List>
+                    {progressNotes.map((note, index) => (
+                      <Box key={note.id}>
+                        <ListItem alignItems="flex-start">
+                          <ListItemText
+                            primary={note.note}
+                            secondary={
+                              <>
+                                {format(parseISO(note.createdAt), "dd/MM/yyyy HH:mm", { locale: es })} - {note.authorName}
+                              </>
+                            }
+                          />
+                        </ListItem>
+                        {index < progressNotes.length - 1 && <Divider />}
+                      </Box>
+                    ))}
+                  </List>
+                )}
+              </>
             )}
 
-            {selectedAttention?.status === 'IN_PROGRESS' && (
+            {evolutionDialogMode === 'add' && selectedAttention?.status === 'IN_PROGRESS' && (
               <Box sx={{ mt: 3 }}>
                 <TextField
-                  label="Nueva Nota de Evolución"
+                  label="Nueva evolución"
                   value={noteContent}
                   onChange={(e) => setNoteContent(e.target.value)}
                   fullWidth
@@ -462,7 +506,7 @@ export default function AttentionsPage() {
                   sx={{ mt: 2 }}
                   disabled={noteContent.trim().length < 10}
                 >
-                  Agregar Nota
+                  Agregar evolución
                 </Button>
               </Box>
             )}
