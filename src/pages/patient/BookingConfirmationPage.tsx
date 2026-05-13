@@ -65,9 +65,9 @@ export default function BookingConfirmationPage() {
             variant="contained"
             fullWidth
             sx={{ mt: 3, py: 1.25, fontWeight: 700 }}
-            onClick={() => navigate('/patient/treatments')}
+            onClick={() => navigate('/patient/dashboard')}
           >
-            Volver a tratamientos
+            Ir a panel principal
           </Button>
 
           <Button variant="text" onClick={() => navigate('/patient/treatments')} sx={{ mt: 1 }}>
