@@ -24,6 +24,8 @@ import {
   Badge,
   IconButton,
   alpha,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import { Add, CheckCircle, RateReview, Close, Description, Star } from '@mui/icons-material';
 import {
@@ -68,6 +70,7 @@ export default function AttentionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [attentions, setAttentions] = useState<AttentionWithFeedback[]>([]);
+  const [tabValue, setTabValue] = useState(0);
   const [selectedAttention, setSelectedAttention] = useState<AttentionResponseDTO | null>(null);
   const [progressNotes, setProgressNotes] = useState<ProgressNoteResponseDTO[]>([]);
   const [feedbackList, setFeedbackList] = useState<FeedbackResponseDTO[]>([]);
@@ -267,6 +270,10 @@ export default function AttentionsPage() {
     }
   };
 
+  const inProgressAttentions = attentions.filter((attention) => attention.status === 'IN_PROGRESS');
+  const completedAttentions = attentions.filter((attention) => attention.status === 'COMPLETED');
+  const displayedAttentions = tabValue === 0 ? inProgressAttentions : completedAttentions;
+
   if (loading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
@@ -296,17 +303,42 @@ export default function AttentionsPage() {
         </Alert>
       )}
 
-      {attentions.length === 0 ? (
+      <Paper
+        elevation={0}
+        sx={{
+          mb: 3,
+          border: '1px solid',
+          borderColor: 'divider',
+          borderRadius: 2,
+        }}
+      >
+        <Tabs
+          value={tabValue}
+          onChange={(_, newValue) => setTabValue(newValue)}
+          variant="fullWidth"
+          sx={{
+            '& .MuiTab-root': {
+              fontSize: { xs: '0.8rem', sm: '0.875rem' },
+              fontWeight: 500,
+            },
+          }}
+        >
+          <Tab label={`En Curso (${inProgressAttentions.length})`} />
+          <Tab label={`Completadas (${completedAttentions.length})`} />
+        </Tabs>
+      </Paper>
+
+      {displayedAttentions.length === 0 ? (
         <Card sx={{ textAlign: 'center', py: 8 }}>
           <CardContent>
             <Typography variant="h6" color="text.secondary">
-              No tienes atenciones registradas
+              {tabValue === 0 ? 'No tienes atenciones en curso.' : 'No tienes atenciones completadas.'}
             </Typography>
           </CardContent>
         </Card>
       ) : (
         <Grid container spacing={3}>
-          {attentions.map((attention) => (
+          {displayedAttentions.map((attention) => (
             <Grid size={{ xs: 12, md: 6 }} key={attention.id}>
               <Card sx={{ borderRadius: 3 }}>
                 <CardContent>
