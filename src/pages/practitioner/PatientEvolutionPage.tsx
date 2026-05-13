@@ -17,6 +17,7 @@ import {
   DialogActions,
   IconButton,
   alpha,
+  Snackbar,
 } from '@mui/material';
 import { Close, Description, Add } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
@@ -26,7 +27,15 @@ import {
   getProgressNotes,
   addProgressNote,
 } from '../../services/api/practitionerService';
-import type { AttentionResponseDTO, ProgressNoteResponseDTO } from '../../types/attention.types';
+import {
+  CancelAppointmentDialog,
+  useAppointments,
+} from '../../features/practitionerSchedule';
+import type {
+  AppointmentResponseDTO,
+  AttentionResponseDTO,
+  ProgressNoteResponseDTO,
+} from '../../types/attention.types';
 
 export default function PatientEvolutionPage() {
   const { patientId, attentionId } = useParams();
@@ -38,6 +47,33 @@ export default function PatientEvolutionPage() {
   const [noteContent, setNoteContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [cancelTarget, setCancelTarget] =
+    useState<AppointmentResponseDTO | null>(null);
+
+  const {
+    appointments,
+    mutatingId,
+    feedback,
+    complete,
+    markNoShow,
+    cancel,
+    clearFeedback,
+  } = useAppointments();
+
+  const nextAppointment = attention
+    ? appointments
+        .filter(
+          (appointment) =>
+            appointment.status === 'SCHEDULED' &&
+            appointment.patientId === attention.patientId &&
+            (appointment.attentionId == null || appointment.attentionId === attention.id)
+        )
+        .sort(
+          (a, b) =>
+            new Date(a.appointmentTime).getTime() -
+            new Date(b.appointmentTime).getTime()
+        )[0] ?? null
+    : null;
 
   useEffect(() => {
     const load = async () => {
@@ -87,6 +123,11 @@ export default function PatientEvolutionPage() {
     }
   };
 
+  const handleCancelConfirm = async (id: number, motive: string) => {
+    await cancel(id, motive);
+    setCancelTarget(null);
+  };
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
@@ -121,6 +162,53 @@ export default function PatientEvolutionPage() {
           <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>INICIO</Typography>
           {attention?.startDate && (
             <Typography variant="body2" sx={{ mt: 0.5 }}>{format(parseISO(attention.startDate), "dd/MM/yyyy")}</Typography>
+          )}
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block' }}>
+            PRÓXIMO TURNO
+          </Typography>
+          {nextAppointment ? (
+            <>
+              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                {format(parseISO(nextAppointment.appointmentTime), 'dd/MM/yyyy')} - {format(parseISO(nextAppointment.appointmentTime), 'HH:mm')}
+              </Typography>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1}
+                sx={{ mt: 1.25, '& > *': { flex: 1 } }}
+              >
+                <Button
+                  variant="contained"
+                  color="success"
+                  size="small"
+                  disabled={mutatingId === nextAppointment.id}
+                  onClick={() => void complete(nextAppointment.id)}
+                >
+                  Completar
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="warning"
+                  size="small"
+                  disabled={mutatingId === nextAppointment.id}
+                  onClick={() => void markNoShow(nextAppointment.id)}
+                >
+                  Inasistencia
+                </Button>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  size="small"
+                  disabled={mutatingId === nextAppointment.id}
+                  onClick={() => setCancelTarget(nextAppointment)}
+                >
+                  Cancelar
+                </Button>
+              </Stack>
+            </>
+          ) : (
+            <Typography variant="body2" sx={{ mt: 0.5 }} color="text.secondary">
+              Sin turnos próximos.
+            </Typography>
           )}
         </Paper>
       </Box>
@@ -261,6 +349,36 @@ export default function PatientEvolutionPage() {
           )}
         </Paper>
       </Box>
+
+      <CancelAppointmentDialog
+        open={Boolean(cancelTarget)}
+        appointment={cancelTarget}
+        submitting={mutatingId === cancelTarget?.id}
+        onClose={() => setCancelTarget(null)}
+        onConfirm={handleCancelConfirm}
+      />
+
+      <Snackbar
+        open={Boolean(feedback.success)}
+        autoHideDuration={3500}
+        onClose={clearFeedback}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity="success" variant="filled" onClose={clearFeedback}>
+          {feedback.success}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={Boolean(feedback.error)}
+        autoHideDuration={5000}
+        onClose={clearFeedback}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity="error" variant="filled" onClose={clearFeedback}>
+          {feedback.error}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
