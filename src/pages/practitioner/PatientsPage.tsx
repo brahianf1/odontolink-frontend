@@ -19,6 +19,8 @@ import { getMyAttentions } from '../../services/api/practitionerService';
 import type { AttentionResponseDTO } from '../../types/attention.types';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Button } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 interface PatientItem {
   id: number;
@@ -33,6 +35,7 @@ export default function PatientsPage() {
   const [error, setError] = useState<string | null>(null);
   const [patients, setPatients] = useState<PatientItem[]>([]);
   const [expandedPatientId, setExpandedPatientId] = useState<number | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadPatients();
@@ -204,12 +207,21 @@ export default function PatientsPage() {
                                 Inicio: {format(parseISO(attention.startDate), "dd 'de' MMMM 'de' yyyy", { locale: es })}
                               </Typography>
                             </Box>
-                            <Chip
-                              label={attention.status === 'IN_PROGRESS' ? 'En Progreso' : 'Completada'}
-                              color={attention.status === 'IN_PROGRESS' ? 'warning' : 'success'}
-                              variant="outlined"
-                              size="small"
-                            />
+                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+                              <Chip
+                                label={attention.status === 'IN_PROGRESS' ? 'En Progreso' : 'Completada'}
+                                color={attention.status === 'IN_PROGRESS' ? 'warning' : 'success'}
+                                variant="outlined"
+                                size="small"
+                              />
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => navigate(`/practitioner/patients/${patient.id}/attentions/${attention.id}/evolution`)}
+                              >
+                                Ver Evolución Clínica
+                              </Button>
+                            </Box>
                           </Box>
                         </Paper>
                       ))}

@@ -16,6 +16,7 @@ import TreatmentsPage from './pages/practitioner/TreatmentsPage';
 import AppointmentsPage from './pages/practitioner/AppointmentsPage';
 import AttentionsPage from './pages/practitioner/AttentionsPage';
 import PatientsPage from './pages/practitioner/PatientsPage';
+import PatientEvolutionPage from './pages/practitioner/PatientEvolutionPage';
 import FeedbackPage from './pages/practitioner/FeedbackPage';
 import ChatPage from './pages/practitioner/ChatPage';
 import PatientDashboardPage from './pages/patient/PatientDashboardPage';
@@ -63,6 +64,7 @@ function App() {
             <Route path="appointments" element={<AppointmentsPage />} />
             <Route path="attentions" element={<AttentionsPage />} />
             <Route path="patients" element={<PatientsPage />} />
+            <Route path="patients/:patientId/attentions/:attentionId/evolution" element={<PatientEvolutionPage />} />
             <Route path="feedback" element={<FeedbackPage />} />
             <Route path="chat" element={<ChatPage />} />
           </Route>
