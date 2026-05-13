@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import {
   Box,
   Typography,
@@ -7,7 +7,6 @@ import {
   Button,
   TextField,
   Stack,
-  Chip,
   Alert,
   CircularProgress,
   Divider,
@@ -26,6 +25,7 @@ import {
   getMyAttentions,
   getProgressNotes,
   addProgressNote,
+  finalizeAttention,
 } from '../../services/api/practitionerService';
 import {
   CancelAppointmentDialog,
@@ -39,13 +39,14 @@ import type {
 
 export default function PatientEvolutionPage() {
   const { patientId, attentionId } = useParams();
-  const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [attention, setAttention] = useState<AttentionResponseDTO | null>(null);
   const [notes, setNotes] = useState<ProgressNoteResponseDTO[]>([]);
   const [noteContent, setNoteContent] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [finalizingAttention, setFinalizingAttention] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
   const [cancelTarget, setCancelTarget] =
     useState<AppointmentResponseDTO | null>(null);
@@ -120,6 +121,24 @@ export default function PatientEvolutionPage() {
       setError('Error al agregar la evolución');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleFinalizeAttention = async () => {
+    if (!attention) return;
+    if (!window.confirm('¿Estás seguro de finalizar esta atención?')) return;
+
+    try {
+      setFinalizingAttention(true);
+      setError(null);
+      const updatedAttention = await finalizeAttention(attention.id);
+      setAttention(updatedAttention);
+      setSuccess('Atención finalizada exitosamente');
+    } catch (err) {
+      console.error('Error finalizing attention:', err);
+      setError('Error al finalizar la atención');
+    } finally {
+      setFinalizingAttention(false);
     }
   };
 
@@ -211,12 +230,28 @@ export default function PatientEvolutionPage() {
             </Typography>
           )}
         </Paper>
+
+        {attention?.status === 'IN_PROGRESS' && (
+          <Box sx={{ mt: 2 }}>
+            <Button
+              variant="contained"
+              color="success"
+              size="small"
+              onClick={() => void handleFinalizeAttention()}
+              disabled={finalizingAttention}
+              fullWidth
+            >
+              Finalizar Atención
+            </Button>
+          </Box>
+        )}
       </Box>
 
       <Box sx={{ flex: 1 }}>
         <Typography variant="h4" fontWeight={700} sx={{ mb: 3 }}>Evolución Clínica</Typography>
 
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+        {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
 
         <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
           <Button
@@ -348,6 +383,7 @@ export default function PatientEvolutionPage() {
             </Stack>
           )}
         </Paper>
+
       </Box>
 
       <CancelAppointmentDialog
