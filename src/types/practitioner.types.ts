@@ -22,6 +22,8 @@ export interface OfferedTreatmentResponseDTO {
   offerStartDate?: string; // Format: "YYYY-MM-DD"
   offerEndDate?: string; // Format: "YYYY-MM-DD"
   maxCompletedAttentions?: number;
+  completedAttentions?: number;
+  attendedPatientsCount?: number;
 }
 
 export interface AddOfferedTreatmentRequestDTO {

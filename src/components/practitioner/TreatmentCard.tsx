@@ -7,6 +7,7 @@ import {
   Chip,
   Divider,
   Paper,
+  LinearProgress,
   alpha,
 } from '@mui/material';
 import {
@@ -16,6 +17,7 @@ import {
   Schedule,
   Warning,
   TrackChanges,
+  CheckCircle,
 } from '@mui/icons-material';
 import type { OfferedTreatmentResponseDTO } from '../../types/practitioner.types';
 
@@ -31,11 +33,17 @@ const DAYS_MAP: Record<string, string> = {
 
 interface TreatmentCardProps {
   treatment: OfferedTreatmentResponseDTO;
+  completedPatientsCount?: number;
   onEdit: (treatment: OfferedTreatmentResponseDTO) => void;
   onDelete: (id: number) => void;
 }
 
-export default function TreatmentCard({ treatment, onEdit, onDelete }: TreatmentCardProps) {
+export default function TreatmentCard({
+  treatment,
+  completedPatientsCount,
+  onEdit,
+  onDelete,
+}: TreatmentCardProps) {
   // Extraer datos
   const {
     treatment: treatmentInfo,
@@ -46,6 +54,11 @@ export default function TreatmentCard({ treatment, onEdit, onDelete }: Treatment
     offerEndDate,
     maxCompletedAttentions,
   } = treatment;
+
+  const attendedPatients = completedPatientsCount ?? 0;
+  const patientQuota = maxCompletedAttentions ?? 0;
+  const hasProgressData = patientQuota > 0;
+  const progressValue = hasProgressData ? Math.min((attendedPatients / patientQuota) * 100, 100) : 0;
 
   // Agrupar horarios por día para mostrarlos de forma compacta
   const slotsByDay = availabilitySlots.reduce<Record<string, string[]>>((acc, slot) => {
@@ -198,12 +211,42 @@ export default function TreatmentCard({ treatment, onEdit, onDelete }: Treatment
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
                 <TrackChanges sx={{ fontSize: 18, color: 'secondary.main' }} />
                 <Typography variant="caption" fontWeight={700} color="text.secondary" textTransform="uppercase" letterSpacing={0.5}>
-                  Cupo máximo
+                  Cupo y progreso
                 </Typography>
               </Box>
-              <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
-                {maxCompletedAttentions} atenciones
-              </Typography>
+              {hasProgressData ? (
+                <>
+                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 1 }}>
+                    <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
+                      Cupo de atenciones
+                    </Typography>
+                    <Chip
+                      size="small"
+                      icon={<CheckCircle sx={{ fontSize: '0.95rem !important' }} />}
+                      label={`${attendedPatients} de ${maxCompletedAttentions}`}
+                      color={progressValue >= 100 ? 'success' : 'secondary'}
+                      variant="filled"
+                      sx={{ fontWeight: 700 }}
+                    />
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={progressValue}
+                    sx={{
+                      height: 8,
+                      borderRadius: 999,
+                      bgcolor: (theme) => alpha(theme.palette.secondary.main, 0.12),
+                      '& .MuiLinearProgress-bar': {
+                        borderRadius: 999,
+                      },
+                    }}
+                  />
+                </>
+              ) : (
+                <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
+                  {maxCompletedAttentions} atenciones máximas
+                </Typography>
+              )}
             </Box>
           )}
         </Box>

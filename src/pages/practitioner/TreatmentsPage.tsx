@@ -28,6 +28,7 @@ import TreatmentCard from '../../components/practitioner/TreatmentCard';
 import {
   getMyOfferedTreatments,
   getAllTreatments,
+  getMyAttentions,
   addTreatmentToCatalog,
   updateOfferedTreatment,
   removeFromCatalog,
@@ -39,6 +40,7 @@ import type {
   UpdateOfferedTreatmentRequestDTO,
   AvailabilitySlotDTO,
 } from '../../types/practitioner.types';
+import type { AttentionResponseDTO } from '../../types/attention.types';
 
 const DAYS_OF_WEEK = [
   { value: 'MONDAY', label: 'Lunes' },
@@ -57,6 +59,7 @@ export default function TreatmentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [offeredTreatments, setOfferedTreatments] = useState<OfferedTreatmentResponseDTO[]>([]);
+  const [attentions, setAttentions] = useState<AttentionResponseDTO[]>([]);
   const [allTreatments, setAllTreatments] = useState<TreatmentResponseDTO[]>([]);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
@@ -81,9 +84,14 @@ export default function TreatmentsPage() {
     try {
       setLoading(true);
       setError(null);
-      const [offered, all] = await Promise.all([getMyOfferedTreatments(), getAllTreatments()]);
+      const [offered, all, attentionsData] = await Promise.all([
+        getMyOfferedTreatments(),
+        getAllTreatments(),
+        getMyAttentions(),
+      ]);
       setOfferedTreatments(offered);
       setAllTreatments(all);
+      setAttentions(attentionsData);
     } catch (err) {
       console.error('Error loading treatments:', err);
       setError('Error al cargar los tratamientos');
@@ -242,11 +250,22 @@ export default function TreatmentsPage() {
         <Grid container spacing={3}>
           {offeredTreatments.map((treatment) => (
             <Grid size={{ xs: 12, md: 6, lg: 4 }} key={treatment.id}>
+              {(() => {
+                const completedPatientsCount = new Set(
+                  attentions
+                    .filter((attention) => attention.treatmentId === treatment.treatment.id && attention.status === 'COMPLETED')
+                    .map((attention) => attention.patientId)
+                ).size;
+
+                return (
               <TreatmentCard
                 treatment={treatment}
+                completedPatientsCount={completedPatientsCount}
                 onEdit={handleOpenEditDialog}
                 onDelete={handleDelete}
               />
+                );
+              })()}
             </Grid>
           ))}
         </Grid>
