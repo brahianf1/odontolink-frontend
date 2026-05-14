@@ -107,6 +107,24 @@ export const validateMaxLength = (
   return null;
 };
 
+export const validateTreatmentName = (value: string): string | null => {
+  if (!isNonEmpty(value)) return 'El nombre del tratamiento es obligatorio';
+  if (value.length > 100) return 'El nombre no puede superar los 100 caracteres';
+  return null;
+};
+
+export const validateTreatmentDescription = (value: string): string | null => {
+  if (!value) return null;
+  if (value.length > 500) return 'La descripción no puede superar los 500 caracteres';
+  return null;
+};
+
+export const validateTreatmentArea = (value: string): string | null => {
+  if (!value) return null;
+  if (value.length > 50) return 'El área no puede superar los 50 caracteres';
+  return null;
+};
+
 export const collectErrors = (
   results: Record<string, string | null>
 ): Record<string, string> => {

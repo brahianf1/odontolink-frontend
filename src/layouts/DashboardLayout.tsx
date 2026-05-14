@@ -30,6 +30,7 @@ const pageTitles: Record<string, string> = {
   // Rutas de administrador
   '/admin/dashboard': 'Dashboard',
   '/admin/users': 'Gestión de Usuarios',
+  '/admin/treatments': 'Catálogo de Tratamientos',
   '/admin/settings': 'Configuración Institucional',
 };
 
