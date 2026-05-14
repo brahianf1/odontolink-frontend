@@ -5,8 +5,6 @@ import {
   Button,
   Card,
   CardContent,
-  CardActions,
-  Chip,
   Alert,
   CircularProgress,
   Dialog,
@@ -24,10 +22,13 @@ import {
   Paper,
   useMediaQuery,
 } from '@mui/material';
-import { Add, Edit, Delete, Schedule, MedicalServices, Close } from '@mui/icons-material';
+import { Add, Delete, MedicalServices, Close } from '@mui/icons-material';
+import AddTreatmentDialog from '../../components/practitioner/AddTreatmentDialog';
+import TreatmentCard from '../../components/practitioner/TreatmentCard';
 import {
   getMyOfferedTreatments,
   getAllTreatments,
+  getMyAttentions,
   addTreatmentToCatalog,
   updateOfferedTreatment,
   removeFromCatalog,
@@ -39,6 +40,7 @@ import type {
   UpdateOfferedTreatmentRequestDTO,
   AvailabilitySlotDTO,
 } from '../../types/practitioner.types';
+import type { AttentionResponseDTO } from '../../types/attention.types';
 
 const DAYS_OF_WEEK = [
   { value: 'MONDAY', label: 'Lunes' },
@@ -57,19 +59,26 @@ export default function TreatmentsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [offeredTreatments, setOfferedTreatments] = useState<OfferedTreatmentResponseDTO[]>([]);
+  const [attentions, setAttentions] = useState<AttentionResponseDTO[]>([]);
   const [allTreatments, setAllTreatments] = useState<TreatmentResponseDTO[]>([]);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editMode, setEditMode] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedTreatment, setSelectedTreatment] = useState<OfferedTreatmentResponseDTO | null>(null);
   const [formData, setFormData] = useState<{
     treatmentId: number | '';
     requirements: string;
     durationInMinutes: number | '';
+    offerStartDate: string;
+    offerEndDate: string;
+    maxCompletedAttentions: number | '';
     availabilitySlots: AvailabilitySlotDTO[];
   }>({
     treatmentId: '',
     requirements: '',
     durationInMinutes: '',
+    offerStartDate: '',
+    offerEndDate: '',
+    maxCompletedAttentions: '',
     availabilitySlots: [],
   });
 
@@ -81,9 +90,14 @@ export default function TreatmentsPage() {
     try {
       setLoading(true);
       setError(null);
-      const [offered, all] = await Promise.all([getMyOfferedTreatments(), getAllTreatments()]);
+      const [offered, all, attentionsData] = await Promise.all([
+        getMyOfferedTreatments(),
+        getAllTreatments(),
+        getMyAttentions(),
+      ]);
       setOfferedTreatments(offered);
       setAllTreatments(all);
+      setAttentions(attentionsData);
     } catch (err) {
       console.error('Error loading treatments:', err);
       setError('Error al cargar los tratamientos');
@@ -92,33 +106,35 @@ export default function TreatmentsPage() {
     }
   };
 
-  const handleOpenDialog = (treatment?: OfferedTreatmentResponseDTO) => {
-    if (treatment) {
-      setEditMode(true);
-      setSelectedTreatment(treatment);
-      setFormData({
-        treatmentId: treatment.treatment.id,
-        requirements: treatment.requirements || '',
-        durationInMinutes: treatment.durationInMinutes,
-        availabilitySlots: treatment.availabilitySlots,
-      });
-    } else {
-      setEditMode(false);
-      setSelectedTreatment(null);
-      setFormData({
-        treatmentId: '',
-        requirements: '',
-        durationInMinutes: '',
-        availabilitySlots: [],
-      });
-    }
-    setDialogOpen(true);
+  const handleOpenAddDialog = () => {
+    setAddDialogOpen(true);
   };
 
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    setEditMode(false);
+  const handleOpenEditDialog = (treatment: OfferedTreatmentResponseDTO) => {
+    setSelectedTreatment(treatment);
+    setFormData({
+      treatmentId: treatment.treatment.id,
+      requirements: treatment.requirements || '',
+      durationInMinutes: treatment.durationInMinutes,
+      offerStartDate: treatment.offerStartDate || '',
+      offerEndDate: treatment.offerEndDate || '',
+      maxCompletedAttentions: treatment.maxCompletedAttentions ?? '',
+      availabilitySlots: treatment.availabilitySlots,
+    });
+    setEditDialogOpen(true);
+  };
+
+  const handleCloseEditDialog = () => {
+    setEditDialogOpen(false);
     setSelectedTreatment(null);
+  };
+
+  const handleAddSubmit = async (data: AddOfferedTreatmentRequestDTO) => {
+    setError(null);
+    setSuccess(null);
+    await addTreatmentToCatalog(data);
+    setSuccess('Tratamiento agregado exitosamente');
+    loadData();
   };
 
   const handleAddSlot = () => {
@@ -144,36 +160,35 @@ export default function TreatmentsPage() {
     setFormData({ ...formData, availabilitySlots: newSlots });
   };
 
-  const handleSubmit = async () => {
+  const handleEditSubmit = async () => {
     try {
       setError(null);
       setSuccess(null);
 
-      if (!formData.treatmentId || !formData.durationInMinutes || formData.availabilitySlots.length === 0) {
+      if (!formData.durationInMinutes || formData.availabilitySlots.length === 0) {
         setError('Por favor completa todos los campos requeridos');
         return;
       }
 
-      if (editMode && selectedTreatment) {
+      if (!formData.offerStartDate || !formData.offerEndDate || !formData.maxCompletedAttentions) {
+        setError('Por favor completa el cupo y el período de la oferta');
+        return;
+      }
+
+      if (selectedTreatment) {
         const updateData: UpdateOfferedTreatmentRequestDTO = {
           requirements: formData.requirements || undefined,
           durationInMinutes: Number(formData.durationInMinutes),
           availabilitySlots: formData.availabilitySlots,
+          offerStartDate: formData.offerStartDate,
+          offerEndDate: formData.offerEndDate,
+          maxCompletedAttentions: Number(formData.maxCompletedAttentions),
         };
         await updateOfferedTreatment(selectedTreatment.id, updateData);
         setSuccess('Tratamiento actualizado exitosamente');
-      } else {
-        const addData: AddOfferedTreatmentRequestDTO = {
-          treatmentId: Number(formData.treatmentId),
-          requirements: formData.requirements || undefined,
-          durationInMinutes: Number(formData.durationInMinutes),
-          availabilitySlots: formData.availabilitySlots,
-        };
-        await addTreatmentToCatalog(addData);
-        setSuccess('Tratamiento agregado exitosamente');
       }
 
-      handleCloseDialog();
+      handleCloseEditDialog();
       loadData();
     } catch (err: unknown) {
       console.error('Error saving treatment:', err);
@@ -217,7 +232,7 @@ export default function TreatmentsPage() {
             Administra tu catálogo de tratamientos y disponibilidad
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenDialog()}>
+        <Button variant="contained" startIcon={<Add />} onClick={handleOpenAddDialog}>
           Agregar Tratamiento
         </Button>
       </Box>
@@ -243,7 +258,7 @@ export default function TreatmentsPage() {
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
               Comienza agregando tratamientos a tu catálogo personal
             </Typography>
-            <Button variant="contained" startIcon={<Add />} onClick={() => handleOpenDialog()}>
+            <Button variant="contained" startIcon={<Add />} onClick={handleOpenAddDialog}>
               Agregar Mi Primer Tratamiento
             </Button>
           </CardContent>
@@ -252,89 +267,40 @@ export default function TreatmentsPage() {
         <Grid container spacing={3}>
           {offeredTreatments.map((treatment) => (
             <Grid size={{ xs: 12, md: 6, lg: 4 }} key={treatment.id}>
-              <Card
-                sx={{
-                  height: '100%',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  borderRadius: 3,
-                  transition: 'box-shadow 0.2s',
-                  '&:hover': {
-                    boxShadow: theme.shadows[4],
-                  },
-                }}
-              >
-                <CardContent sx={{ flexGrow: 1 }}>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
-                    <Typography variant="h6" fontWeight={600}>
-                      {treatment.treatment.name}
-                    </Typography>
-                    <Chip label={treatment.treatment.area} size="small" color="primary" />
-                  </Box>
+              {(() => {
+                const completedPatientsCount = new Set(
+                  attentions
+                    .filter((attention) => attention.treatmentId === treatment.treatment.id && attention.status === 'COMPLETED')
+                    .map((attention) => attention.patientId)
+                ).size;
 
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    {treatment.treatment.description}
-                  </Typography>
-
-                  {treatment.requirements && (
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                        Requisitos:
-                      </Typography>
-                      <Typography variant="body2">{treatment.requirements}</Typography>
-                    </Box>
-                  )}
-
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                    <Schedule fontSize="small" color="action" />
-                    <Typography variant="body2">{treatment.durationInMinutes} minutos</Typography>
-                  </Box>
-
-                  <Box>
-                    <Typography variant="caption" color="text.secondary" fontWeight={600}>
-                      Disponibilidad:
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                      {treatment.availabilitySlots.map((slot, index) => (
-                        <Chip
-                          key={index}
-                          label={`${DAYS_OF_WEEK.find((d) => d.value === slot.dayOfWeek)?.label}`}
-                          size="small"
-                          variant="outlined"
-                        />
-                      ))}
-                    </Box>
-                  </Box>
-                </CardContent>
-
-                <CardActions sx={{ justifyContent: 'flex-end', px: 2, pb: 2 }}>
-                  <IconButton
-                    size="small"
-                    color="primary"
-                    onClick={() => handleOpenDialog(treatment)}
-                    title="Editar"
-                  >
-                    <Edit />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    color="error"
-                    onClick={() => handleDelete(treatment.id)}
-                    title="Eliminar"
-                  >
-                    <Delete />
-                  </IconButton>
-                </CardActions>
-              </Card>
+                return (
+              <TreatmentCard
+                treatment={treatment}
+                completedPatientsCount={completedPatientsCount}
+                onEdit={handleOpenEditDialog}
+                onDelete={handleDelete}
+              />
+                );
+              })()}
             </Grid>
           ))}
         </Grid>
       )}
 
-      {/* Add/Edit Dialog */}
+      {/* Add Treatment Dialog (Stepper) */}
+      <AddTreatmentDialog
+        open={addDialogOpen}
+        onClose={() => setAddDialogOpen(false)}
+        masterTreatments={allTreatments}
+        offeredTreatments={offeredTreatments}
+        onSubmit={handleAddSubmit}
+      />
+
+      {/* Edit Treatment Dialog */}
       <Dialog 
-        open={dialogOpen} 
-        onClose={handleCloseDialog} 
+        open={editDialogOpen} 
+        onClose={handleCloseEditDialog} 
         maxWidth="sm" 
         fullWidth
         fullScreen={isMobile}
@@ -360,13 +326,13 @@ export default function TreatmentsPage() {
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
             <MedicalServices sx={{ color: 'primary.main', fontSize: { xs: 24, sm: 28 } }} />
             <Typography variant="h6" fontWeight={700} fontSize={{ xs: '1.1rem', sm: '1.25rem' }}>
-              {editMode ? 'Editar Tratamiento' : 'Agregar Tratamiento'}
+              Editar Tratamiento
             </Typography>
           </Box>
           <IconButton
             edge="end"
             color="inherit"
-            onClick={handleCloseDialog}
+            onClick={handleCloseEditDialog}
             aria-label="cerrar"
             size="small"
             sx={{ color: 'text.secondary' }}
@@ -376,35 +342,57 @@ export default function TreatmentsPage() {
         </DialogTitle>
         <DialogContent sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 2 }}>
           <Stack spacing={3}>
-            {!editMode && (
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
               <TextField
-                select
-                label="Tratamiento"
-                value={formData.treatmentId}
-                onChange={(e) => setFormData({ ...formData, treatmentId: Number(e.target.value) })}
+                label="Cupo de atenciones"
+                type="number"
+                value={formData.maxCompletedAttentions}
+                onChange={(e) => setFormData({ ...formData, maxCompletedAttentions: Number(e.target.value) })}
                 fullWidth
                 required
-              >
-                {allTreatments
-                  .filter((t) => !offeredTreatments.some((ot) => ot.treatment.id === t.id))
-                  .map((treatment) => (
-                    <MenuItem key={treatment.id} value={treatment.id}>
-                      {treatment.name} - {treatment.area}
-                    </MenuItem>
-                  ))}
-              </TextField>
-            )}
+                inputProps={{ min: 1 }}
+                helperText="Cantidad máxima de atenciones completadas"
+              />
+              <TextField
+                label="Duración (minutos)"
+                type="number"
+                value={formData.durationInMinutes}
+                onChange={(e) => setFormData({ ...formData, durationInMinutes: Number(e.target.value) })}
+                fullWidth
+                required
+                inputProps={{ min: 15, max: 240, step: 15 }}
+                helperText="Duración estimada del tratamiento"
+              />
+            </Box>
 
-            <TextField
-              label="Duración (minutos)"
-              type="number"
-              value={formData.durationInMinutes}
-              onChange={(e) => setFormData({ ...formData, durationInMinutes: Number(e.target.value) })}
-              fullWidth
-              required
-              inputProps={{ min: 15, max: 240, step: 15 }}
-              helperText="Duración estimada del tratamiento"
-            />
+            <Box>
+              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5 }}>
+                Período de la oferta *
+              </Typography>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr auto 1fr' }, gap: 2, alignItems: 'center' }}>
+                <TextField
+                  label="Fecha inicio"
+                  type="date"
+                  value={formData.offerStartDate}
+                  onChange={(e) => setFormData({ ...formData, offerStartDate: e.target.value })}
+                  fullWidth
+                  required
+                  InputLabelProps={{ shrink: true }}
+                />
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', display: { xs: 'none', sm: 'block' } }}>
+                  hasta
+                </Typography>
+                <TextField
+                  label="Fecha fin"
+                  type="date"
+                  value={formData.offerEndDate}
+                  onChange={(e) => setFormData({ ...formData, offerEndDate: e.target.value })}
+                  fullWidth
+                  required
+                  InputLabelProps={{ shrink: true }}
+                />
+              </Box>
+            </Box>
 
             <TextField
               label="Requisitos"
@@ -538,7 +526,7 @@ export default function TreatmentsPage() {
           }}
         >
           <Button 
-            onClick={handleCloseDialog}
+            onClick={handleCloseEditDialog}
             variant="outlined"
             fullWidth={isMobile}
             sx={{
@@ -552,7 +540,7 @@ export default function TreatmentsPage() {
             Cancelar
           </Button>
           <Button 
-            onClick={handleSubmit} 
+            onClick={handleEditSubmit} 
             variant="contained"
             fullWidth={isMobile}
             sx={{
@@ -563,7 +551,7 @@ export default function TreatmentsPage() {
               py: 1,
             }}
           >
-            {editMode ? 'Guardar Cambios' : 'Agregar Tratamiento'}
+            Guardar Cambios
           </Button>
         </DialogActions>
       </Dialog>

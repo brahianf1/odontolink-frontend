@@ -16,6 +16,7 @@ import TreatmentsPage from './pages/practitioner/TreatmentsPage';
 import AppointmentsPage from './pages/practitioner/AppointmentsPage';
 import AttentionsPage from './pages/practitioner/AttentionsPage';
 import PatientsPage from './pages/practitioner/PatientsPage';
+import PatientEvolutionPage from './pages/practitioner/PatientEvolutionPage';
 import FeedbackPage from './pages/practitioner/FeedbackPage';
 import ChatPage from './pages/practitioner/ChatPage';
 import PatientDashboardPage from './pages/patient/PatientDashboardPage';
@@ -25,6 +26,7 @@ import MyAttentionsPage from './pages/patient/MyAttentionsPage';
 import PatientFeedbackPage from './pages/patient/PatientFeedbackPage';
 import PatientChatPage from './pages/patient/PatientChatPage';
 import PatientProfilePage from './pages/patient/PatientProfilePage';
+import BookingConfirmationPage from './pages/patient/BookingConfirmationPage';
 
 function App() {
   const { mode } = useThemeStore();
@@ -62,11 +64,22 @@ function App() {
             <Route path="appointments" element={<AppointmentsPage />} />
             <Route path="attentions" element={<AttentionsPage />} />
             <Route path="patients" element={<PatientsPage />} />
+            <Route path="patients/:patientId/attentions/:attentionId/evolution" element={<PatientEvolutionPage />} />
             <Route path="feedback" element={<FeedbackPage />} />
             <Route path="chat" element={<ChatPage />} />
           </Route>
 
           {/* Patient Dashboard Routes */}
+          {/* Booking confirmation page (no dashboard layout) */}
+          <Route
+            path="/patient/booking-confirmed"
+            element={
+              <ProtectedRoute allowedRoles={["PATIENT"]}>
+                <BookingConfirmationPage />
+              </ProtectedRoute>
+            }
+          />
+
           <Route
             path="/patient/*"
             element={

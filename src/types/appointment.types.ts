@@ -5,11 +5,13 @@ export interface AppointmentRequestDTO {
   appointmentTime: string;
 }
 
+export type AppointmentStatus = 'SCHEDULED' | 'COMPLETED' | 'CANCELLED' | 'NO_SHOW';
+
 export interface AppointmentResponseDTO {
   id: number;
   appointmentTime: string;
   motive?: string;
-  status: string;
+  status: AppointmentStatus;
   durationInMinutes: number;
   treatmentId: number;
   treatmentName: string;
@@ -19,5 +21,3 @@ export interface AppointmentResponseDTO {
   practitionerName: string;
   attentionId?: number;
 }
-
-export type AppointmentStatus = 'SCHEDULED' | 'CONFIRMED' | 'CANCELLED' | 'COMPLETED' | 'NO_SHOW';

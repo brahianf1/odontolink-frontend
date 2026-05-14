@@ -4,13 +4,17 @@ import type { AttentionResponseDTO } from '../../types/attention.types';
 import type { OfferedTreatmentResponseDTO } from '../../types/practitioner.types';
 import type { FeedbackResponseDTO, CreateFeedbackRequestDTO } from '../../types/feedback.types';
 import type { AppointmentBookingRequest } from '../../types/patient.types';
+import type { PageResponse } from '../../types/common.types';
 
 const patientService = {
   // Get available treatments catalog (RF08, RF09)
   getAvailableTreatments: async (treatmentId?: number): Promise<OfferedTreatmentResponseDTO[]> => {
     const params = treatmentId ? { treatmentId } : {};
-    const response = await apiClient.get<OfferedTreatmentResponseDTO[]>('/api/patient/offered-treatments', { params });
-    return response.data;
+    const response = await apiClient.get<PageResponse<OfferedTreatmentResponseDTO>>(
+      '/api/patient/offered-treatments',
+      { params }
+    );
+    return response.data.content;
   },
 
   // Get available time slots for a treatment (RF10)
@@ -41,8 +45,14 @@ const patientService = {
   },
 
   // Get feedback for a specific attention
-  getFeedbackForAttention: async (attentionId: number): Promise<FeedbackResponseDTO> => {
-    const response = await apiClient.get<FeedbackResponseDTO>(`/api/feedback/attention/${attentionId}`);
+  getFeedbackForAttention: async (attentionId: number): Promise<FeedbackResponseDTO[]> => {
+    const response = await apiClient.get<FeedbackResponseDTO[]>(`/api/feedback/attention/${attentionId}`);
+    return response.data;
+  },
+
+  // Get feedback received by the authenticated patient
+  getReceivedFeedback: async (): Promise<FeedbackResponseDTO[]> => {
+    const response = await apiClient.get<FeedbackResponseDTO[]>('/api/patient/feedback/received');
     return response.data;
   },
 

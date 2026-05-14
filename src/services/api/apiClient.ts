@@ -34,8 +34,10 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
+    const requestUrl = error.config?.url || '';
+
     // Handle 401 Unauthorized - logout user
-    if (error.response?.status === 401) {
+    if (error.response?.status === 401 && !requestUrl.includes('/auth/login')) {
       useAuthStore.getState().logout();
       window.location.href = '/login';
     }

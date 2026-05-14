@@ -5,244 +5,260 @@ import {
   Alert,
   CircularProgress,
   Paper,
-  Button,
-  TextField,
   Rating,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Chip,
+  Divider,
 } from '@mui/material';
-import { Star as StarIcon } from '@mui/icons-material';
-import { format } from 'date-fns';
+import { MedicalServices as MedicalServicesIcon, Star as StarIcon } from '@mui/icons-material';
+import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useLocation } from 'react-router-dom';
 import patientService from '../../services/api/patientService';
 import type { AttentionResponseDTO } from '../../types/attention.types';
+import type { FeedbackResponseDTO } from '../../types/feedback.types';
+
+interface FeedbackItem {
+  attention: AttentionResponseDTO;
+  feedback: FeedbackResponseDTO;
+}
 
 export default function PatientFeedbackPage() {
-  const location = useLocation();
-  const preselectedAttentionId = location.state?.attentionId;
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [attentions, setAttentions] = useState<AttentionResponseDTO[]>([]);
-  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
-  const [selectedAttention, setSelectedAttention] = useState<AttentionResponseDTO | null>(null);
-  const [rating, setRating] = useState<number>(0);
-  const [comment, setComment] = useState('');
-  const [submitting, setSubmitting] = useState(false);
+  const [feedbackItems, setFeedbackItems] = useState<FeedbackItem[]>([]);
 
   useEffect(() => {
-    loadCompletedAttentions();
-  }, []);
+    const loadFeedback = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  useEffect(() => {
-    if (preselectedAttentionId && attentions.length > 0) {
-      const attention = attentions.find((att) => att.id === preselectedAttentionId);
-      if (attention) {
-        handleOpenFeedbackDialog(attention);
+        const attentions = await patientService.getMyAttentions();
+        const completedAttentions = attentions.filter((attention) => attention.status === 'COMPLETED');
+
+        let receivedFeedback = [] as FeedbackResponseDTO[];
+
+        try {
+          receivedFeedback = await patientService.getReceivedFeedback();
+        } catch (receivedFeedbackError) {
+          console.warn('getReceivedFeedback failed, falling back to attention-based lookup', receivedFeedbackError);
+
+          const feedbackByAttention = await Promise.all(
+            completedAttentions.map(async (attention) => {
+              try {
+                return await patientService.getFeedbackForAttention(attention.id);
+              } catch {
+                return [] as FeedbackResponseDTO[];
+              }
+            })
+          );
+
+          receivedFeedback = feedbackByAttention.flat();
+        }
+
+        const isPractitionerRole = (role?: string | null) => {
+          if (!role) return false;
+          const r = String(role).toUpperCase();
+          return r.includes('PRACT') || r.includes('PRAC');
+        };
+
+        const feedbackFromPractitioner = receivedFeedback.filter((feedback) =>
+          isPractitionerRole(feedback.submittedByRole)
+        );
+
+        // Build items, synthesizing attention data when missing to ensure we display something
+        const feedbackData: FeedbackItem[] = feedbackFromPractitioner
+          .map((feedback) => {
+            let attention = completedAttentions.find((item) => item.id === feedback.attentionId);
+            if (!attention) {
+              // synthesize minimal attention object from feedback
+              attention = {
+                id: feedback.attentionId,
+                status: 'COMPLETED',
+                startDate: feedback.createdAt || new Date().toISOString(),
+                patientId: 0,
+                patientName: feedback.patientName || '',
+                practitionerId: 0,
+                practitionerName: feedback.practitionerName || '',
+                treatmentId: 0,
+                treatmentName: feedback.treatmentName || 'Sin tratamiento',
+                appointments: [],
+              } as AttentionResponseDTO;
+            }
+
+            return { attention, feedback } as FeedbackItem;
+          })
+          .filter(Boolean);
+
+        setFeedbackItems(feedbackData);
+
+        // removed diagnostics text (no UI debug output)
+      } catch (err) {
+        console.error('Error loading feedback:', err);
+        setError('Error al cargar el feedback recibido');
+      } finally {
+        setLoading(false);
       }
-    }
-  }, [preselectedAttentionId, attentions]);
+    };
 
-  const loadCompletedAttentions = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await patientService.getMyAttentions();
-      const completed = data.filter((att) => att.status === 'COMPLETED');
-      setAttentions(completed);
-    } catch (err) {
-      console.error('Error loading attentions:', err);
-      setError('Error al cargar las atenciones completadas');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleOpenFeedbackDialog = (attention: AttentionResponseDTO) => {
-    setSelectedAttention(attention);
-    setRating(0);
-    setComment('');
-    setError(null);
-    setSuccess(null);
-    setFeedbackDialogOpen(true);
-  };
-
-  const handleCloseFeedbackDialog = () => {
-    setFeedbackDialogOpen(false);
-    setSelectedAttention(null);
-    setRating(0);
-    setComment('');
-  };
-
-  const handleSubmitFeedback = async () => {
-    if (!selectedAttention) return;
-
-    if (rating === 0) {
-      setError('Por favor selecciona una calificación');
-      return;
-    }
-
-    try {
-      setSubmitting(true);
-      setError(null);
-      await patientService.createFeedback({
-        attentionId: selectedAttention.id,
-        rating,
-        comment: comment.trim() || undefined,
-      });
-      setSuccess('Calificación enviada exitosamente');
-      handleCloseFeedbackDialog();
-      loadCompletedAttentions();
-    } catch (err: any) {
-      console.error('Error submitting feedback:', err);
-      setError(err.response?.data?.message || 'Error al enviar la calificación');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    void loadFeedback();
+  }, []);
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <CircularProgress size={60} />
       </Box>
     );
   }
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight="bold" gutterBottom>
-        Calificaciones
+      <Typography variant="h4" fontWeight={700} sx={{ mb: 1 }}>
+        Feedback Recibido
       </Typography>
-      <Typography variant="body1" color="text.secondary" paragraph>
-        Califica las atenciones recibidas para ayudar a mejorar la calidad del servicio.
+      <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
+        Revisa las evaluaciones que tu practicante dejó sobre tus atenciones.
       </Typography>
 
+      {/* diagnostics removed: no debug string shown in UI */}
+
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+        <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
       )}
 
-      {success && (
-        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
-          {success}
-        </Alert>
-      )}
-
-      {/* Completed Attentions */}
-      {attentions.length === 0 ? (
-        <Alert severity="info">
-          No tienes atenciones completadas para calificar en este momento.
-        </Alert>
+      {feedbackItems.length === 0 ? (
+        <Paper
+          sx={{
+            textAlign: 'center',
+            py: 8,
+            px: 3,
+            borderRadius: 3,
+            border: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          <StarIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+          <Typography variant="h6" color="text.secondary" gutterBottom>
+            Aún no tienes feedback recibido
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Las evaluaciones de tus practicantes aparecerán aquí una vez que registren feedback sobre tus atenciones.
+          </Typography>
+        </Paper>
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {attentions.map((attention) => (
-            <Paper key={attention.id} sx={{ p: 3 }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
-                <Box sx={{ flexGrow: 1 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <Typography variant="h6" fontWeight="bold">
-                      {attention.treatmentName}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+          {feedbackItems.map(({ attention, feedback }) => (
+            <Paper
+              key={feedback.id}
+              sx={{
+                p: { xs: 2.5, md: 3 },
+                borderRadius: 3,
+                border: '1px solid',
+                borderColor: 'divider',
+                borderLeft: '4px solid',
+                borderLeftColor: 'primary.main',
+                transition: 'all 0.25s ease',
+                '&:hover': {
+                  boxShadow: (theme) => theme.shadows[4],
+                  borderColor: 'primary.main',
+                },
+              }}
+            >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2, mb: 2 }}>
+                <Box sx={{ flex: 1 }}>
+                  <Chip
+                    icon={<MedicalServicesIcon />}
+                    label="Practicante"
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    sx={{ fontWeight: 600, mb: 1.5 }}
+                  />
+                  <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2 }}>
+                    Feedback recibido en {attention.treatmentName}
+                  </Typography>
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.25, mt: 1.5 }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Por: <strong>{feedback.submittedByName || feedback.practitionerName}</strong>
                     </Typography>
-                    <Chip label="Completada" color="success" size="small" />
+                    <Chip
+                      label={attention.treatmentName}
+                      size="small"
+                      variant="outlined"
+                      sx={{ bgcolor: 'background.paper' }}
+                    />
                   </Box>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
-                    Practicante: {attention.practitionerName}
+                </Box>
+                <Chip
+                  label={format(parseISO(feedback.createdAt), 'dd/MM/yyyy', { locale: es })}
+                  size="small"
+                  sx={{ bgcolor: 'action.hover', fontWeight: 600 }}
+                />
+              </Box>
+
+              <Divider sx={{ my: 2.5 }} />
+
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 2.25,
+                  borderRadius: 2,
+                  bgcolor: 'action.hover',
+                  border: '1px solid',
+                  borderColor: 'divider',
+                }}
+              >
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center', mb: 1.5 }}>
+                  <Typography variant="subtitle1" fontWeight={700}>
+                    Calificación general
+                  </Typography>
+                  <Box sx={{ textAlign: 'right' }}>
+                    <Rating value={feedback.rating} readOnly size="medium" />
+                    <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">
+                      {feedback.rating}/5
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Paciente: <strong>{attention.patientName}</strong>
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    Fecha de inicio: {format(new Date(attention.startDate), "d 'de' MMMM, yyyy", { locale: es })}
+                    Atención:{' '}
+                    <strong>{format(parseISO(attention.startDate), "d 'de' MMMM, yyyy", { locale: es })}</strong>
                   </Typography>
-                  {attention.appointments && attention.appointments.length > 0 && (
-                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-                      Total de citas: {attention.appointments.length}
-                    </Typography>
-                  )}
                 </Box>
-                <Button
-                  variant="contained"
-                  startIcon={<StarIcon />}
-                  onClick={() => handleOpenFeedbackDialog(attention)}
+              </Paper>
+
+              <Box sx={{ mt: 2.5 }}>
+                <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+                  Comentario
+                </Typography>
+                <Paper
+                  variant="outlined"
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    borderColor: 'divider',
+                    bgcolor: 'background.paper',
+                  }}
                 >
-                  Calificar
-                </Button>
+                  <Typography
+                    variant="body2"
+                    color={feedback.comment ? 'text.primary' : 'text.secondary'}
+                    sx={{ fontStyle: feedback.comment ? 'italic' : 'normal', whiteSpace: 'pre-wrap' }}
+                  >
+                    {feedback.comment || 'Sin comentario.'}
+                  </Typography>
+                </Paper>
               </Box>
             </Paper>
           ))}
         </Box>
       )}
-
-      {/* Feedback Dialog */}
-      <Dialog open={feedbackDialogOpen} onClose={handleCloseFeedbackDialog} maxWidth="sm" fullWidth>
-        <DialogTitle>Calificar Atención</DialogTitle>
-        <DialogContent>
-          {selectedAttention && (
-            <Box sx={{ mb: 3, mt: 1 }}>
-              <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                {selectedAttention.treatmentName}
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                Practicante: {selectedAttention.practitionerName}
-              </Typography>
-            </Box>
-          )}
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          <Box sx={{ mb: 3 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              Calificación *
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Rating
-                value={rating}
-                onChange={(_, newValue) => setRating(newValue || 0)}
-                size="large"
-                precision={1}
-              />
-              {rating > 0 && (
-                <Typography variant="body2" color="text.secondary">
-                  ({rating} {rating === 1 ? 'estrella' : 'estrellas'})
-                </Typography>
-              )}
-            </Box>
-          </Box>
-
-          <TextField
-            fullWidth
-            multiline
-            rows={4}
-            label="Comentarios (opcional)"
-            placeholder="Comparte tu experiencia con este practicante..."
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            inputProps={{ maxLength: 1000 }}
-            helperText={`${comment.length}/1000 caracteres`}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={handleCloseFeedbackDialog} disabled={submitting}>
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSubmitFeedback}
-            variant="contained"
-            disabled={rating === 0 || submitting}
-            startIcon={submitting ? <CircularProgress size={16} /> : null}
-          >
-            {submitting ? 'Enviando...' : 'Enviar Calificación'}
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }

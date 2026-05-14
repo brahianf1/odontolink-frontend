@@ -147,12 +147,6 @@ const RegisterPatientPage = () => {
               </Typography>
             </Box>
 
-            {error && (
-              <Alert severity="error" sx={{ mb: 3 }}>
-                {error}
-              </Alert>
-            )}
-
             <form onSubmit={handleSubmit}>
               <Stack spacing={3}>
                 {/* Personal Information */}
@@ -377,6 +371,12 @@ const RegisterPatientPage = () => {
                     />
                   </Stack>
                 </Box>
+
+                {error && (
+                  <Alert severity="error">
+                    {error}
+                  </Alert>
+                )}
 
                 <Button
                   type="submit"

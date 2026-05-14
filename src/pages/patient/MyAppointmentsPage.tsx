@@ -106,7 +106,7 @@ export default function MyAppointmentsPage() {
   };
 
   const upcomingAppointments = appointments.filter(
-    (app) => app.status === 'SCHEDULED' || app.status === 'CONFIRMED'
+    (app) => app.status === 'SCHEDULED'
   );
   const pastAppointments = appointments.filter(
     (app) => app.status === 'COMPLETED' || app.status === 'CANCELLED' || app.status === 'NO_SHOW'
@@ -329,7 +329,7 @@ export default function MyAppointmentsPage() {
               </Box>
 
               {/* Actions */}
-              {tabValue === 0 && (appointment.status === 'SCHEDULED' || appointment.status === 'CONFIRMED') && (
+              {tabValue === 0 && appointment.status === 'SCHEDULED' && (
                 <Box 
                   sx={{ 
                     display: 'flex', 

@@ -45,3 +45,6 @@ secrets.json
 .temp
 tmp/
 temp/
+
+# Claude
+.claude/

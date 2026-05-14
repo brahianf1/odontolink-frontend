@@ -39,12 +39,10 @@ const LoginPage = () => {
       ...formData,
       [e.target.name]: e.target.value,
     });
-    setError('');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
     setLoading(true);
 
     try {
@@ -108,12 +106,6 @@ const LoginPage = () => {
                 Accede a tu cuenta de OdontoLink
               </Typography>
             </Box>
-
-            {error && (
-              <Alert severity="error" sx={{ mb: 3 }}>
-                {error}
-              </Alert>
-            )}
 
             <form onSubmit={handleSubmit}>
               <TextField
@@ -196,6 +188,12 @@ const LoginPage = () => {
                   'Iniciar Sesión'
                 )}
               </Button>
+
+              {error && (
+                <Alert severity="error" sx={{ mt: 2 }}>
+                  {error}
+                </Alert>
+              )}
             </form>
 
             <Box sx={{ textAlign: 'center', mt: 3 }}>

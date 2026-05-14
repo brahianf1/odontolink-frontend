@@ -71,6 +71,21 @@ export const markAppointmentAsNoShow = async (
   return response.data;
 };
 
+export interface CancelAppointmentRequestDTO {
+  motive: string;
+}
+
+export const cancelAppointment = async (
+  appointmentId: number,
+  data: CancelAppointmentRequestDTO
+): Promise<AppointmentResponseDTO> => {
+  const response = await apiClient.post<AppointmentResponseDTO>(
+    `/api/practitioner/appointments/${appointmentId}/cancel`,
+    data
+  );
+  return response.data;
+};
+
 // ============= Attentions =============
 export const getMyAttentions = async (): Promise<AttentionResponseDTO[]> => {
   const response = await apiClient.get<AttentionResponseDTO[]>('/api/practitioner/attentions');
