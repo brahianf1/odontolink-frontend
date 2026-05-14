@@ -26,6 +26,12 @@ const pageTitles: Record<string, string> = {
   '/practitioner/feedback': 'Feedback Recibido',
   '/practitioner/chat': 'Mensajes',
   '/practitioner/profile': 'Mi Perfil',
+
+  // Rutas de administrador
+  '/admin/dashboard': 'Dashboard',
+  '/admin/users': 'Gestión de Usuarios',
+  '/admin/treatments': 'Catálogo de Tratamientos',
+  '/admin/settings': 'Configuración Institucional',
 };
 
 export default function DashboardLayout() {

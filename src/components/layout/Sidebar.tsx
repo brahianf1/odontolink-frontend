@@ -287,21 +287,21 @@ export default function Sidebar({ drawerWidth, mobileOpen, onMobileClose }: Side
         {
           title: 'Administración',
           items: [
-            { 
-              text: 'Usuarios', 
-              icon: <ManageAccountsIcon />, 
+            {
+              text: 'Usuarios',
+              icon: <ManageAccountsIcon />,
               path: '/admin/users',
               description: 'Gestionar usuarios'
             },
-            { 
-              text: 'Tratamientos', 
-              icon: <CategoryIcon />, 
+            {
+              text: 'Tratamientos',
+              icon: <CategoryIcon />,
               path: '/admin/treatments',
               description: 'Catálogo maestro'
             },
-            { 
-              text: 'Configuración', 
-              icon: <SettingsIcon />, 
+            {
+              text: 'Configuración',
+              icon: <SettingsIcon />,
               path: '/admin/settings',
               description: 'Parámetros del sistema'
             },

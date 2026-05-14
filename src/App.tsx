@@ -27,6 +27,10 @@ import PatientFeedbackPage from './pages/patient/PatientFeedbackPage';
 import PatientChatPage from './pages/patient/PatientChatPage';
 import PatientProfilePage from './pages/patient/PatientProfilePage';
 import BookingConfirmationPage from './pages/patient/BookingConfirmationPage';
+import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import AdminUsersPage from './pages/admin/AdminUsersPage';
+import AdminSettingsPage from './pages/admin/AdminSettingsPage';
+import AdminTreatmentsPage from './pages/admin/AdminTreatmentsPage';
 
 function App() {
   const { mode } = useThemeStore();
@@ -95,6 +99,21 @@ function App() {
             <Route path="feedback" element={<PatientFeedbackPage />} />
             <Route path="chat" element={<PatientChatPage />} />
             <Route path="profile" element={<PatientProfilePage />} />
+          </Route>
+
+          {/* Admin Dashboard Routes */}
+          <Route
+            path="/admin/*"
+            element={
+              <ProtectedRoute allowedRoles={['ADMIN']}>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="dashboard" element={<AdminDashboardPage />} />
+            <Route path="users" element={<AdminUsersPage />} />
+            <Route path="treatments" element={<AdminTreatmentsPage />} />
+            <Route path="settings" element={<AdminSettingsPage />} />
           </Route>
         </Routes>
       </Router>

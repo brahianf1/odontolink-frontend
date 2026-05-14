@@ -19,6 +19,7 @@ import { Visibility, VisibilityOff, Email, Lock } from '@mui/icons-material';
 import { login } from '../services/api/authService';
 import { useAuthStore } from '../store/authStore';
 import type { LoginRequestDTO } from '../types/auth.types';
+import { getDashboardPathForRole } from '../utils/authRedirect';
 
 const LoginPage = () => {
   const theme = useTheme();
@@ -48,23 +49,7 @@ const LoginPage = () => {
     try {
       const response = await login(formData);
       loginStore(response);
-      
-      // Redirect based on user role (roles come with ROLE_ prefix from backend)
-      const role = response.role.replace('ROLE_', ''); // Remove ROLE_ prefix
-      
-      switch (role) {
-        case 'PRACTITIONER':
-          navigate('/practitioner/dashboard');
-          break;
-        case 'PATIENT':
-          navigate('/patient/dashboard');
-          break;
-        case 'SUPERVISOR':
-          navigate('/supervisor/dashboard');
-          break;
-        default:
-          navigate('/');
-      }
+      navigate(getDashboardPathForRole(response.role), { replace: true });
     } catch (err: any) {
       setError(err.message || 'Error al iniciar sesión. Verifica tus credenciales.');
     } finally {
