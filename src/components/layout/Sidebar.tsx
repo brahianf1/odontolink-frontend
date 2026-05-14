@@ -27,7 +27,6 @@ import {
   School as SchoolIcon,
   Settings as SettingsIcon,
   ManageAccounts as ManageAccountsIcon,
-  Category as CategoryIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
@@ -287,21 +286,15 @@ export default function Sidebar({ drawerWidth, mobileOpen, onMobileClose }: Side
         {
           title: 'Administración',
           items: [
-            { 
-              text: 'Usuarios', 
-              icon: <ManageAccountsIcon />, 
+            {
+              text: 'Usuarios',
+              icon: <ManageAccountsIcon />,
               path: '/admin/users',
               description: 'Gestionar usuarios'
             },
-            { 
-              text: 'Tratamientos', 
-              icon: <CategoryIcon />, 
-              path: '/admin/treatments',
-              description: 'Catálogo maestro'
-            },
-            { 
-              text: 'Configuración', 
-              icon: <SettingsIcon />, 
+            {
+              text: 'Configuración',
+              icon: <SettingsIcon />,
               path: '/admin/settings',
               description: 'Parámetros del sistema'
             },

@@ -7,7 +7,7 @@ import {
   useTheme,
   Avatar,
 } from '@mui/material';
-import { CheckCircle as CheckCircleIcon, Person as PersonIcon, CalendarMonth as CalendarIcon, AccessTime as AccessTimeIcon } from '@mui/icons-material';
+import { CheckCircle as CheckCircleIcon } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
