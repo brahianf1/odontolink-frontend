@@ -276,9 +276,9 @@ export default function Sidebar({ drawerWidth, mobileOpen, onMobileClose }: Side
         {
           title: 'Principal',
           items: [
-            { 
-              text: 'Dashboard', 
-              icon: <DashboardIcon />, 
+            {
+              text: 'Dashboard',
+              icon: <DashboardIcon />,
               path: '/admin/dashboard',
               description: 'Panel principal'
             },
@@ -304,6 +304,16 @@ export default function Sidebar({ drawerWidth, mobileOpen, onMobileClose }: Side
               icon: <SettingsIcon />,
               path: '/admin/settings',
               description: 'Parámetros del sistema'
+            },
+          ],
+        },
+        {
+          items: [
+            {
+              text: 'Mi Perfil',
+              icon: <ProfileIcon />,
+              path: '/admin/profile',
+              description: 'Configuración'
             },
           ],
         },
