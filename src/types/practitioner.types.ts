@@ -11,6 +11,8 @@ export interface TreatmentResponseDTO {
   area: string;
 }
 
+export type OfferedTreatmentStatus = 'ACTIVE' | 'PAUSED' | 'INACTIVE';
+
 export interface OfferedTreatmentResponseDTO {
   id: number;
   practitionerId: number;
@@ -22,13 +24,12 @@ export interface OfferedTreatmentResponseDTO {
   offerStartDate?: string;
   offerEndDate?: string;
   maxCompletedAttentions?: number;
-  completedAttentions?: number;
-  attendedPatientsCount?: number;
   currentCompletedAttentions?: number;
   currentActiveAttentions?: number;
   currentCancelledAttentions?: number;
-  active?: boolean;
-  availabilityBlocked?: boolean;
+  status: OfferedTreatmentStatus;
+  expired: boolean;
+  quotaExhausted: boolean;
 }
 
 export interface AddOfferedTreatmentRequestDTO {
@@ -36,8 +37,8 @@ export interface AddOfferedTreatmentRequestDTO {
   requirements?: string;
   durationInMinutes: number;
   availabilitySlots: AvailabilitySlotDTO[];
-  offerStartDate: string; // Format: "YYYY-MM-DD"
-  offerEndDate: string; // Format: "YYYY-MM-DD"
+  offerStartDate: string;
+  offerEndDate: string;
   maxCompletedAttentions: number;
 }
 
@@ -55,3 +56,26 @@ export interface CreateTreatmentRequestDTO {
   description?: string;
   area?: string;
 }
+
+export type OfferedTreatmentDeletionOutcome = 'SOFT_DELETED' | 'HARD_DELETED';
+
+export interface OfferedTreatmentDeletionResponseDTO {
+  outcome: OfferedTreatmentDeletionOutcome;
+  message?: string;
+}
+
+export interface CancelAppointmentByPractitionerRequestDTO {
+  reason: string;
+}
+
+export interface CancelAttentionRequestDTO {
+  reason: string;
+}
+
+/** Buckets the backend exposes via ?status= on GET /api/practitioner/offered-treatments. */
+export type OfferedTreatmentStatusFilter =
+  | 'ALL'
+  | 'ACTIVE'
+  | 'PAUSED'
+  | 'INACTIVE'
+  | 'EXPIRED';

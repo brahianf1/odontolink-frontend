@@ -4,6 +4,10 @@ import type {
   AddOfferedTreatmentRequestDTO,
   UpdateOfferedTreatmentRequestDTO,
   TreatmentResponseDTO,
+  OfferedTreatmentDeletionResponseDTO,
+  CancelAppointmentByPractitionerRequestDTO,
+  CancelAttentionRequestDTO,
+  OfferedTreatmentStatusFilter,
 } from '../../types/practitioner.types';
 import type {
   AppointmentResponseDTO,
@@ -13,9 +17,12 @@ import type {
 } from '../../types/attention.types';
 
 // ============= Offered Treatments =============
-export const getMyOfferedTreatments = async (): Promise<OfferedTreatmentResponseDTO[]> => {
+export const getMyOfferedTreatments = async (
+  status?: OfferedTreatmentStatusFilter
+): Promise<OfferedTreatmentResponseDTO[]> => {
   const response = await apiClient.get<OfferedTreatmentResponseDTO[]>(
-    '/api/practitioner/offered-treatments'
+    '/api/practitioner/offered-treatments',
+    { params: status ? { status } : undefined }
   );
   return response.data;
 };
@@ -41,8 +48,40 @@ export const updateOfferedTreatment = async (
   return response.data;
 };
 
-export const removeFromCatalog = async (id: number): Promise<void> => {
-  await apiClient.delete(`/api/practitioner/offered-treatments/${id}`);
+export const removeFromCatalog = async (
+  id: number
+): Promise<OfferedTreatmentDeletionResponseDTO> => {
+  const response = await apiClient.delete<OfferedTreatmentDeletionResponseDTO>(
+    `/api/practitioner/offered-treatments/${id}`
+  );
+  return response.data;
+};
+
+export const pauseOfferedTreatment = async (
+  id: number
+): Promise<OfferedTreatmentResponseDTO> => {
+  const response = await apiClient.post<OfferedTreatmentResponseDTO>(
+    `/api/practitioner/offered-treatments/${id}/pause`
+  );
+  return response.data;
+};
+
+export const resumeOfferedTreatment = async (
+  id: number
+): Promise<OfferedTreatmentResponseDTO> => {
+  const response = await apiClient.post<OfferedTreatmentResponseDTO>(
+    `/api/practitioner/offered-treatments/${id}/resume`
+  );
+  return response.data;
+};
+
+export const reactivateOfferedTreatment = async (
+  id: number
+): Promise<OfferedTreatmentResponseDTO> => {
+  const response = await apiClient.post<OfferedTreatmentResponseDTO>(
+    `/api/practitioner/offered-treatments/${id}/reactivate`
+  );
+  return response.data;
 };
 
 // ============= Appointments =============
@@ -71,13 +110,9 @@ export const markAppointmentAsNoShow = async (
   return response.data;
 };
 
-export interface CancelAppointmentRequestDTO {
-  motive: string;
-}
-
 export const cancelAppointment = async (
   appointmentId: number,
-  data: CancelAppointmentRequestDTO
+  data: CancelAppointmentByPractitionerRequestDTO
 ): Promise<AppointmentResponseDTO> => {
   const response = await apiClient.post<AppointmentResponseDTO>(
     `/api/practitioner/appointments/${appointmentId}/cancel`,
@@ -120,6 +155,17 @@ export const getProgressNotes = async (
 export const finalizeAttention = async (attentionId: number): Promise<AttentionResponseDTO> => {
   const response = await apiClient.post<AttentionResponseDTO>(
     `/api/attentions/${attentionId}/finalize`
+  );
+  return response.data;
+};
+
+export const cancelAttention = async (
+  attentionId: number,
+  data: CancelAttentionRequestDTO
+): Promise<AttentionResponseDTO> => {
+  const response = await apiClient.post<AttentionResponseDTO>(
+    `/api/attentions/${attentionId}/cancel`,
+    data
   );
   return response.data;
 };

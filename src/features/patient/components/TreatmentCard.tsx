@@ -21,8 +21,9 @@ interface TreatmentCardProps {
 }
 
 const isBookable = (t: OfferedTreatmentResponseDTO): boolean => {
-  if (t.active === false) return false;
-  if (t.availabilityBlocked === true) return false;
+  if (t.status !== 'ACTIVE') return false;
+  if (t.expired) return false;
+  if (t.quotaExhausted) return false;
   return true;
 };
 
