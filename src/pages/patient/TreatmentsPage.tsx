@@ -1,171 +1,128 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
-  Box,
-  Typography,
-  TextField,
-  InputAdornment,
-  Paper,
   Alert,
-  CircularProgress,
-  Chip,
-  Button,
-  Card,
-  CardContent,
-  CardActions,
+  Box,
+  Pagination,
+  Skeleton,
+  Stack,
+  Typography,
 } from '@mui/material';
-import {
-  Search as SearchIcon,
-  AccessTime as AccessTimeIcon,
-  Person as PersonIcon,
-} from '@mui/icons-material';
-import patientService from '../../services/api/patientService';
+import { SearchOff as SearchOffIcon } from '@mui/icons-material';
 import type { OfferedTreatmentResponseDTO } from '../../types/practitioner.types';
-import AppointmentBookingDialog from '../../components/patient/AppointmentBookingDialog';
+import {
+  AppointmentBookingDialog,
+  EmptyState,
+  TreatmentCard,
+  TreatmentFiltersBar,
+  useAvailableTreatments,
+} from '../../features/patient';
+
+const PAGE_SIZE = 12;
 
 export default function TreatmentsPage() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [treatments, setTreatments] = useState<OfferedTreatmentResponseDTO[]>([]);
-  const [filteredTreatments, setFilteredTreatments] = useState<OfferedTreatmentResponseDTO[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTreatment, setSelectedTreatment] = useState<OfferedTreatmentResponseDTO | null>(null);
-  const [bookingDialogOpen, setBookingDialogOpen] = useState(false);
+  const {
+    treatments,
+    filters,
+    setFilters,
+    resetFilters,
+    page,
+    setPage,
+    totalElements,
+    totalPages,
+    loading,
+    error,
+    reload,
+  } = useAvailableTreatments(PAGE_SIZE);
 
-  useEffect(() => {
-    loadTreatments();
-  }, []);
+  const [selected, setSelected] = useState<OfferedTreatmentResponseDTO | null>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
-  useEffect(() => {
-    filterTreatments();
-  }, [searchQuery, treatments]);
-
-  const loadTreatments = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await patientService.getAvailableTreatments();
-      setTreatments(data);
-      setFilteredTreatments(data);
-    } catch (err) {
-      console.error('Error loading treatments:', err);
-      setError('Error al cargar los tratamientos disponibles');
-    } finally {
-      setLoading(false);
-    }
+  const handleBook = (treatment: OfferedTreatmentResponseDTO) => {
+    setSelected(treatment);
+    setDialogOpen(true);
   };
 
-  const filterTreatments = () => {
-    if (!searchQuery.trim()) {
-      setFilteredTreatments(treatments);
-      return;
-    }
-
-    const query = searchQuery.toLowerCase();
-    const filtered = treatments.filter(
-      (treatment) =>
-        treatment.treatment.name.toLowerCase().includes(query) ||
-        treatment.treatment.description?.toLowerCase().includes(query) ||
-        treatment.treatment.area?.toLowerCase().includes(query) ||
-        treatment.practitionerName.toLowerCase().includes(query)
-    );
-    setFilteredTreatments(filtered);
+  const handleSuccess = () => {
+    setDialogOpen(false);
+    setSelected(null);
+    reload();
   };
 
-  const handleBookTreatment = (treatment: OfferedTreatmentResponseDTO) => {
-    setSelectedTreatment(treatment);
-    setBookingDialogOpen(true);
-  };
-
-  const handleBookingSuccess = () => {
-    setBookingDialogOpen(false);
-    setSelectedTreatment(null);
-  };
-
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
+  const showSkeletons = loading && treatments.length === 0;
+  const hasFiltersApplied =
+    filters.keyword.trim() !== '' ||
+    filters.specialty.trim() !== '' ||
+    filters.availability !== '';
 
   return (
     <Box sx={{ width: '100%' }}>
-      {/* Header Section */}
       <Box sx={{ mb: { xs: 3, md: 4 } }}>
-        <Typography 
-          variant="h4" 
-          fontWeight="bold" 
+        <Typography
+          variant="h4"
+          fontWeight={700}
           gutterBottom
-          sx={{
-            fontSize: { xs: '1.75rem', sm: '2rem', md: '2.125rem' },
-          }}
+          sx={{ fontSize: { xs: '1.75rem', sm: '2rem', md: '2.125rem' } }}
         >
           Catálogo de Tratamientos
         </Typography>
-        <Typography 
-          variant="body1" 
-          color="text.secondary"
-          sx={{
-            fontSize: { xs: '0.875rem', sm: '1rem' },
-          }}
-        >
+        <Typography variant="body1" color="text.secondary">
           Explora los tratamientos disponibles y reserva tu turno con un practicante.
         </Typography>
       </Box>
 
+      <Box sx={{ mb: 3 }}>
+        <TreatmentFiltersBar
+          filters={filters}
+          onChange={setFilters}
+          onReset={resetFilters}
+          disabled={loading && treatments.length === 0}
+        />
+      </Box>
+
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
+        <Alert severity="error" sx={{ mb: 3 }} action={undefined}>
           {error}
         </Alert>
       )}
 
-      {/* Search Bar */}
-      <Paper 
-        elevation={0}
-        sx={{ 
-          p: { xs: 2, sm: 2.5 }, 
-          mb: 3,
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 2,
-        }}
-      >
-        <TextField
-          fullWidth
-          placeholder="Buscar por tratamiento, área, o practicante..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          size="medium"
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <SearchIcon />
-              </InputAdornment>
-            ),
+      {showSkeletons ? (
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: {
+              xs: '1fr',
+              sm: 'repeat(2, 1fr)',
+              lg: 'repeat(3, 1fr)',
+            },
+            gap: { xs: 2, sm: 2.5, md: 3 },
           }}
+        >
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Skeleton key={i} variant="rounded" height={280} />
+          ))}
+        </Box>
+      ) : treatments.length === 0 ? (
+        <EmptyState
+          icon={<SearchOffIcon sx={{ fontSize: 36 }} />}
+          title={
+            hasFiltersApplied
+              ? 'Sin coincidencias con los filtros aplicados'
+              : 'Aún no hay tratamientos disponibles'
+          }
+          description={
+            hasFiltersApplied
+              ? 'Prueba ampliar la búsqueda o limpiar los filtros para ver más opciones.'
+              : 'Cuando los practicantes publiquen su oferta, aparecerá aquí.'
+          }
+          actionLabel={hasFiltersApplied ? 'Limpiar filtros' : undefined}
+          onAction={hasFiltersApplied ? resetFilters : undefined}
         />
-      </Paper>
-
-      {/* Results */}
-      {filteredTreatments.length === 0 ? (
-        <Alert severity="info">
-          {searchQuery
-            ? 'No se encontraron tratamientos que coincidan con tu búsqueda.'
-            : 'No hay tratamientos disponibles en este momento.'}
-        </Alert>
       ) : (
         <>
-          <Typography 
-            variant="body2" 
-            color="text.secondary" 
-            sx={{ 
-              mb: 2,
-              fontSize: { xs: '0.8rem', sm: '0.875rem' },
-            }}
-          >
-            Mostrando {filteredTreatments.length} tratamiento(s)
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Mostrando {treatments.length} de {totalElements} tratamiento(s)
           </Typography>
+
           <Box
             sx={{
               display: 'grid',
@@ -175,136 +132,36 @@ export default function TreatmentsPage() {
                 lg: 'repeat(3, 1fr)',
               },
               gap: { xs: 2, sm: 2.5, md: 3 },
+              opacity: loading ? 0.6 : 1,
+              transition: 'opacity 0.2s',
             }}
           >
-            {filteredTreatments.map((treatment) => (
-              <Card 
-                key={treatment.id} 
-                elevation={0}
-                sx={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  height: '100%',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  borderRadius: 2,
-                  transition: 'all 0.3s',
-                  '&:hover': {
-                    boxShadow: 4,
-                    borderColor: 'primary.main',
-                  },
-                }}
-              >
-                <CardContent sx={{ flexGrow: 1, p: { xs: 2, sm: 2.5 } }}>
-                  <Typography 
-                    variant="h6" 
-                    fontWeight="bold" 
-                    gutterBottom
-                    sx={{
-                      fontSize: { xs: '1.1rem', sm: '1.25rem' },
-                    }}
-                  >
-                    {treatment.treatment.name}
-                  </Typography>
-                  {treatment.treatment.area && (
-                    <Chip
-                      label={treatment.treatment.area}
-                      size="small"
-                      color="primary"
-                      variant="outlined"
-                      sx={{ 
-                        mb: 2,
-                        fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                      }}
-                    />
-                  )}
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary" 
-                    paragraph
-                    sx={{
-                      fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    {treatment.treatment.description || 'Sin descripción disponible'}
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <PersonIcon fontSize="small" color="action" />
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary"
-                      sx={{
-                        fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                      }}
-                    >
-                      {treatment.practitionerName}
-                    </Typography>
-                  </Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-                    <AccessTimeIcon fontSize="small" color="action" />
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary"
-                      sx={{
-                        fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                      }}
-                    >
-                      Duración: {treatment.durationInMinutes} minutos
-                    </Typography>
-                  </Box>
-                  {treatment.requirements && (
-                    <Typography 
-                      variant="caption" 
-                      color="text.secondary" 
-                      sx={{ 
-                        display: 'block', 
-                        mt: 2,
-                        fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                      }}
-                    >
-                      <strong>Requisitos:</strong> {treatment.requirements}
-                    </Typography>
-                  )}
-                  <Typography 
-                    variant="caption" 
-                    color="text.secondary" 
-                    sx={{ 
-                      display: 'block', 
-                      mt: 1,
-                      fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                    }}
-                  >
-                    {treatment.availabilitySlots.length} horario(s) disponible(s)
-                  </Typography>
-                </CardContent>
-                <CardActions sx={{ p: { xs: 2, sm: 2.5 }, pt: 0 }}>
-                  <Button
-                    fullWidth
-                    variant="contained"
-                    onClick={() => handleBookTreatment(treatment)}
-                    sx={{
-                      py: { xs: 1, sm: 1.2 },
-                      fontSize: { xs: '0.875rem', sm: '0.9375rem' },
-                      fontWeight: 600,
-                    }}
-                  >
-                    Reservar Turno
-                  </Button>
-                </CardActions>
-              </Card>
+            {treatments.map((treatment) => (
+              <TreatmentCard key={treatment.id} treatment={treatment} onBook={handleBook} />
             ))}
           </Box>
+
+          {totalPages > 1 && (
+            <Stack alignItems="center" sx={{ mt: 4 }}>
+              <Pagination
+                count={totalPages}
+                page={page + 1}
+                onChange={(_, value) => setPage(value - 1)}
+                color="primary"
+                shape="rounded"
+                disabled={loading}
+              />
+            </Stack>
+          )}
         </>
       )}
 
-      {/* Booking Dialog */}
-      {selectedTreatment && (
+      {selected && (
         <AppointmentBookingDialog
-          open={bookingDialogOpen}
-          treatment={selectedTreatment}
-          onClose={() => setBookingDialogOpen(false)}
-          onSuccess={handleBookingSuccess}
+          open={dialogOpen}
+          treatment={selected}
+          onClose={() => setDialogOpen(false)}
+          onSuccess={handleSuccess}
         />
       )}
     </Box>

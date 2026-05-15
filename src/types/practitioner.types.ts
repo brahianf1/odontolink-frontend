@@ -19,11 +19,16 @@ export interface OfferedTreatmentResponseDTO {
   requirements?: string;
   durationInMinutes: number;
   availabilitySlots: AvailabilitySlotDTO[];
-  offerStartDate?: string; // Format: "YYYY-MM-DD"
-  offerEndDate?: string; // Format: "YYYY-MM-DD"
+  offerStartDate?: string;
+  offerEndDate?: string;
   maxCompletedAttentions?: number;
   completedAttentions?: number;
   attendedPatientsCount?: number;
+  currentCompletedAttentions?: number;
+  currentActiveAttentions?: number;
+  currentCancelledAttentions?: number;
+  active?: boolean;
+  availabilityBlocked?: boolean;
 }
 
 export interface AddOfferedTreatmentRequestDTO {

@@ -1,263 +1,155 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
-  Box,
-  Typography,
-  Alert,
-  CircularProgress,
-  Paper,
-  Chip,
-  Button,
   Accordion,
-  AccordionSummary,
   AccordionDetails,
-  Tabs,
-  Tab,
+  AccordionSummary,
+  Alert,
+  Box,
+  Button,
+  Chip,
   Dialog,
-  DialogTitle,
-  DialogContent,
   DialogActions,
-  TextField,
-  Rating,
+  DialogContent,
+  DialogTitle,
   IconButton,
+  Paper,
+  Rating,
+  Skeleton,
+  Stack,
+  Tab,
+  Tabs,
+  TextField,
+  Typography,
 } from '@mui/material';
 import {
-  ExpandMore as ExpandMoreIcon,
   CalendarToday as CalendarIcon,
+  Close as CloseIcon,
+  ExpandMore as ExpandMoreIcon,
+  HealthAndSafety as HealthAndSafetyIcon,
   Person as PersonIcon,
   Star as StarIcon,
-  Close as CloseIcon,
 } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import patientService from '../../services/api/patientService';
 import type { AttentionResponseDTO } from '../../types/attention.types';
-import type { FeedbackResponseDTO } from '../../types/feedback.types';
+import {
+  EmptyState,
+  getAppointmentStatusColor,
+  getAppointmentStatusLabel,
+  getAttentionStatusColor,
+  getAttentionStatusLabel,
+  mapBusinessError,
+  useMyAttentions,
+  usePatientFeedback,
+} from '../../features/patient';
 
 export default function MyAttentionsPage() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [attentions, setAttentions] = useState<AttentionResponseDTO[]>([]);
+  const { attentions, feedbackByAttentionId, loading, error, reload } = useMyAttentions();
+  const { notifySuccess, notifyError } = usePatientFeedback();
   const [tabValue, setTabValue] = useState(0);
   const [expandedId, setExpandedId] = useState<string | false>(false);
 
-  // Feedback state
-  const [feedbackByAttentionId, setFeedbackByAttentionId] = useState<Record<number, FeedbackResponseDTO | null>>({});
-  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
-  const [viewFeedbackDialogOpen, setViewFeedbackDialogOpen] = useState(false);
-  const [selectedAttention, setSelectedAttention] = useState<AttentionResponseDTO | null>(null);
-  const [viewingFeedback, setViewingFeedback] = useState<FeedbackResponseDTO | null>(null);
-  const [rating, setRating] = useState<number>(0);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [viewOpen, setViewOpen] = useState(false);
+  const [selected, setSelected] = useState<AttentionResponseDTO | null>(null);
+  const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    loadAttentions();
-  }, []);
+  const activeAttentions = attentions.filter((a) => a.status === 'IN_PROGRESS');
+  const completedAttentions = attentions.filter((a) => a.status === 'COMPLETED');
+  const displayed = tabValue === 0 ? activeAttentions : completedAttentions;
 
-  const loadAttentions = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await patientService.getMyAttentions();
-      setAttentions(data);
-
-      // Load feedback status for completed attentions
-      const completed = data.filter((att) => att.status === 'COMPLETED');
-      const feedbackStatus = await Promise.all(
-        completed.map(async (attention) => {
-          try {
-            const feedbackList = await patientService.getFeedbackForAttention(attention.id);
-            if (feedbackList && feedbackList.length > 0) {
-              return [attention.id, feedbackList[0]] as const;
-            }
-            return [attention.id, null] as const;
-          } catch {
-            return [attention.id, null] as const;
-          }
-        })
-      );
-      setFeedbackByAttentionId(Object.fromEntries(feedbackStatus));
-    } catch (err) {
-      console.error('Error loading attentions:', err);
-      setError('Error al cargar las atenciones');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'IN_PROGRESS':
-        return 'info';
-      case 'COMPLETED':
-        return 'success';
-      case 'CANCELLED':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'IN_PROGRESS':
-        return 'En Curso';
-      case 'COMPLETED':
-        return 'Completada';
-      case 'CANCELLED':
-        return 'Cancelada';
-      default:
-        return status;
-    }
-  };
-
-  // ── Feedback dialog logic ──
-
-  const handleOpenFeedbackDialog = (attention: AttentionResponseDTO) => {
-    const existingFeedback = feedbackByAttentionId[attention.id];
-    if (existingFeedback) {
-      // Feedback already exists → show read-only view
-      setViewingFeedback(existingFeedback);
-      setSelectedAttention(attention);
-      setViewFeedbackDialogOpen(true);
+  const openFeedbackFor = (attention: AttentionResponseDTO) => {
+    const existing = feedbackByAttentionId[attention.id];
+    setSelected(attention);
+    if (existing) {
+      setViewOpen(true);
     } else {
-      // No feedback yet → show create form
-      setSelectedAttention(attention);
       setRating(0);
       setComment('');
-      setError(null);
-      setSuccess(null);
-      setFeedbackDialogOpen(true);
+      setCreateOpen(true);
     }
   };
 
-  const handleCloseCreateDialog = () => {
-    setFeedbackDialogOpen(false);
-    setSelectedAttention(null);
-    setRating(0);
-    setComment('');
-  };
-
-  const handleCloseViewDialog = () => {
-    setViewFeedbackDialogOpen(false);
-    setViewingFeedback(null);
-    setSelectedAttention(null);
-  };
-
-  const handleSubmitFeedback = async () => {
-    if (!selectedAttention) return;
-
-    if (rating === 0) {
-      setError('Por favor selecciona una calificación');
-      return;
-    }
-
+  const submitFeedback = async () => {
+    if (!selected || rating === 0) return;
+    setSubmitting(true);
     try {
-      setSubmitting(true);
-      setError(null);
       await patientService.createFeedback({
-        attentionId: selectedAttention.id,
+        attentionId: selected.id,
         rating,
         comment: comment.trim() || undefined,
       });
-      setSuccess('Calificación enviada exitosamente');
-      handleCloseCreateDialog();
-      loadAttentions();
-    } catch (err: any) {
-      console.error('Error submitting feedback:', err);
-      setError(err.response?.data?.message || 'Error al enviar la calificación');
+      notifySuccess('Calificación enviada correctamente.');
+      setCreateOpen(false);
+      setSelected(null);
+      reload();
+    } catch (err) {
+      const { message } = mapBusinessError(err, 'No pudimos enviar tu calificación.');
+      notifyError(message);
     } finally {
       setSubmitting(false);
     }
   };
 
-  const activeAttentions = attentions.filter((att) => att.status === 'IN_PROGRESS');
-  const completedAttentions = attentions.filter((att) => att.status === 'COMPLETED');
-  const displayedAttentions = tabValue === 0 ? activeAttentions : completedAttentions;
-
-  if (loading) {
-    return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
-      </Box>
-    );
-  }
-
   return (
     <Box sx={{ width: '100%' }}>
-      {/* Header Section */}
       <Box sx={{ mb: { xs: 3, md: 4 } }}>
-        <Typography 
-          variant="h4" 
-          fontWeight="bold" 
+        <Typography
+          variant="h4"
+          fontWeight={700}
           gutterBottom
-          sx={{
-            fontSize: { xs: '1.75rem', sm: '2rem', md: '2.125rem' },
-          }}
+          sx={{ fontSize: { xs: '1.75rem', sm: '2rem', md: '2.125rem' } }}
         >
           Mis Atenciones
         </Typography>
-        <Typography 
-          variant="body1" 
-          color="text.secondary"
-          sx={{
-            fontSize: { xs: '0.875rem', sm: '1rem' },
-          }}
-        >
+        <Typography variant="body1" color="text.secondary">
           Revisa el estado de tus tratamientos y atenciones odontológicas.
         </Typography>
       </Box>
 
       {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+        <Alert severity="error" sx={{ mb: 3 }}>
           {error}
         </Alert>
       )}
 
-      {success && (
-        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
-          {success}
-        </Alert>
-      )}
-
-      {/* Tabs */}
-      <Paper 
+      <Paper
         elevation={0}
-        sx={{ 
-          mb: 3,
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 2,
-        }}
+        sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
       >
-        <Tabs 
-          value={tabValue} 
-          onChange={(_, newValue) => setTabValue(newValue)} 
-          variant="fullWidth"
-          sx={{
-            '& .MuiTab-root': {
-              fontSize: { xs: '0.8rem', sm: '0.875rem' },
-              fontWeight: 500,
-            },
-          }}
-        >
-          <Tab label={`En Curso (${activeAttentions.length})`} />
+        <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} variant="fullWidth">
+          <Tab label={`En curso (${activeAttentions.length})`} />
           <Tab label={`Completadas (${completedAttentions.length})`} />
         </Tabs>
       </Paper>
 
-      {/* Attentions List */}
-      {displayedAttentions.length === 0 ? (
-        <Alert severity="info">
-          {tabValue === 0
-            ? 'No tienes atenciones en curso.'
-            : 'No tienes atenciones completadas.'}
-        </Alert>
+      {loading ? (
+        <Stack spacing={1.5}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} variant="rounded" height={96} />
+          ))}
+        </Stack>
+      ) : displayed.length === 0 ? (
+        <EmptyState
+          icon={<HealthAndSafetyIcon sx={{ fontSize: 36 }} />}
+          title={
+            tabValue === 0
+              ? 'No tienes atenciones en curso'
+              : 'Aún no tienes atenciones completadas'
+          }
+          description={
+            tabValue === 0
+              ? 'Cuando el practicante inicie tu tratamiento aparecerá aquí.'
+              : 'El historial de tus tratamientos finalizados aparecerá aquí.'
+          }
+        />
       ) : (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 } }}>
-          {displayedAttentions.map((attention) => (
-            <Accordion 
+        <Stack spacing={1.5}>
+          {displayed.map((attention) => (
+            <Accordion
               key={attention.id}
               elevation={0}
               expanded={expandedId === String(attention.id)}
@@ -266,35 +158,25 @@ export default function MyAttentionsPage() {
                 border: '1px solid',
                 borderColor: 'divider',
                 borderRadius: '8px !important',
-                '&:before': {
-                  display: 'none',
-                },
-                '&.Mui-expanded': {
-                  margin: 0,
-                },
+                '&:before': { display: 'none' },
+                '&.Mui-expanded': { margin: 0 },
               }}
             >
-              <AccordionSummary 
+              <AccordionSummary
                 expandIcon={<ExpandMoreIcon />}
-                sx={{
-                  px: { xs: 2, sm: 2.5, md: 3 },
-                  py: { xs: 1, sm: 1.5 },
-                }}
+                sx={{ px: { xs: 2, sm: 2.5, md: 3 }, py: { xs: 1, sm: 1.5 } }}
               >
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, width: '100%', pr: 1 }}>
                   <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                    <Box 
-                      sx={{ 
-                        display: 'flex', 
-                        alignItems: { xs: 'flex-start', sm: 'center' }, 
-                        gap: 1, 
-                        mb: 0.5,
-                        flexDirection: { xs: 'column', sm: 'row' },
-                      }}
+                    <Stack
+                      direction={{ xs: 'column', sm: 'row' }}
+                      spacing={1}
+                      alignItems={{ xs: 'flex-start', sm: 'center' }}
+                      sx={{ mb: 0.5 }}
                     >
-                      <Typography 
-                        variant="h6" 
-                        fontWeight="bold"
+                      <Typography
+                        variant="h6"
+                        fontWeight={700}
                         sx={{
                           fontSize: { xs: '1rem', sm: '1.1rem' },
                           overflow: 'hidden',
@@ -305,436 +187,286 @@ export default function MyAttentionsPage() {
                         {attention.treatmentName}
                       </Typography>
                       <Chip
-                        label={getStatusLabel(attention.status)}
-                        color={getStatusColor(attention.status)}
+                        label={getAttentionStatusLabel(attention.status)}
+                        color={getAttentionStatusColor(attention.status)}
                         size="small"
-                        sx={{
-                          fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                        }}
                       />
-                    </Box>
-                    <Box 
-                      sx={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: { xs: 1.5, sm: 2 },
-                        flexWrap: 'wrap',
-                      }}
-                    >
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                    </Stack>
+                    <Stack direction="row" spacing={2} flexWrap="wrap">
+                      <Stack direction="row" spacing={0.5} alignItems="center">
                         <PersonIcon fontSize="small" color="action" />
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary"
-                          sx={{
-                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                          }}
-                        >
+                        <Typography variant="body2" color="text.secondary">
                           {attention.practitionerName}
                         </Typography>
-                      </Box>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                      </Stack>
+                      <Stack direction="row" spacing={0.5} alignItems="center">
                         <CalendarIcon fontSize="small" color="action" />
-                        <Typography 
-                          variant="body2" 
-                          color="text.secondary"
-                          sx={{
-                            fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                          }}
-                        >
+                        <Typography variant="body2" color="text.secondary">
                           Inicio: {format(new Date(attention.startDate), "d 'de' MMM, yyyy", { locale: es })}
                         </Typography>
-                      </Box>
-                    </Box>
+                      </Stack>
+                    </Stack>
                   </Box>
 
-                  {/* Quick action: show rating button in summary for completed attentions */}
                   {attention.status === 'COMPLETED' && expandedId !== String(attention.id) && (
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      <Button
-                        size="small"
-                        variant="outlined"
-                        startIcon={<StarIcon />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleOpenFeedbackDialog(attention);
-                        }}
-                        onFocus={(e) => e.stopPropagation()}
-                        sx={{
-                          fontSize: { xs: '0.75rem', sm: '0.85rem' },
-                          textTransform: 'none',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {feedbackByAttentionId[attention.id] ? 'Ver calificación' : 'Calificar'}
-                      </Button>
-                    </Box>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<StarIcon />}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openFeedbackFor(attention);
+                      }}
+                      sx={{ textTransform: 'none', whiteSpace: 'nowrap' }}
+                    >
+                      {feedbackByAttentionId[attention.id] ? 'Ver calificación' : 'Calificar'}
+                    </Button>
                   )}
-
                 </Box>
               </AccordionSummary>
               <AccordionDetails sx={{ px: { xs: 2, sm: 2.5, md: 3 }, pb: { xs: 2, sm: 2.5, md: 3 } }}>
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 } }}>
-                  {/* Attention Details */}
-                  <Paper 
-                    variant="outlined" 
-                    sx={{ 
-                      p: { xs: 1.5, sm: 2 },
-                      borderRadius: 2,
-                    }}
-                  >
-                    <Typography 
-                      variant="subtitle2" 
-                      fontWeight="bold" 
-                      gutterBottom
-                      sx={{ fontSize: { xs: '0.9rem', sm: '0.95rem' } }}
-                    >
-                      Información de la Atención
+                <Stack spacing={2}>
+                  <Paper variant="outlined" sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 2 }}>
+                    <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+                      Información de la atención
                     </Typography>
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary" 
-                      gutterBottom
-                      sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
-                    >
+                    <Typography variant="body2" color="text.secondary">
                       <strong>Tratamiento:</strong> {attention.treatmentName}
                     </Typography>
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary" 
-                      gutterBottom
-                      sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
-                    >
+                    <Typography variant="body2" color="text.secondary">
                       <strong>Practicante:</strong> {attention.practitionerName}
                     </Typography>
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary" 
-                      gutterBottom
-                      sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
-                    >
-                      <strong>Fecha de Inicio:</strong>{' '}
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Fecha de inicio:</strong>{' '}
                       {format(new Date(attention.startDate), "d 'de' MMMM 'de' yyyy", { locale: es })}
                     </Typography>
-                    <Typography 
-                      variant="body2" 
-                      color="text.secondary"
-                      sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
-                    >
-                      <strong>Estado:</strong> {getStatusLabel(attention.status)}
+                    <Typography variant="body2" color="text.secondary">
+                      <strong>Estado:</strong> {getAttentionStatusLabel(attention.status)}
                     </Typography>
                   </Paper>
 
-                  {/* Appointments */}
                   {attention.appointments && attention.appointments.length > 0 && (
                     <Box>
-                      <Typography 
-                        variant="subtitle2" 
-                        fontWeight="bold" 
-                        gutterBottom
-                        sx={{ fontSize: { xs: '0.9rem', sm: '0.95rem' } }}
-                      >
-                        Turnos Asociados ({attention.appointments.length})
+                      <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+                        Turnos asociados ({attention.appointments.length})
                       </Typography>
-                      <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1, sm: 1.5 } }}>
+                      <Stack spacing={1}>
                         {attention.appointments.map((appointment) => (
-                          <Paper 
-                            key={appointment.id} 
-                            variant="outlined" 
-                            sx={{ 
-                              p: { xs: 1.5, sm: 2 },
-                              borderRadius: 2,
-                            }}
+                          <Paper
+                            key={appointment.id}
+                            variant="outlined"
+                            sx={{ p: { xs: 1.5, sm: 2 }, borderRadius: 2 }}
                           >
-                            <Box 
-                              sx={{ 
-                                display: 'flex', 
-                                justifyContent: 'space-between', 
-                                alignItems: { xs: 'flex-start', sm: 'center' },
-                                flexDirection: { xs: 'column', sm: 'row' },
-                                gap: { xs: 1, sm: 0 },
-                              }}
+                            <Stack
+                              direction={{ xs: 'column', sm: 'row' }}
+                              justifyContent="space-between"
+                              alignItems={{ xs: 'flex-start', sm: 'center' }}
+                              spacing={1}
                             >
                               <Box sx={{ flex: 1 }}>
-                                <Typography 
-                                  variant="body2" 
-                                  fontWeight="bold"
-                                  sx={{ fontSize: { xs: '0.8rem', sm: '0.875rem' } }}
-                                >
+                                <Typography variant="body2" fontWeight={600}>
                                   {format(
                                     new Date(appointment.appointmentTime),
                                     "EEEE d 'de' MMMM 'a las' HH:mm",
                                     { locale: es }
                                   )}
                                 </Typography>
-                                <Typography 
-                                  variant="caption" 
-                                  color="text.secondary"
-                                  sx={{ fontSize: { xs: '0.7rem', sm: '0.75rem' } }}
-                                >
+                                <Typography variant="caption" color="text.secondary">
                                   Duración: {appointment.durationInMinutes} minutos
                                 </Typography>
+                                {appointment.cancellationReason && (
+                                  <Typography
+                                    variant="caption"
+                                    color="error.main"
+                                    sx={{ display: 'block', mt: 0.5 }}
+                                  >
+                                    Motivo: {appointment.cancellationReason}
+                                  </Typography>
+                                )}
                               </Box>
                               <Chip
-                                label={
-                                  appointment.status === 'COMPLETED'
-                                    ? 'Completado'
-                                    : appointment.status === 'SCHEDULED'
-                                    ? 'Programado'
-                                    : appointment.status === 'CANCELLED'
-                                    ? 'Cancelado'
-                                    : appointment.status === 'NO_SHOW'
-                                    ? 'No Asistió'
-                                    : appointment.status
-                                }
-                                color={
-                                  appointment.status === 'COMPLETED'
-                                    ? 'success'
-                                    : appointment.status === 'SCHEDULED'
-                                    ? 'info'
-                                    : appointment.status === 'CANCELLED'
-                                    ? 'error'
-                                    : 'warning'
-                                }
+                                label={getAppointmentStatusLabel(appointment.status)}
+                                color={getAppointmentStatusColor(appointment.status)}
                                 size="small"
-                                sx={{
-                                  fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                                  alignSelf: { xs: 'flex-start', sm: 'center' },
-                                }}
                               />
-                            </Box>
+                            </Stack>
                           </Paper>
                         ))}
-                      </Box>
+                      </Stack>
                     </Box>
                   )}
 
-                  {/* Actions */}
                   {attention.status === 'COMPLETED' && (
-                    <Box 
-                      sx={{ 
-                        display: 'flex', 
-                        gap: 2, 
-                        justifyContent: { xs: 'stretch', sm: 'flex-end' },
-                        flexDirection: { xs: 'column', sm: 'row' },
-                      }}
+                    <Stack
+                      direction={{ xs: 'column', sm: 'row' }}
+                      spacing={2}
+                      justifyContent={{ xs: 'stretch', sm: 'flex-end' }}
                     >
                       <Button
                         variant="outlined"
                         startIcon={<StarIcon />}
-                        onClick={() => handleOpenFeedbackDialog(attention)}
-                        fullWidth={false}
-                        sx={{
-                          fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                        }}
+                        onClick={() => openFeedbackFor(attention)}
                       >
-                        {feedbackByAttentionId[attention.id] ? 'Ver calificación' : 'Calificar Atención'}
+                        {feedbackByAttentionId[attention.id] ? 'Ver calificación' : 'Calificar atención'}
                       </Button>
-                    </Box>
+                    </Stack>
                   )}
-                </Box>
+                </Stack>
               </AccordionDetails>
             </Accordion>
           ))}
-        </Box>
+        </Stack>
       )}
 
-      {/* ── Create Feedback Dialog ── */}
-      <Dialog open={feedbackDialogOpen} onClose={handleCloseCreateDialog} maxWidth="sm" fullWidth>
+      <Dialog open={createOpen} onClose={() => !submitting && setCreateOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ pb: 1 }}>
-          <Box>
-            <Typography variant="h5" fontWeight="bold" gutterBottom>
-              Calificar Atención
-            </Typography>
-            <Typography variant="body2" color="text.secondary">
-              Califique su experiencia con el practicante
-            </Typography>
-          </Box>
+          <Typography variant="h5" fontWeight={700} gutterBottom>
+            Calificar atención
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Cuéntanos cómo fue tu experiencia con el practicante.
+          </Typography>
         </DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
-          {selectedAttention && (
+          {selected && (
             <Paper
               variant="outlined"
-              sx={{
-                p: 2.5,
-                mb: 3,
-                backgroundColor: 'action.hover',
-                borderRadius: 2,
-              }}
+              sx={{ p: 2.5, mb: 3, backgroundColor: 'action.hover', borderRadius: 2 }}
             >
               <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-                {selectedAttention.treatmentName}
+                {selected.treatmentName}
               </Typography>
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                Practicante: <strong>{selectedAttention.practitionerName}</strong>
+                Practicante: <strong>{selected.practitionerName}</strong>
               </Typography>
               <Typography variant="caption" color="text.secondary">
-                {format(new Date(selectedAttention.startDate), "d 'de' MMMM, yyyy", { locale: es })}
+                {format(new Date(selected.startDate), "d 'de' MMMM, yyyy", { locale: es })}
               </Typography>
             </Paper>
           )}
 
-          {error && (
-            <Alert severity="error" sx={{ mb: 2.5 }}>
-              {error}
-            </Alert>
-          )}
-
-          <Box sx={{ mb: 3.5 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, mb: 2 }}>
-              <Typography variant="subtitle2" fontWeight={600}>
-                Satisfacción general
-              </Typography>
-              <Rating
-                value={rating}
-                onChange={(_, newValue) => setRating(newValue || 0)}
-                size="large"
-                precision={1}
-                sx={{
-                  '& .MuiRating-icon': {
-                    fontSize: '2.3rem',
-                  },
-                }}
-              />
-            </Box>
-          </Box>
-
-          <Box>
-            <Typography variant="subtitle2" fontWeight={600} gutterBottom sx={{ mb: 1 }}>
-              Comentarios adicionales (opcional)
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            sx={{ mb: 3 }}
+          >
+            <Typography variant="subtitle2" fontWeight={600}>
+              Satisfacción general
             </Typography>
-            <TextField
-              fullWidth
-              multiline
-              rows={4}
-              placeholder="Escriba un comentario adicional..."
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              inputProps={{ maxLength: 1000 }}
-              helperText={`${comment.length}/1000 caracteres`}
-              variant="outlined"
+            <Rating
+              value={rating}
+              onChange={(_, v) => setRating(v ?? 0)}
+              size="large"
+              sx={{ '& .MuiRating-icon': { fontSize: '2.3rem' } }}
             />
-          </Box>
+          </Stack>
+
+          <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
+            Comentarios (opcional)
+          </Typography>
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            placeholder="Escribe un comentario adicional…"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            inputProps={{ maxLength: 1000 }}
+            helperText={`${comment.length}/1000 caracteres`}
+          />
         </DialogContent>
         <DialogActions sx={{ p: 2.5, gap: 1 }}>
-          <Button
-            onClick={handleCloseCreateDialog}
-            disabled={submitting}
-            sx={{ flex: 1 }}
-          >
+          <Button onClick={() => setCreateOpen(false)} disabled={submitting} sx={{ flex: 1 }}>
             Cancelar
           </Button>
           <Button
-            onClick={handleSubmitFeedback}
+            onClick={submitFeedback}
             variant="contained"
             disabled={rating === 0 || submitting}
             sx={{ flex: 1 }}
           >
-            {submitting ? 'Confirmando...' : 'Confirmar Calificación'}
+            {submitting ? 'Enviando…' : 'Enviar calificación'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* ── View Existing Feedback Dialog ── */}
-      <Dialog open={viewFeedbackDialogOpen} onClose={handleCloseViewDialog} maxWidth="sm" fullWidth>
+      <Dialog open={viewOpen} onClose={() => setViewOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ pb: 0, pr: 6 }}>
-          <Typography variant="h5" fontWeight="bold">
-            Tu Calificación
+          <Typography variant="h5" fontWeight={700}>
+            Tu calificación
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Calificación enviada para esta atención
+            Calificación enviada para esta atención.
           </Typography>
           <IconButton
             aria-label="cerrar"
-            onClick={handleCloseViewDialog}
-            sx={{
-              position: 'absolute',
-              right: 12,
-              top: 12,
-              color: 'text.secondary',
-            }}
+            onClick={() => setViewOpen(false)}
+            sx={{ position: 'absolute', right: 12, top: 12, color: 'text.secondary' }}
           >
             <CloseIcon />
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ pt: 2 }}>
-          {viewingFeedback && selectedAttention && (
+          {selected && feedbackByAttentionId[selected.id] && (
             <>
-              {/* Attention info card */}
               <Paper
                 variant="outlined"
-                sx={{
-                  p: 2.5,
-                  mb: 3,
-                  backgroundColor: 'action.hover',
-                  borderRadius: 2,
-                }}
+                sx={{ p: 2.5, mb: 3, backgroundColor: 'action.hover', borderRadius: 2 }}
               >
                 <Typography variant="subtitle1" fontWeight={600}>
-                  {selectedAttention.treatmentName}
+                  {selected.treatmentName}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {selectedAttention.practitionerName} • {format(new Date(selectedAttention.startDate), 'dd/MM/yyyy', { locale: es })}
+                  {selected.practitionerName} •{' '}
+                  {format(new Date(selected.startDate), 'dd/MM/yyyy', { locale: es })}
                 </Typography>
               </Paper>
 
-              {/* Rating display */}
               <Box sx={{ mb: 3 }}>
-                <Typography variant="overline" fontWeight={600} color="text.secondary" sx={{ letterSpacing: 1 }}>
-                  Satisfacción General
+                <Typography variant="overline" fontWeight={600} color="text.secondary">
+                  Satisfacción general
                 </Typography>
                 <Rating
-                  value={viewingFeedback.rating}
+                  value={feedbackByAttentionId[selected.id]?.rating}
                   readOnly
                   size="large"
-                  sx={{
-                    display: 'flex',
-                    mt: 1,
-                    '& .MuiRating-icon': {
-                      fontSize: '2.3rem',
-                    },
-                  }}
+                  sx={{ display: 'flex', mt: 1, '& .MuiRating-icon': { fontSize: '2.3rem' } }}
                 />
               </Box>
 
-              {/* Comment display */}
               <Box sx={{ mb: 3 }}>
-                <Typography variant="overline" fontWeight={600} color="text.secondary" sx={{ letterSpacing: 1 }}>
+                <Typography variant="overline" fontWeight={600} color="text.secondary">
                   Comentario
                 </Typography>
                 <Paper
                   variant="outlined"
-                  sx={{
-                    p: 2,
-                    mt: 1,
-                    borderRadius: 2,
-                    backgroundColor: 'action.hover',
-                  }}
+                  sx={{ p: 2, mt: 1, borderRadius: 2, backgroundColor: 'action.hover' }}
                 >
                   <Typography variant="body1">
-                    {viewingFeedback.comment || 'Sin comentario.'}
+                    {feedbackByAttentionId[selected.id]?.comment || 'Sin comentario.'}
                   </Typography>
                 </Paper>
               </Box>
 
-              {/* Date display */}
               <Box>
-                <Typography variant="overline" fontWeight={600} color="text.secondary" sx={{ letterSpacing: 1 }}>
-                  Fecha de Calificación
+                <Typography variant="overline" fontWeight={600} color="text.secondary">
+                  Fecha de calificación
                 </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  {format(new Date(viewingFeedback.createdAt), "dd/MM/yyyy 'a las' HH:mm", { locale: es })}
+                  {feedbackByAttentionId[selected.id]?.createdAt &&
+                    format(
+                      new Date(feedbackByAttentionId[selected.id]!.createdAt),
+                      "dd/MM/yyyy 'a las' HH:mm",
+                      { locale: es }
+                    )}
                 </Typography>
               </Box>
             </>
           )}
         </DialogContent>
         <DialogActions sx={{ p: 2.5 }}>
-          <Button
-            onClick={handleCloseViewDialog}
-            variant="contained"
-            fullWidth
-          >
+          <Button onClick={() => setViewOpen(false)} variant="contained" fullWidth>
             Cerrar
           </Button>
         </DialogActions>
