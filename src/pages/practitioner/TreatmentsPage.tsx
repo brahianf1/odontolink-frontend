@@ -1,216 +1,123 @@
-import { useState, useEffect } from 'react';
+import { useMemo, useState } from 'react';
 import {
-  Box,
-  Typography,
-  Button,
-  Card,
-  CardContent,
   Alert,
+  Box,
+  Button,
   CircularProgress,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  MenuItem,
-  IconButton,
-  useTheme,
   Grid,
-  alpha,
+  Snackbar,
   Stack,
-  Divider,
-  Paper,
-  useMediaQuery,
+  Typography,
 } from '@mui/material';
-import { Add, Delete, MedicalServices, Close } from '@mui/icons-material';
-import AddTreatmentDialog from '../../components/practitioner/AddTreatmentDialog';
-import TreatmentCard from '../../components/practitioner/TreatmentCard';
+import { Add, MedicalServices } from '@mui/icons-material';
 import {
-  getMyOfferedTreatments,
-  getAllTreatments,
-  getMyAttentions,
-  addTreatmentToCatalog,
-  updateOfferedTreatment,
-  removeFromCatalog,
-} from '../../services/api/practitionerService';
-import type {
-  OfferedTreatmentResponseDTO,
-  TreatmentResponseDTO,
-  AddOfferedTreatmentRequestDTO,
-  UpdateOfferedTreatmentRequestDTO,
-  AvailabilitySlotDTO,
-} from '../../types/practitioner.types';
-import type { AttentionResponseDTO } from '../../types/attention.types';
-
-const DAYS_OF_WEEK = [
-  { value: 'MONDAY', label: 'Lunes' },
-  { value: 'TUESDAY', label: 'Martes' },
-  { value: 'WEDNESDAY', label: 'Miércoles' },
-  { value: 'THURSDAY', label: 'Jueves' },
-  { value: 'FRIDAY', label: 'Viernes' },
-  { value: 'SATURDAY', label: 'Sábado' },
-  { value: 'SUNDAY', label: 'Domingo' },
-];
+  DeleteOfferConfirmDialog,
+  EmptyState,
+  OfferEditDialog,
+  OfferStatusFilter,
+  OfferWizardDialog,
+  PauseOfferDialog,
+  TreatmentCard,
+  TreatmentList,
+  TreatmentsViewSwitcher,
+  deriveBucket,
+  useMyAttentions,
+  useOfferedTreatments,
+  useTreatmentsViewStore,
+} from '../../features/practitioner';
+import type { TreatmentsFilter } from '../../features/practitioner';
+import type { OfferedTreatmentResponseDTO } from '../../types/practitioner.types';
 
 export default function TreatmentsPage() {
-  const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [offeredTreatments, setOfferedTreatments] = useState<OfferedTreatmentResponseDTO[]>([]);
-  const [attentions, setAttentions] = useState<AttentionResponseDTO[]>([]);
-  const [allTreatments, setAllTreatments] = useState<TreatmentResponseDTO[]>([]);
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [editDialogOpen, setEditDialogOpen] = useState(false);
-  const [selectedTreatment, setSelectedTreatment] = useState<OfferedTreatmentResponseDTO | null>(null);
-  const [formData, setFormData] = useState<{
-    treatmentId: number | '';
-    requirements: string;
-    durationInMinutes: number | '';
-    offerStartDate: string;
-    offerEndDate: string;
-    maxCompletedAttentions: number | '';
-    availabilitySlots: AvailabilitySlotDTO[];
-  }>({
-    treatmentId: '',
-    requirements: '',
-    durationInMinutes: '',
-    offerStartDate: '',
-    offerEndDate: '',
-    maxCompletedAttentions: '',
-    availabilitySlots: [],
-  });
+  const {
+    offers,
+    catalog,
+    loading,
+    mutatingId,
+    feedback,
+    create,
+    update,
+    remove,
+    pause,
+    resume,
+    reactivate,
+    clearFeedback,
+  } = useOfferedTreatments();
+  const { attentions } = useMyAttentions();
+  const { view, filter, setView, setFilter } = useTreatmentsViewStore();
 
-  useEffect(() => {
-    loadData();
-  }, []);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<OfferedTreatmentResponseDTO | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<OfferedTreatmentResponseDTO | null>(null);
+  const [pauseTarget, setPauseTarget] = useState<OfferedTreatmentResponseDTO | null>(null);
 
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const [offered, all, attentionsData] = await Promise.all([
-        getMyOfferedTreatments(),
-        getAllTreatments(),
-        getMyAttentions(),
-      ]);
-      setOfferedTreatments(offered);
-      setAllTreatments(all);
-      setAttentions(attentionsData);
-    } catch (err) {
-      console.error('Error loading treatments:', err);
-      setError('Error al cargar los tratamientos');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const completedByTreatment = useMemo(() => {
+    const byTreatment = new Map<number, Set<number>>();
+    attentions
+      .filter((a) => a.status === 'COMPLETED')
+      .forEach((a) => {
+        const set = byTreatment.get(a.treatmentId) ?? new Set<number>();
+        set.add(a.patientId);
+        byTreatment.set(a.treatmentId, set);
+      });
+    return new Map<number, number>(
+      Array.from(byTreatment.entries()).map(([k, v]) => [k, v.size])
+    );
+  }, [attentions]);
 
-  const handleOpenAddDialog = () => {
-    setAddDialogOpen(true);
-  };
-
-  const handleOpenEditDialog = (treatment: OfferedTreatmentResponseDTO) => {
-    setSelectedTreatment(treatment);
-    setFormData({
-      treatmentId: treatment.treatment.id,
-      requirements: treatment.requirements || '',
-      durationInMinutes: treatment.durationInMinutes,
-      offerStartDate: treatment.offerStartDate || '',
-      offerEndDate: treatment.offerEndDate || '',
-      maxCompletedAttentions: treatment.maxCompletedAttentions ?? '',
-      availabilitySlots: treatment.availabilitySlots,
+  const counts = useMemo(() => {
+    const init: Record<TreatmentsFilter, number> = {
+      ALL: offers.length,
+      ACTIVE: 0,
+      PAUSED: 0,
+      INACTIVE: 0,
+      EXPIRED: 0,
+    };
+    offers.forEach((o) => {
+      init[deriveBucket(o)] += 1;
     });
-    setEditDialogOpen(true);
+    return init;
+  }, [offers]);
+
+  const filteredOffers = useMemo(() => {
+    if (filter === 'ALL') return offers;
+    return offers.filter((o) => deriveBucket(o) === filter);
+  }, [filter, offers]);
+
+  const handleDeleteConfirm = async (id: number) => {
+    const result = await remove(id);
+    if (result) setDeleteTarget(null);
   };
 
-  const handleCloseEditDialog = () => {
-    setEditDialogOpen(false);
-    setSelectedTreatment(null);
+  const handlePauseConfirm = async (id: number) => {
+    const ok = await pause(id);
+    if (ok) setPauseTarget(null);
   };
 
-  const handleAddSubmit = async (data: AddOfferedTreatmentRequestDTO) => {
-    setError(null);
-    setSuccess(null);
-    await addTreatmentToCatalog(data);
-    setSuccess('Tratamiento agregado exitosamente');
-    loadData();
+  const handleResume = async (offer: OfferedTreatmentResponseDTO) => {
+    await resume(offer.id);
   };
 
-  const handleAddSlot = () => {
-    setFormData({
-      ...formData,
-      availabilitySlots: [
-        ...formData.availabilitySlots,
-        { dayOfWeek: 'MONDAY' as const, startTime: '09:00:00', endTime: '17:00:00' },
-      ],
-    });
-  };
-
-  const handleRemoveSlot = (index: number) => {
-    setFormData({
-      ...formData,
-      availabilitySlots: formData.availabilitySlots.filter((_, i) => i !== index),
-    });
-  };
-
-  const handleSlotChange = (index: number, field: keyof AvailabilitySlotDTO, value: string) => {
-    const newSlots = [...formData.availabilitySlots];
-    newSlots[index] = { ...newSlots[index], [field]: value };
-    setFormData({ ...formData, availabilitySlots: newSlots });
-  };
-
-  const handleEditSubmit = async () => {
-    try {
-      setError(null);
-      setSuccess(null);
-
-      if (!formData.durationInMinutes || formData.availabilitySlots.length === 0) {
-        setError('Por favor completa todos los campos requeridos');
-        return;
-      }
-
-      if (!formData.offerStartDate || !formData.offerEndDate || !formData.maxCompletedAttentions) {
-        setError('Por favor completa el cupo y el período de la oferta');
-        return;
-      }
-
-      if (selectedTreatment) {
-        const updateData: UpdateOfferedTreatmentRequestDTO = {
-          requirements: formData.requirements || undefined,
-          durationInMinutes: Number(formData.durationInMinutes),
-          availabilitySlots: formData.availabilitySlots,
-          offerStartDate: formData.offerStartDate,
-          offerEndDate: formData.offerEndDate,
-          maxCompletedAttentions: Number(formData.maxCompletedAttentions),
-        };
-        await updateOfferedTreatment(selectedTreatment.id, updateData);
-        setSuccess('Tratamiento actualizado exitosamente');
-      }
-
-      handleCloseEditDialog();
-      loadData();
-    } catch (err: unknown) {
-      console.error('Error saving treatment:', err);
-      setError('Error al guardar el tratamiento');
+  const handleReactivate = async (offer: OfferedTreatmentResponseDTO) => {
+    const outcome = await reactivate(offer.id);
+    if (outcome.ok && outcome.expired) {
+      // The toast already nudges; if user wants to renew dates immediately,
+      // the EXPIRED card now shows "Renovar fechas" as its primary action.
+      // We could auto-open the edit dialog here, but that feels pushy.
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('¿Estás seguro de que deseas eliminar este tratamiento?')) {
-      return;
-    }
+  const handleRenewDates = (offer: OfferedTreatmentResponseDTO) => {
+    setEditTarget(offer);
+  };
 
-    try {
-      setError(null);
-      setSuccess(null);
-      await removeFromCatalog(id);
-      setSuccess('Tratamiento eliminado exitosamente');
-      loadData();
-    } catch (err) {
-      console.error('Error deleting treatment:', err);
-      setError('Error al eliminar el tratamiento');
-    }
+  const cardActions = {
+    onEdit: setEditTarget,
+    onDelete: setDeleteTarget,
+    onPause: setPauseTarget,
+    onResume: handleResume,
+    onReactivate: handleReactivate,
+    onRenewDates: handleRenewDates,
   };
 
   if (loading) {
@@ -221,340 +128,166 @@ export default function TreatmentsPage() {
     );
   }
 
+  const hasOffers = offers.length > 0;
+  const showEmptyAll = !hasOffers;
+  const showEmptyFiltered = hasOffers && filteredOffers.length === 0;
+
   return (
     <Box>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+      <Stack
+        direction={{ xs: 'column', md: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'flex-start', md: 'center' }}
+        spacing={2}
+        sx={{ mb: 3 }}
+      >
         <Box>
           <Typography variant="h4" fontWeight={700} sx={{ mb: 1 }}>
             Mis Tratamientos
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Administra tu catálogo de tratamientos y disponibilidad
+            Administra tu catálogo y revisá el estado de cada oferta
           </Typography>
         </Box>
-        <Button variant="contained" startIcon={<Add />} onClick={handleOpenAddDialog}>
-          Agregar Tratamiento
-        </Button>
-      </Box>
+        <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap">
+          {hasOffers && <TreatmentsViewSwitcher value={view} onChange={setView} />}
+          <Button variant="contained" startIcon={<Add />} onClick={() => setWizardOpen(true)}>
+            Nueva oferta
+          </Button>
+        </Stack>
+      </Stack>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
+      {hasOffers && (
+        <Box sx={{ mb: 3 }}>
+          <OfferStatusFilter value={filter} counts={counts} onChange={setFilter} />
+        </Box>
       )}
 
-      {success && (
-        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
-          {success}
-        </Alert>
+      {showEmptyAll && (
+        <EmptyState
+          icon={<MedicalServices />}
+          title="Aún no tienes tratamientos publicados"
+          description="Creá tu primera oferta para que los pacientes puedan reservar contigo. Vas a definir el período, el cupo, los horarios y las indicaciones."
+          actionLabel="Crear mi primera oferta"
+          onAction={() => setWizardOpen(true)}
+        />
       )}
 
-      {offeredTreatments.length === 0 ? (
-        <Card sx={{ textAlign: 'center', py: 8 }}>
-          <CardContent>
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No tienes tratamientos agregados
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-              Comienza agregando tratamientos a tu catálogo personal
-            </Typography>
-            <Button variant="contained" startIcon={<Add />} onClick={handleOpenAddDialog}>
-              Agregar Mi Primer Tratamiento
-            </Button>
-          </CardContent>
-        </Card>
-      ) : (
+      {showEmptyFiltered && (
+        <EmptyState
+          icon={<MedicalServices />}
+          title={emptyFilterTitle(filter)}
+          description="No hay ofertas en este filtro. Cambiá el filtro para ver el resto de tu catálogo."
+          actionLabel="Ver activas"
+          onAction={() => setFilter('ACTIVE')}
+          tone="neutral"
+        />
+      )}
+
+      {!showEmptyAll && !showEmptyFiltered && view === 'cards' && (
         <Grid container spacing={3}>
-          {offeredTreatments.map((treatment) => (
-            <Grid size={{ xs: 12, md: 6, lg: 4 }} key={treatment.id}>
-              {(() => {
-                const completedPatientsCount = new Set(
-                  attentions
-                    .filter((attention) => attention.treatmentId === treatment.treatment.id && attention.status === 'COMPLETED')
-                    .map((attention) => attention.patientId)
-                ).size;
-
-                return (
+          {filteredOffers.map((offer) => (
+            <Grid size={{ xs: 12, md: 6, lg: 4 }} key={offer.id}>
               <TreatmentCard
-                treatment={treatment}
-                completedPatientsCount={completedPatientsCount}
-                onEdit={handleOpenEditDialog}
-                onDelete={handleDelete}
+                treatment={offer}
+                completedPatientsCount={completedByTreatment.get(offer.treatment.id)}
+                busy={mutatingId === offer.id}
+                {...cardActions}
               />
-                );
-              })()}
             </Grid>
           ))}
         </Grid>
       )}
 
-      {/* Add Treatment Dialog (Stepper) */}
-      <AddTreatmentDialog
-        open={addDialogOpen}
-        onClose={() => setAddDialogOpen(false)}
-        masterTreatments={allTreatments}
-        offeredTreatments={offeredTreatments}
-        onSubmit={handleAddSubmit}
+      {!showEmptyAll && !showEmptyFiltered && view === 'list' && (
+        <TreatmentList
+          offers={filteredOffers}
+          completedByTreatment={completedByTreatment}
+          mutatingId={mutatingId}
+          {...cardActions}
+        />
+      )}
+
+      <OfferWizardDialog
+        open={wizardOpen}
+        catalog={catalog}
+        alreadyOffered={offers}
+        submitting={mutatingId === -1}
+        onClose={() => setWizardOpen(false)}
+        onSubmit={create}
       />
 
-      {/* Edit Treatment Dialog */}
-      <Dialog 
-        open={editDialogOpen} 
-        onClose={handleCloseEditDialog} 
-        maxWidth="sm" 
-        fullWidth
-        fullScreen={isMobile}
-        PaperProps={{
-          sx: {
-            borderRadius: { xs: 0, sm: 3 },
-            m: { xs: 0, sm: 2 },
-          },
-        }}
+      <OfferEditDialog
+        open={editTarget != null}
+        offer={editTarget}
+        submitting={mutatingId === editTarget?.id}
+        onClose={() => setEditTarget(null)}
+        onSubmit={update}
+      />
+
+      <DeleteOfferConfirmDialog
+        open={deleteTarget != null}
+        offer={deleteTarget}
+        submitting={mutatingId === deleteTarget?.id}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+      />
+
+      <PauseOfferDialog
+        open={pauseTarget != null}
+        offer={pauseTarget}
+        submitting={mutatingId === pauseTarget?.id}
+        onClose={() => setPauseTarget(null)}
+        onConfirm={handlePauseConfirm}
+      />
+
+      <Snackbar
+        open={Boolean(feedback.success)}
+        autoHideDuration={3500}
+        onClose={clearFeedback}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
-        <DialogTitle
-          sx={{
-            pb: 2,
-            pt: 2.5,
-            px: { xs: 2, sm: 3 },
-            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.02),
-            borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <MedicalServices sx={{ color: 'primary.main', fontSize: { xs: 24, sm: 28 } }} />
-            <Typography variant="h6" fontWeight={700} fontSize={{ xs: '1.1rem', sm: '1.25rem' }}>
-              Editar Tratamiento
-            </Typography>
-          </Box>
-          <IconButton
-            edge="end"
-            color="inherit"
-            onClick={handleCloseEditDialog}
-            aria-label="cerrar"
-            size="small"
-            sx={{ color: 'text.secondary' }}
-          >
-            <Close />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ px: { xs: 2, sm: 3 }, pt: 3, pb: 2 }}>
-          <Stack spacing={3}>
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-              <TextField
-                label="Cupo de atenciones"
-                type="number"
-                value={formData.maxCompletedAttentions}
-                onChange={(e) => setFormData({ ...formData, maxCompletedAttentions: Number(e.target.value) })}
-                fullWidth
-                required
-                inputProps={{ min: 1 }}
-                helperText="Cantidad máxima de atenciones completadas"
-              />
-              <TextField
-                label="Duración (minutos)"
-                type="number"
-                value={formData.durationInMinutes}
-                onChange={(e) => setFormData({ ...formData, durationInMinutes: Number(e.target.value) })}
-                fullWidth
-                required
-                inputProps={{ min: 15, max: 240, step: 15 }}
-                helperText="Duración estimada del tratamiento"
-              />
-            </Box>
+        <Alert severity="success" variant="filled" onClose={clearFeedback}>
+          {feedback.success}
+        </Alert>
+      </Snackbar>
 
-            <Box>
-              <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5 }}>
-                Período de la oferta *
-              </Typography>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr auto 1fr' }, gap: 2, alignItems: 'center' }}>
-                <TextField
-                  label="Fecha inicio"
-                  type="date"
-                  value={formData.offerStartDate}
-                  onChange={(e) => setFormData({ ...formData, offerStartDate: e.target.value })}
-                  fullWidth
-                  required
-                  InputLabelProps={{ shrink: true }}
-                />
-                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', display: { xs: 'none', sm: 'block' } }}>
-                  hasta
-                </Typography>
-                <TextField
-                  label="Fecha fin"
-                  type="date"
-                  value={formData.offerEndDate}
-                  onChange={(e) => setFormData({ ...formData, offerEndDate: e.target.value })}
-                  fullWidth
-                  required
-                  InputLabelProps={{ shrink: true }}
-                />
-              </Box>
-            </Box>
+      <Snackbar
+        open={Boolean(feedback.info)}
+        autoHideDuration={7000}
+        onClose={clearFeedback}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity="info" variant="filled" onClose={clearFeedback}>
+          {feedback.info}
+        </Alert>
+      </Snackbar>
 
-            <TextField
-              label="Requisitos"
-              value={formData.requirements}
-              onChange={(e) => setFormData({ ...formData, requirements: e.target.value })}
-              fullWidth
-              multiline
-              rows={2}
-              placeholder="Ej: Traer cepillo dental propio"
-            />
-
-            <Divider sx={{ my: 1 }} />
-
-            <Box>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-                <Typography variant="subtitle1" fontWeight={600} fontSize={{ xs: '0.95rem', sm: '1rem' }}>
-                  Disponibilidad Horaria
-                </Typography>
-                <Button 
-                  startIcon={<Add />} 
-                  onClick={handleAddSlot} 
-                  size="small"
-                  variant="outlined"
-                  sx={{ 
-                    fontSize: { xs: '0.75rem', sm: '0.875rem' },
-                    px: { xs: 1.5, sm: 2 }
-                  }}
-                >
-                  Agregar
-                </Button>
-              </Box>
-
-              <Stack spacing={2}>
-                {formData.availabilitySlots.map((slot, index) => (
-                  <Paper
-                    key={index}
-                    elevation={0}
-                    sx={{
-                      p: { xs: 1.5, sm: 2 },
-                      border: (theme) => `1px solid ${theme.palette.divider}`,
-                      borderRadius: 2,
-                      backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.02),
-                    }}
-                  >
-                    <Stack spacing={2}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="body2" fontWeight={600} color="text.secondary">
-                          Horario {index + 1}
-                        </Typography>
-                        <IconButton 
-                          color="error" 
-                          onClick={() => handleRemoveSlot(index)}
-                          size="small"
-                        >
-                          <Delete fontSize="small" />
-                        </IconButton>
-                      </Box>
-
-                      <TextField
-                        select
-                        label="Día de la semana"
-                        value={slot.dayOfWeek}
-                        onChange={(e) => handleSlotChange(index, 'dayOfWeek', e.target.value)}
-                        fullWidth
-                        size="small"
-                      >
-                        {DAYS_OF_WEEK.map((day) => (
-                          <MenuItem key={day.value} value={day.value}>
-                            {day.label}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-
-                      <Box sx={{ 
-                        display: 'grid', 
-                        gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
-                        gap: 2
-                      }}>
-                        <TextField
-                          label="Hora inicio"
-                          type="time"
-                          value={slot.startTime.substring(0, 5)}
-                          onChange={(e) => handleSlotChange(index, 'startTime', e.target.value + ':00')}
-                          fullWidth
-                          size="small"
-                          InputLabelProps={{ shrink: true }}
-                          inputProps={{
-                            step: 900,
-                          }}
-                        />
-                        <TextField
-                          label="Hora fin"
-                          type="time"
-                          value={slot.endTime.substring(0, 5)}
-                          onChange={(e) => handleSlotChange(index, 'endTime', e.target.value + ':00')}
-                          fullWidth
-                          size="small"
-                          InputLabelProps={{ shrink: true }}
-                          inputProps={{
-                            step: 900,
-                          }}
-                        />
-                      </Box>
-                    </Stack>
-                  </Paper>
-                ))}
-              </Stack>
-
-              {formData.availabilitySlots.length === 0 && (
-                <Alert 
-                  severity="info"
-                  sx={{ 
-                    borderRadius: 2,
-                    fontSize: { xs: '0.8rem', sm: '0.875rem' }
-                  }}
-                >
-                  Agrega al menos un horario de disponibilidad
-                </Alert>
-              )}
-            </Box>
-          </Stack>
-        </DialogContent>
-        <DialogActions
-          sx={{
-            px: { xs: 2, sm: 3 },
-            py: 2,
-            backgroundColor: (theme) => alpha(theme.palette.background.default, 0.5),
-            borderTop: (theme) => `1px solid ${theme.palette.divider}`,
-            gap: 1.5,
-            flexDirection: { xs: 'column-reverse', sm: 'row' },
-          }}
-        >
-          <Button 
-            onClick={handleCloseEditDialog}
-            variant="outlined"
-            fullWidth={isMobile}
-            sx={{
-              fontSize: '0.9rem',
-              fontWeight: 600,
-              borderRadius: 2,
-              px: 3,
-              py: 1,
-            }}
-          >
-            Cancelar
-          </Button>
-          <Button 
-            onClick={handleEditSubmit} 
-            variant="contained"
-            fullWidth={isMobile}
-            sx={{
-              fontSize: '0.9rem',
-              fontWeight: 700,
-              borderRadius: 2,
-              px: 3,
-              py: 1,
-            }}
-          >
-            Guardar Cambios
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <Snackbar
+        open={Boolean(feedback.error)}
+        autoHideDuration={5000}
+        onClose={clearFeedback}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity="error" variant="filled" onClose={clearFeedback}>
+          {feedback.error}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }
+
+const emptyFilterTitle = (filter: TreatmentsFilter): string => {
+  switch (filter) {
+    case 'INACTIVE':
+      return 'No tenés ofertas archivadas';
+    case 'EXPIRED':
+      return 'No tenés ofertas vencidas';
+    case 'PAUSED':
+      return 'No tenés ofertas pausadas';
+    case 'ACTIVE':
+      return 'No tenés ofertas activas en este momento';
+    default:
+      return 'No hay ofertas que coincidan';
+  }
+};

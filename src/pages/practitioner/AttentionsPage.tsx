@@ -1,60 +1,59 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
+  Badge,
   Box,
-  Typography,
-  Card,
-  CardContent,
   Button,
   Chip,
-  Alert,
   CircularProgress,
-  Grid,
   Dialog,
-  DialogTitle,
-  DialogContent,
   DialogActions,
-  TextField,
-  List,
-  ListItem,
-  ListItemText,
+  DialogContent,
+  DialogTitle,
   Divider,
-  Rating,
-  Paper,
-  Stack,
-  Badge,
+  Grid,
   IconButton,
-  alpha,
-  Tabs,
+  Paper,
+  Rating,
+  Snackbar,
+  Stack,
   Tab,
+  Tabs,
+  TextField,
+  Typography,
+  alpha,
 } from '@mui/material';
-import { Add, CheckCircle, RateReview, Close, Description, Star } from '@mui/icons-material';
-import {
-  getMyAttentions,
-  getProgressNotes,
-  addProgressNote,
-  finalizeAttention,
-} from '../../services/api/practitionerService';
-import { getFeedbackForAttention, createFeedback } from '../../services/api/feedbackService';
-import type {
-  AttentionResponseDTO,
-  ProgressNoteResponseDTO,
-  ProgressNoteRequestDTO,
-} from '../../types/attention.types';
-import type { FeedbackResponseDTO, CreateFeedbackRequestDTO } from '../../types/feedback.types';
+import { Assignment, Close, RateReview, Star } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import {
+  AddProgressNoteDialog,
+  AttentionCard,
+  CancelAttentionDialog,
+  EmptyState,
+  FinalizeAttentionDialog,
+  ProgressNoteTimeline,
+  mapPractitionerError,
+  useAttentionDetail,
+  useMyAttentions,
+  useOfferedTreatments,
+} from '../../features/practitioner';
+import {
+  addProgressNote,
+  cancelAttention,
+  finalizeAttention,
+} from '../../services/api/practitionerService';
+import { createFeedback, getFeedbackForAttention } from '../../services/api/feedbackService';
+import type { AttentionResponseDTO } from '../../types/attention.types';
+import type {
+  CreateFeedbackRequestDTO,
+  FeedbackResponseDTO,
+} from '../../types/feedback.types';
 import { useAuthStore } from '../../store/authStore';
-
-const STATUS_CONFIG = {
-  IN_PROGRESS: { label: 'En Progreso', color: 'primary' as const },
-  COMPLETED: { label: 'Completada', color: 'success' as const },
-  CANCELLED: { label: 'Cancelada', color: 'error' as const },
-};
 
 const isPractitionerRole = (role?: string | null) => {
   if (!role) return false;
-  const normalizedRole = String(role).toUpperCase();
-  return normalizedRole.includes('PRACT') || normalizedRole.includes('PRAC');
+  return String(role).toUpperCase().includes('PRACT');
 };
 
 interface AttentionWithFeedback extends AttentionResponseDTO {
@@ -62,217 +61,186 @@ interface AttentionWithFeedback extends AttentionResponseDTO {
   hasMyFeedback?: boolean;
 }
 
-type EvolutionDialogMode = 'history' | 'add';
-
 export default function AttentionsPage() {
   const { user } = useAuthStore();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [attentions, setAttentions] = useState<AttentionWithFeedback[]>([]);
+  const { attentions, loading, reload } = useMyAttentions();
+  const { offers } = useOfferedTreatments();
+
+  const offersByTreatmentId = useMemo(() => {
+    const map = new Map<number, typeof offers[number]>();
+    offers.forEach((o) => map.set(o.treatment.id, o));
+    return map;
+  }, [offers]);
+
   const [tabValue, setTabValue] = useState(0);
-  const [selectedAttention, setSelectedAttention] = useState<AttentionResponseDTO | null>(null);
-  const [progressNotes, setProgressNotes] = useState<ProgressNoteResponseDTO[]>([]);
+  const [enrichedAttentions, setEnrichedAttentions] = useState<AttentionWithFeedback[]>([]);
+  const [enrichLoading, setEnrichLoading] = useState(false);
+
+  // Practitioner-driven dialogs
+  const [evolutionTarget, setEvolutionTarget] = useState<AttentionResponseDTO | null>(null);
+  const [addNoteTarget, setAddNoteTarget] = useState<AttentionResponseDTO | null>(null);
+  const [finalizeTarget, setFinalizeTarget] = useState<AttentionResponseDTO | null>(null);
+  const [cancelTarget, setCancelTarget] = useState<AttentionResponseDTO | null>(null);
+
+  // Academic feedback dialogs (orthogonal concern, kept inline)
+  const [feedbackViewTarget, setFeedbackViewTarget] = useState<AttentionResponseDTO | null>(null);
+  const [feedbackCreateTarget, setFeedbackCreateTarget] = useState<AttentionResponseDTO | null>(null);
   const [feedbackList, setFeedbackList] = useState<FeedbackResponseDTO[]>([]);
-  const [notesDialogOpen, setNotesDialogOpen] = useState(false);
-  const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
-  const [createFeedbackDialogOpen, setCreateFeedbackDialogOpen] = useState(false);
-  const [evolutionDialogMode, setEvolutionDialogMode] = useState<EvolutionDialogMode>('history');
-  const [noteContent, setNoteContent] = useState('');
   const [feedbackRating, setFeedbackRating] = useState<number | null>(null);
   const [feedbackComment, setFeedbackComment] = useState('');
+  const [feedbackError, setFeedbackError] = useState<string | null>(null);
+  const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
 
+  const detail = useAttentionDetail(evolutionTarget?.id ?? null);
+
+  // Standalone mutation state for the actions that don't need detail loaded.
+  const [mutating, setMutating] = useState(false);
+  const [mutationError, setMutationError] = useState<string | null>(null);
+  const [mutationSuccess, setMutationSuccess] = useState<string | null>(null);
+
+  // Enrich completed attentions with feedback metadata
   useEffect(() => {
-    if (!user?.userId) return;
-
-    loadAttentions(user.userId);
-  }, [user?.userId]);
-
-  const loadAttentions = async (practitionerId: number) => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getMyAttentions();
-      
-      // Cargar conteo de feedback y verificar si el practicante ya dio feedback
-      const attentionsWithFeedbackCount = await Promise.all(
-        data.map(async (attention) => {
-          if (attention.status === 'COMPLETED') {
+    let cancelled = false;
+    const enrich = async () => {
+      if (!user?.userId || attentions.length === 0) {
+        setEnrichedAttentions(attentions);
+        return;
+      }
+      setEnrichLoading(true);
+      try {
+        const enriched = await Promise.all(
+          attentions.map(async (att) => {
+            if (att.status !== 'COMPLETED') return att;
             try {
-              const allFeedback = await getFeedbackForAttention(attention.id);
-              
-              // Verificar si YO (el practicante logueado) ya di feedback
-              // El practicante da feedback AL paciente, así que busco feedback
-              // donde YO soy el autor (submittedById) Y mi rol es PRACTITIONER
+              const allFeedback = await getFeedbackForAttention(att.id);
               const hasMyFeedback = allFeedback.some(
-                (f) => isPractitionerRole(f.submittedByRole) && Number(f.submittedById) === practitionerId
+                (f) =>
+                  isPractitionerRole(f.submittedByRole) &&
+                  Number(f.submittedById) === user.userId
               );
-              
-              return { 
-                ...attention, 
-                feedbackCount: allFeedback.length,
-                hasMyFeedback 
-              };
+              return { ...att, feedbackCount: allFeedback.length, hasMyFeedback };
             } catch {
-              return { ...attention, feedbackCount: 0, hasMyFeedback: false };
+              return { ...att, feedbackCount: 0, hasMyFeedback: false };
             }
-          }
-          return attention;
-        })
-      );
-      
-      setAttentions(attentionsWithFeedbackCount);
+          })
+        );
+        if (!cancelled) setEnrichedAttentions(enriched);
+      } finally {
+        if (!cancelled) setEnrichLoading(false);
+      }
+    };
+    void enrich();
+    return () => {
+      cancelled = true;
+    };
+  }, [attentions, user?.userId]);
+
+  const { inProgress, completed } = useMemo(() => {
+    const ip = enrichedAttentions.filter((a) => a.status === 'IN_PROGRESS');
+    const c = enrichedAttentions.filter((a) => a.status === 'COMPLETED');
+    return { inProgress: ip, completed: c };
+  }, [enrichedAttentions]);
+
+  const displayed = tabValue === 0 ? inProgress : completed;
+
+  const handleAddNote = async (content: string): Promise<boolean> => {
+    if (!addNoteTarget) return false;
+    setMutating(true);
+    setMutationError(null);
+    try {
+      await addProgressNote(addNoteTarget.id, { content });
+      setMutationSuccess('Nota de evolución agregada.');
+      setAddNoteTarget(null);
+      await reload();
+      return true;
     } catch (err) {
-      console.error('Error loading attentions:', err);
-      setError('Error al cargar las atenciones');
+      const mapped = mapPractitionerError(err, 'No se pudo agregar la nota.');
+      setMutationError(mapped.message);
+      return false;
     } finally {
-      setLoading(false);
+      setMutating(false);
     }
   };
 
-  const loadProgressNotes = async (attentionId: number) => {
+  const handleFinalizeConfirm = async () => {
+    if (!finalizeTarget) return;
+    setMutating(true);
+    setMutationError(null);
     try {
-      const notes = await getProgressNotes(attentionId);
-      setProgressNotes(notes);
+      await finalizeAttention(finalizeTarget.id);
+      setMutationSuccess('Atención finalizada.');
+      setFinalizeTarget(null);
+      await reload();
     } catch (err) {
-      console.error('Error loading notes:', err);
-      setError('Error al cargar las notas de evolución');
+      const mapped = mapPractitionerError(err, 'No se pudo finalizar la atención.');
+      setMutationError(mapped.message);
+    } finally {
+      setMutating(false);
     }
   };
 
-  const openEvolutionDialog = async (attention: AttentionResponseDTO, mode: EvolutionDialogMode) => {
-    setSelectedAttention(attention);
-    setNotesDialogOpen(true);
-    setEvolutionDialogMode(mode);
-    setNoteContent('');
-
-    await loadProgressNotes(attention.id);
-  };
-
-  const handleOpenNotes = (attention: AttentionResponseDTO) => {
-    void openEvolutionDialog(attention, 'history');
-  };
-
-  const handleOpenAddNote = (attention: AttentionResponseDTO) => {
-    void openEvolutionDialog(attention, 'add');
-  };
-
-  const handleCloseNotes = () => {
-    setNotesDialogOpen(false);
-    setSelectedAttention(null);
-    setProgressNotes([]);
-    setNoteContent('');
-    setEvolutionDialogMode('history');
-  };
-
-  const handleOpenFeedback = async (attention: AttentionResponseDTO) => {
-    setSelectedAttention(attention);
-    setFeedbackDialogOpen(true);
-
+  const handleCancelConfirm = async (reason: string) => {
+    if (!cancelTarget) return;
+    setMutating(true);
+    setMutationError(null);
     try {
-      const feedback = await getFeedbackForAttention(attention.id);
-      setFeedbackList(feedback);
+      await cancelAttention(cancelTarget.id, { reason });
+      setMutationSuccess('Caso clínico cancelado.');
+      setCancelTarget(null);
+      await reload();
     } catch (err) {
-      console.error('Error loading feedback:', err);
-      setError('Error al cargar el feedback');
+      const mapped = mapPractitionerError(err, 'No se pudo cancelar el caso.');
+      setMutationError(mapped.message);
+    } finally {
+      setMutating(false);
     }
   };
 
-  const handleCloseFeedback = () => {
-    setFeedbackDialogOpen(false);
-    setSelectedAttention(null);
-    setFeedbackList([]);
+  const handleOpenFeedbackView = async (attention: AttentionResponseDTO) => {
+    setFeedbackViewTarget(attention);
+    try {
+      const list = await getFeedbackForAttention(attention.id);
+      setFeedbackList(list);
+    } catch {
+      setFeedbackError('Error al cargar el feedback.');
+    }
   };
 
-  const handleOpenCreateFeedback = (attention: AttentionResponseDTO) => {
-    setSelectedAttention(attention);
-    setCreateFeedbackDialogOpen(true);
+  const handleOpenFeedbackCreate = (attention: AttentionResponseDTO) => {
+    setFeedbackCreateTarget(attention);
     setFeedbackRating(null);
     setFeedbackComment('');
-  };
-
-  const handleCloseCreateFeedback = () => {
-    setCreateFeedbackDialogOpen(false);
-    setSelectedAttention(null);
-    setFeedbackRating(null);
-    setFeedbackComment('');
+    setFeedbackError(null);
   };
 
   const handleSubmitFeedback = async () => {
-    if (!selectedAttention || !feedbackRating) {
-      setError('Debes seleccionar una calificación');
+    if (!feedbackCreateTarget || !feedbackRating) {
+      setFeedbackError('Debes seleccionar una calificación.');
       return;
     }
-
     if (feedbackComment.length > 1000) {
-      setError('El comentario no puede exceder 1000 caracteres');
+      setFeedbackError('El comentario no puede exceder 1000 caracteres.');
       return;
     }
-
     try {
-      setError(null);
-      const feedbackData: CreateFeedbackRequestDTO = {
-        attentionId: selectedAttention.id,
+      const payload: CreateFeedbackRequestDTO = {
+        attentionId: feedbackCreateTarget.id,
         rating: feedbackRating,
         comment: feedbackComment.trim() || undefined,
       };
-
-      await createFeedback(feedbackData);
-      setSuccess('Feedback enviado exitosamente');
-      handleCloseCreateFeedback();
-      if (user?.userId) {
-        loadAttentions(user.userId); // Recargar para actualizar el estado
-      }
-    } catch (err: any) {
-      console.error('Error submitting feedback:', err);
-      if (err.response?.status === 400) {
-        setError('Ya has calificado esta atención o la atención no está completada');
-      } else {
-        setError('Error al enviar el feedback');
-      }
+      await createFeedback(payload);
+      setFeedbackSuccess('Feedback enviado.');
+      setFeedbackCreateTarget(null);
+      await reload();
+    } catch (err: unknown) {
+      const status = (err as { status?: number })?.status;
+      setFeedbackError(
+        status === 400
+          ? 'Ya calificaste esta atención o la atención no está completada.'
+          : 'Error al enviar el feedback.'
+      );
     }
   };
-
-  const handleAddNote = async () => {
-    if (!selectedAttention || !noteContent.trim() || noteContent.trim().length < 10) {
-      setError('La nota debe tener al menos 10 caracteres');
-      return;
-    }
-
-    try {
-      setError(null);
-      const noteData: ProgressNoteRequestDTO = { content: noteContent.trim() };
-      await addProgressNote(selectedAttention.id, noteData);
-      setSuccess('Nota de evolución agregada');
-      setNoteContent('');
-      const notes = await getProgressNotes(selectedAttention.id);
-      setProgressNotes(notes);
-    } catch (err) {
-      console.error('Error adding note:', err);
-      setError('Error al agregar la nota de evolución');
-    }
-  };
-
-  const handleFinalizeAttention = async (attentionId: number) => {
-    if (!window.confirm('¿Estás seguro de finalizar esta atención?')) return;
-
-    try {
-      setError(null);
-      await finalizeAttention(attentionId);
-      setSuccess('Atención finalizada exitosamente');
-      if (user?.userId) {
-        loadAttentions(user.userId);
-      }
-      handleCloseNotes();
-    } catch (err) {
-      console.error('Error finalizing attention:', err);
-      setError('Error al finalizar la atención');
-    }
-  };
-
-  const inProgressAttentions = attentions.filter((attention) => attention.status === 'IN_PROGRESS');
-  const completedAttentions = attentions.filter((attention) => attention.status === 'COMPLETED');
-  const displayedAttentions = tabValue === 0 ? inProgressAttentions : completedAttentions;
 
   if (loading) {
     return (
@@ -288,619 +256,386 @@ export default function AttentionsPage() {
         Atenciones
       </Typography>
       <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        Gestiona las atenciones de tus pacientes
+        Gestiona los casos clínicos de tus pacientes
       </Typography>
-
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
-          {error}
-        </Alert>
-      )}
-
-      {success && (
-        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
-          {success}
-        </Alert>
-      )}
 
       <Paper
         elevation={0}
-        sx={{
-          mb: 3,
-          border: '1px solid',
-          borderColor: 'divider',
-          borderRadius: 2,
-        }}
+        sx={{ mb: 3, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}
       >
-        <Tabs
-          value={tabValue}
-          onChange={(_, newValue) => setTabValue(newValue)}
-          variant="fullWidth"
-          sx={{
-            '& .MuiTab-root': {
-              fontSize: { xs: '0.8rem', sm: '0.875rem' },
-              fontWeight: 500,
-            },
-          }}
-        >
-          <Tab label={`En Curso (${inProgressAttentions.length})`} />
-          <Tab label={`Completadas (${completedAttentions.length})`} />
+        <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} variant="fullWidth">
+          <Tab label={`En curso (${inProgress.length})`} />
+          <Tab label={`Completadas (${completed.length})`} />
         </Tabs>
       </Paper>
 
-      {displayedAttentions.length === 0 ? (
-        <Card sx={{ textAlign: 'center', py: 8 }}>
-          <CardContent>
-            <Typography variant="h6" color="text.secondary">
-              {tabValue === 0 ? 'No tienes atenciones en curso.' : 'No tienes atenciones completadas.'}
-            </Typography>
-          </CardContent>
-        </Card>
+      {displayed.length === 0 ? (
+        <EmptyState
+          icon={<Assignment />}
+          title={
+            tabValue === 0
+              ? 'No tienes atenciones en curso'
+              : 'Aún no completaste ninguna atención'
+          }
+          description={
+            tabValue === 0
+              ? 'Cuando un paciente reserve un turno con una de tus ofertas, su atención clínica aparecerá aquí para que puedas registrar la evolución y finalizarla.'
+              : 'Las atenciones que finalices se acumularán acá para consulta histórica.'
+          }
+          tone="neutral"
+        />
       ) : (
         <Grid container spacing={3}>
-          {displayedAttentions.map((attention) => (
+          {displayed.map((attention) => (
             <Grid size={{ xs: 12, md: 6 }} key={attention.id}>
-              <Card sx={{ borderRadius: 3 }}>
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 2 }}>
-                    <Typography variant="h6" fontWeight={600}>
-                      {attention.patientName}
-                    </Typography>
-                    <Chip
-                      label={STATUS_CONFIG[attention.status].label}
-                      color={STATUS_CONFIG[attention.status].color}
-                      size="small"
-                    />
-                  </Box>
-
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Tratamiento
-                    </Typography>
-                    <Typography variant="body1" fontWeight={500}>
-                      {attention.treatmentName}
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Fecha de Inicio
-                    </Typography>
-                    <Typography variant="body1" fontWeight={500}>
-                      {format(parseISO(attention.startDate), "dd 'de' MMMM 'de' yyyy", { locale: es })}
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ mb: 2 }}>
-                    <Typography variant="body2" color="text.secondary">
-                      Turnos
-                    </Typography>
-                    <Typography variant="body1" fontWeight={500}>
-                      {attention.appointments.length} turnos registrados
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: 'flex', gap: 1, mt: 3, flexWrap: 'wrap' }}>
-                    <Button variant="outlined" size="small" onClick={() => handleOpenNotes(attention)}>
-                      Ver evolución
-                    </Button>
-                    {attention.status === 'IN_PROGRESS' && (
-                      <Button
-                        variant="contained"
-                        color="primary"
-                        size="small"
-                        startIcon={<Add />}
-                        onClick={() => handleOpenAddNote(attention)}
-                      >
-                        Agregar evolución
-                      </Button>
-                    )}
-                    {attention.status === 'COMPLETED' && attention.feedbackCount !== undefined && (
+              <Box sx={{ position: 'relative' }}>
+                <AttentionCard
+                  attention={attention}
+                  treatmentOffer={offersByTreatmentId.get(attention.treatmentId)}
+                  onOpenEvolution={setEvolutionTarget}
+                  onAddNote={setAddNoteTarget}
+                  onFinalize={setFinalizeTarget}
+                  onCancel={setCancelTarget}
+                />
+                {attention.status === 'COMPLETED' && (
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      gap: 1,
+                      flexWrap: 'wrap',
+                      px: 2,
+                      pb: 2,
+                      mt: -1,
+                    }}
+                  >
+                    {attention.feedbackCount !== undefined && (
                       <Badge badgeContent={attention.feedbackCount} color="primary">
-                        <Button 
-                          variant="outlined" 
-                          size="small" 
+                        <Button
+                          variant="outlined"
+                          size="small"
                           startIcon={<RateReview />}
-                          onClick={() => handleOpenFeedback(attention)}
-                          color={attention.feedbackCount > 0 ? 'primary' : 'inherit'}
+                          onClick={() => handleOpenFeedbackView(attention)}
                         >
-                          Ver Feedback
+                          Ver feedback
                         </Button>
                       </Badge>
                     )}
-                    {attention.status === 'COMPLETED' && !attention.hasMyFeedback && (
+                    {!attention.hasMyFeedback && (
                       <Button
                         variant="contained"
-                        color="primary"
                         size="small"
                         startIcon={<RateReview />}
-                        onClick={() => handleOpenCreateFeedback(attention)}
+                        onClick={() => handleOpenFeedbackCreate(attention)}
                       >
-                        Dar Feedback
-                      </Button>
-                    )}
-                    {attention.status === 'IN_PROGRESS' && (
-                      <Button
-                        variant="contained"
-                        color="success"
-                        size="small"
-                        startIcon={<CheckCircle />}
-                        onClick={() => handleFinalizeAttention(attention.id)}
-                      >
-                        Finalizar
+                        Calificar paciente
                       </Button>
                     )}
                   </Box>
-                </CardContent>
-              </Card>
+                )}
+              </Box>
             </Grid>
           ))}
         </Grid>
       )}
 
-      {/* Notes Dialog */}
-      <Dialog 
-        open={notesDialogOpen} 
-        onClose={handleCloseNotes} 
-        maxWidth="md" 
+      {enrichLoading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+          <CircularProgress size={24} />
+        </Box>
+      )}
+
+      {/* Evolution dialog (history view) */}
+      <Dialog
+        open={evolutionTarget != null}
+        onClose={() => setEvolutionTarget(null)}
+        maxWidth="md"
         fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            boxShadow: (theme) => theme.shadows[10],
-          },
-        }}
+        PaperProps={{ sx: { borderRadius: 3 } }}
       >
         <DialogTitle
           sx={{
-            pb: 1,
-            pt: 3,
-            px: 3,
-            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.02),
-            borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
             display: 'flex',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             justifyContent: 'space-between',
+            pr: 2,
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: 1 }}>
-            <Description sx={{ color: 'primary.main', fontSize: 28, mt: 0.3 }} />
-            <Box>
-              <Typography variant="h6" fontWeight={700}>
-                {evolutionDialogMode === 'history' ? 'Historial de evoluciones' : 'Agregar evolución'} - {selectedAttention?.patientName}
+          <Box>
+            <Typography variant="h6" fontWeight={700}>
+              Historial de evoluciones
+            </Typography>
+            {evolutionTarget && (
+              <Typography variant="caption" color="text.secondary">
+                {evolutionTarget.patientName} · {evolutionTarget.treatmentName}
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                {selectedAttention?.treatmentName}
-              </Typography>
-            </Box>
+            )}
           </Box>
-          <IconButton
-            edge="end"
-            color="inherit"
-            onClick={handleCloseNotes}
-            aria-label="cerrar"
-            size="small"
-            sx={{
-              color: 'text.secondary',
-              '&:hover': {
-                backgroundColor: (theme) => alpha(theme.palette.error.main, 0.1),
-                color: 'error.main',
-              },
-            }}
-          >
+          <IconButton onClick={() => setEvolutionTarget(null)} size="small">
             <Close />
           </IconButton>
         </DialogTitle>
-        <DialogContent sx={{ px: 3, pt: 3 }}>
-          <Box sx={{ pt: 2 }}>
-            {evolutionDialogMode === 'history' && (
-              <>
-                {progressNotes.length === 0 ? (
-                  <Alert severity="info">No hay notas de evolución registradas</Alert>
-                ) : (
-                  <List>
-                    {progressNotes.map((note, index) => (
-                      <Box key={note.id}>
-                        <ListItem alignItems="flex-start">
-                          <ListItemText
-                            primary={note.note}
-                            secondary={
-                              <>
-                                {format(parseISO(note.createdAt), "dd/MM/yyyy HH:mm", { locale: es })} - {note.authorName}
-                              </>
-                            }
-                          />
-                        </ListItem>
-                        {index < progressNotes.length - 1 && <Divider />}
-                      </Box>
-                    ))}
-                  </List>
-                )}
-              </>
-            )}
-
-            {evolutionDialogMode === 'add' && selectedAttention?.status === 'IN_PROGRESS' && (
-              <Box sx={{ mt: 3 }}>
-                <TextField
-                  label="Nueva evolución"
-                  value={noteContent}
-                  onChange={(e) => setNoteContent(e.target.value)}
-                  fullWidth
-                  multiline
-                  rows={4}
-                  placeholder="Describe la evolución del paciente (mínimo 10 caracteres)"
-                  helperText={`${noteContent.length}/5000 caracteres`}
-                />
-                <Button
-                  variant="contained"
-                  startIcon={<Add />}
-                  onClick={handleAddNote}
-                  sx={{ mt: 2 }}
-                  disabled={noteContent.trim().length < 10}
-                >
-                  Agregar evolución
-                </Button>
-              </Box>
-            )}
-          </Box>
+        <DialogContent>
+          {detail.loading ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <ProgressNoteTimeline notes={detail.notes} />
+          )}
         </DialogContent>
-        <DialogActions
-          sx={{
-            px: 3,
-            py: 2.5,
-            backgroundColor: (theme) => alpha(theme.palette.background.default, 0.5),
-            borderTop: (theme) => `1px solid ${theme.palette.divider}`,
-          }}
-        >
-          <Button 
-            onClick={handleCloseNotes}
-            variant="contained"
-            sx={{
-              fontSize: '0.9rem',
-              fontWeight: 700,
-              borderRadius: 2,
-              px: 3,
-              py: 1,
-              boxShadow: (theme) => theme.shadows[3],
-              '&:hover': {
-                boxShadow: (theme) => theme.shadows[6],
-              },
-            }}
-          >
+        <DialogActions>
+          <Button onClick={() => setEvolutionTarget(null)} variant="contained">
             Cerrar
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Feedback Dialog */}
-      <Dialog 
-        open={feedbackDialogOpen} 
-        onClose={handleCloseFeedback} 
-        maxWidth="md" 
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            boxShadow: (theme) => theme.shadows[10],
-          },
+      <AddProgressNoteDialog
+        open={addNoteTarget != null}
+        attentionLabel={
+          addNoteTarget ? `${addNoteTarget.patientName} · ${addNoteTarget.treatmentName}` : undefined
+        }
+        submitting={mutating}
+        onClose={() => setAddNoteTarget(null)}
+        onSubmit={handleAddNote}
+      />
+
+      <FinalizeAttentionDialog
+        open={finalizeTarget != null}
+        attention={finalizeTarget}
+        submitting={mutating}
+        errorMessage={finalizeTarget ? mutationError : null}
+        onClose={() => {
+          setFinalizeTarget(null);
+          setMutationError(null);
         }}
+        onConfirm={handleFinalizeConfirm}
+      />
+
+      <CancelAttentionDialog
+        open={cancelTarget != null}
+        attention={cancelTarget}
+        submitting={mutating}
+        errorMessage={cancelTarget ? mutationError : null}
+        onClose={() => {
+          setCancelTarget(null);
+          setMutationError(null);
+        }}
+        onConfirm={handleCancelConfirm}
+      />
+
+      {/* Academic feedback — view */}
+      <Dialog
+        open={feedbackViewTarget != null}
+        onClose={() => setFeedbackViewTarget(null)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
       >
         <DialogTitle
           sx={{
-            pb: 1,
-            pt: 3,
-            px: 3,
-            backgroundColor: (theme) => alpha(theme.palette.info.main, 0.02),
-            borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
             display: 'flex',
-            alignItems: 'flex-start',
+            alignItems: 'center',
             justifyContent: 'space-between',
+            bgcolor: (t) => alpha(t.palette.info.main, 0.04),
           }}
         >
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: 1 }}>
-            <Star sx={{ color: 'info.main', fontSize: 28, mt: 0.3 }} />
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Star sx={{ color: 'info.main' }} />
             <Box>
               <Typography variant="h6" fontWeight={700}>
-                Feedback de la Atención
+                Feedback de la atención
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                Paciente: {selectedAttention?.patientName}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {selectedAttention?.treatmentName}
-              </Typography>
-            </Box>
-          </Box>
-          <IconButton
-            edge="end"
-            color="inherit"
-            onClick={handleCloseFeedback}
-            aria-label="cerrar"
-            size="small"
-            sx={{
-              color: 'text.secondary',
-              '&:hover': {
-                backgroundColor: (theme) => alpha(theme.palette.error.main, 0.1),
-                color: 'error.main',
-              },
-            }}
-          >
-            <Close />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ px: 3, pt: 3 }}>
-          <Box sx={{ pt: 2 }}>
-            {feedbackList.length === 0 ? (
-              <Alert severity="info">No hay feedback registrado para esta atención</Alert>
-            ) : (
-              <Stack spacing={2}>
-                {feedbackList.map((feedback) => (
-                  <Paper 
-                    key={feedback.id}
-                    elevation={0} 
-                    sx={{ 
-                      p: 2.5, 
-                      borderRadius: 2, 
-                      border: '2px solid',
-                      borderColor: feedback.submittedByRole === 'PATIENT' ? 'success.light' : 'info.light',
-                      bgcolor: feedback.submittedByRole === 'PATIENT' ? 'success.50' : 'info.50',
-                    }}
-                  >
-                    {/* Autor del feedback */}
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1.5 }}>
-                      <Box>
-                        <Chip 
-                          label={feedback.submittedByRole === 'PATIENT' ? 'Calificación del Paciente' : 'Tu Calificación'} 
-                          size="small"
-                          sx={{ 
-                            mb: 1,
-                            fontSize: '0.7rem',
-                            height: 22,
-                            fontWeight: 600,
-                            bgcolor: feedback.submittedByRole === 'PATIENT' ? 'success.main' : 'info.main',
-                            color: 'white',
-                          }}
-                        />
-                        <Typography variant="subtitle1" fontWeight={600}>
-                          {feedback.submittedByRole === 'PATIENT' 
-                            ? `${feedback.submittedByName} calificó al practicante`
-                            : `Calificaste al paciente ${feedback.patientName}`
-                          }
-                        </Typography>
-                      </Box>
-                      <Box sx={{ textAlign: 'right' }}>
-                        <Rating value={feedback.rating} readOnly size="small" />
-                        <Typography variant="caption" display="block" color="text.secondary" fontWeight={600}>
-                          {feedback.rating}/5
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    {/* Comentario */}
-                    {feedback.comment && (
-                      <>
-                        <Divider sx={{ my: 1.5 }} />
-                        <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
-                          "{feedback.comment}"
-                        </Typography>
-                      </>
-                    )}
-
-                    {/* Fecha */}
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
-                      {format(parseISO(feedback.createdAt), "dd 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es })}
-                    </Typography>
-                  </Paper>
-                ))}
-              </Stack>
-            )}
-          </Box>
-        </DialogContent>
-        <DialogActions
-          sx={{
-            px: 3,
-            py: 2.5,
-            backgroundColor: (theme) => alpha(theme.palette.background.default, 0.5),
-            borderTop: (theme) => `1px solid ${theme.palette.divider}`,
-          }}
-        >
-          <Button 
-            onClick={handleCloseFeedback}
-            variant="contained"
-            sx={{
-              fontSize: '0.9rem',
-              fontWeight: 700,
-              borderRadius: 2,
-              px: 3,
-              py: 1,
-              boxShadow: (theme) => theme.shadows[3],
-              '&:hover': {
-                boxShadow: (theme) => theme.shadows[6],
-              },
-            }}
-          >
-            Cerrar
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Create Feedback Dialog */}
-      <Dialog 
-        open={createFeedbackDialogOpen} 
-        onClose={handleCloseCreateFeedback} 
-        maxWidth="sm" 
-        fullWidth
-        PaperProps={{
-          sx: {
-            borderRadius: 3,
-            boxShadow: (theme) => theme.shadows[10],
-          }
-        }}
-      >
-        <DialogTitle
-          sx={{
-            pb: 1,
-            pt: 3,
-            px: 3,
-            backgroundColor: (theme) => alpha(theme.palette.warning.main, 0.02),
-            borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
-            display: 'flex',
-            alignItems: 'flex-start',
-            justifyContent: 'space-between',
-          }}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: 1 }}>
-            <Star sx={{ color: 'warning.main', fontSize: 28, mt: 0.3 }} />
-            <Box>
-              <Typography variant="h6" fontWeight={700}>
-                Calificar Paciente
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                {selectedAttention?.patientName}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {selectedAttention?.treatmentName}
-              </Typography>
-            </Box>
-          </Box>
-          <IconButton
-            edge="end"
-            color="inherit"
-            onClick={handleCloseCreateFeedback}
-            aria-label="cerrar"
-            size="small"
-            sx={{
-              color: 'text.secondary',
-              '&:hover': {
-                backgroundColor: (theme) => alpha(theme.palette.error.main, 0.1),
-                color: 'error.main',
-              },
-            }}
-          >
-            <Close />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent sx={{ px: 3, pt: 3 }}>
-          <Box sx={{ pt: 2 }}>
-            {/* Rating Section */}
-            <Paper 
-              elevation={0} 
-              sx={{ 
-                p: 3, 
-                mb: 3, 
-                textAlign: 'center',
-                bgcolor: 'primary.light',
-                borderRadius: 2,
-              }}
-            >
-              <Typography variant="subtitle2" color="primary.dark" gutterBottom>
-                ¿Cómo fue tu experiencia con este paciente?
-              </Typography>
-              <Rating
-                value={feedbackRating}
-                onChange={(_, newValue) => setFeedbackRating(newValue)}
-                size="large"
-                sx={{ 
-                  mt: 2,
-                  '& .MuiRating-iconEmpty': {
-                    color: 'primary.main',
-                  },
-                  '& .MuiRating-iconFilled': {
-                    color: 'warning.main',
-                  },
-                }}
-              />
-              {feedbackRating && (
-                <Typography variant="caption" display="block" sx={{ mt: 1 }} color="primary.dark">
-                  {feedbackRating === 1 && '😞 Muy insatisfecho'}
-                  {feedbackRating === 2 && '😕 Insatisfecho'}
-                  {feedbackRating === 3 && '😐 Neutral'}
-                  {feedbackRating === 4 && '😊 Satisfecho'}
-                  {feedbackRating === 5 && '🌟 Muy satisfecho'}
+              {feedbackViewTarget && (
+                <Typography variant="caption" color="text.secondary">
+                  {feedbackViewTarget.patientName} · {feedbackViewTarget.treatmentName}
                 </Typography>
               )}
-            </Paper>
-
-            {/* Comment Section */}
-            <Box>
-              <Typography variant="subtitle2" gutterBottom>
-                Comentario (opcional)
-              </Typography>
-              <TextField
-                value={feedbackComment}
-                onChange={(e) => setFeedbackComment(e.target.value)}
-                fullWidth
-                multiline
-                rows={4}
-                placeholder="Comparte tu experiencia trabajando con este paciente. Menciona aspectos como: puntualidad, colaboración durante el tratamiento, seguimiento de indicaciones..."
-                helperText={`${feedbackComment.length}/1000 caracteres`}
-                error={feedbackComment.length > 1000}
-                sx={{
-                  '& .MuiOutlinedInput-root': {
-                    borderRadius: 2,
-                  }
-                }}
-              />
             </Box>
-
-            {/* Info Alert */}
-            <Alert severity="info" sx={{ mt: 2, borderRadius: 2 }}>
-              Tu calificación será visible para el docente supervisor y ayudará en el proceso de evaluación académica.
-            </Alert>
           </Box>
+          <IconButton onClick={() => setFeedbackViewTarget(null)} size="small">
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {feedbackList.length === 0 ? (
+            <Alert severity="info" sx={{ mt: 2 }}>
+              No hay feedback registrado para esta atención.
+            </Alert>
+          ) : (
+            <Stack spacing={2} sx={{ mt: 1 }}>
+              {feedbackList.map((feedback) => (
+                <Paper
+                  key={feedback.id}
+                  elevation={0}
+                  sx={{
+                    p: 2.5,
+                    borderRadius: 2,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
+                    <Box>
+                      <Chip
+                        label={
+                          feedback.submittedByRole === 'PATIENT'
+                            ? 'Calificación del paciente'
+                            : 'Tu calificación'
+                        }
+                        size="small"
+                        color={feedback.submittedByRole === 'PATIENT' ? 'success' : 'info'}
+                        sx={{ mb: 1, fontWeight: 600 }}
+                      />
+                      <Typography variant="subtitle1" fontWeight={600}>
+                        {feedback.submittedByRole === 'PATIENT'
+                          ? `${feedback.submittedByName} te calificó`
+                          : `Calificaste a ${feedback.patientName}`}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ textAlign: 'right' }}>
+                      <Rating value={feedback.rating} readOnly size="small" />
+                      <Typography variant="caption" display="block" fontWeight={600}>
+                        {feedback.rating}/5
+                      </Typography>
+                    </Box>
+                  </Box>
+                  {feedback.comment && (
+                    <>
+                      <Divider sx={{ my: 1.5 }} />
+                      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                        "{feedback.comment}"
+                      </Typography>
+                    </>
+                  )}
+                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block' }}>
+                    {format(parseISO(feedback.createdAt), "dd 'de' MMMM 'de' yyyy · HH:mm", { locale: es })}
+                  </Typography>
+                </Paper>
+              ))}
+            </Stack>
+          )}
         </DialogContent>
-        <DialogActions 
-          sx={{ 
-            px: 3, 
-            py: 2.5,
-            backgroundColor: (theme) => alpha(theme.palette.background.default, 0.5),
-            borderTop: (theme) => `1px solid ${theme.palette.divider}`,
-            gap: 1.5,
+        <DialogActions>
+          <Button onClick={() => setFeedbackViewTarget(null)} variant="contained">
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Academic feedback — create */}
+      <Dialog
+        open={feedbackCreateTarget != null}
+        onClose={() => setFeedbackCreateTarget(null)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            bgcolor: (t) => alpha(t.palette.warning.main, 0.04),
           }}
         >
-          <Button 
-            onClick={handleCloseCreateFeedback}
-            variant="outlined"
-            sx={{
-              fontSize: '0.9rem',
-              fontWeight: 600,
-              borderRadius: 2,
-              px: 3,
-              py: 1,
-              borderWidth: 2,
-              '&:hover': {
-                borderWidth: 2,
-                backgroundColor: (theme) => alpha(theme.palette.error.main, 0.05),
-              },
-            }}
-          >
-            Cancelar
-          </Button>
-          <Button 
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+            <Star sx={{ color: 'warning.main' }} />
+            <Box>
+              <Typography variant="h6" fontWeight={700}>
+                Calificar paciente
+              </Typography>
+              {feedbackCreateTarget && (
+                <Typography variant="caption" color="text.secondary">
+                  {feedbackCreateTarget.patientName} · {feedbackCreateTarget.treatmentName}
+                </Typography>
+              )}
+            </Box>
+          </Box>
+          <IconButton onClick={() => setFeedbackCreateTarget(null)} size="small">
+            <Close />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          {feedbackError && (
+            <Alert severity="error" sx={{ mb: 2, mt: 2 }} onClose={() => setFeedbackError(null)}>
+              {feedbackError}
+            </Alert>
+          )}
+
+          <Box sx={{ textAlign: 'center', py: 3 }}>
+            <Typography variant="subtitle2" gutterBottom>
+              ¿Cómo fue tu experiencia con este paciente?
+            </Typography>
+            <Rating
+              value={feedbackRating}
+              onChange={(_, v) => setFeedbackRating(v)}
+              size="large"
+              sx={{ mt: 1 }}
+            />
+          </Box>
+
+          <TextField
+            label="Comentario (opcional)"
+            value={feedbackComment}
+            onChange={(e) => setFeedbackComment(e.target.value)}
+            fullWidth
+            multiline
+            rows={4}
+            placeholder="Puntualidad, colaboración, seguimiento de indicaciones…"
+            helperText={`${feedbackComment.length}/1000 caracteres`}
+            error={feedbackComment.length > 1000}
+            inputProps={{ maxLength: 1000 }}
+          />
+
+          <Alert severity="info" sx={{ mt: 2 }}>
+            Tu calificación será visible para el docente supervisor.
+          </Alert>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setFeedbackCreateTarget(null)}>Cancelar</Button>
+          <Button
             onClick={handleSubmitFeedback}
             variant="contained"
             disabled={!feedbackRating}
-            sx={{
-              fontSize: '0.9rem',
-              fontWeight: 700,
-              borderRadius: 2,
-              px: 3,
-              py: 1,
-              boxShadow: (theme) => theme.shadows[3],
-              '&:hover': {
-                boxShadow: (theme) => theme.shadows[6],
-                transform: 'translateY(-1px)',
-              },
-              '&:active': {
-                transform: 'translateY(0)',
-              },
-              transition: 'all 0.2s ease',
-            }}
           >
-            Enviar Calificación
+            Enviar calificación
           </Button>
         </DialogActions>
       </Dialog>
+
+      <Snackbar
+        open={Boolean(feedbackSuccess)}
+        autoHideDuration={3500}
+        onClose={() => setFeedbackSuccess(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity="success" variant="filled" onClose={() => setFeedbackSuccess(null)}>
+          {feedbackSuccess}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={Boolean(mutationSuccess)}
+        autoHideDuration={3500}
+        onClose={() => setMutationSuccess(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity="success" variant="filled" onClose={() => setMutationSuccess(null)}>
+          {mutationSuccess}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={Boolean(mutationError) && finalizeTarget == null && cancelTarget == null}
+        autoHideDuration={5000}
+        onClose={() => setMutationError(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity="error" variant="filled" onClose={() => setMutationError(null)}>
+          {mutationError}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 }

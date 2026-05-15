@@ -1,194 +1,163 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import {
-  Box,
-  Typography,
-  Paper,
-  Button,
-  TextField,
-  Stack,
   Alert,
+  Box,
+  Button,
   CircularProgress,
   Divider,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  IconButton,
-  alpha,
+  Paper,
   Snackbar,
+  Stack,
+  Tooltip,
+  Typography,
 } from '@mui/material';
-import { Close, Description, Add } from '@mui/icons-material';
+import { Add, Block } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
 import {
-  getMyAttentions,
-  getProgressNotes,
-  addProgressNote,
-  finalizeAttention,
-} from '../../services/api/practitionerService';
+  AddProgressNoteDialog,
+  AttentionStatusChip,
+  CancelAttentionDialog,
+  FinalizeAttentionDialog,
+  ProgressNoteTimeline,
+  checkAttentionTermination,
+  terminationBlockerMessage,
+  useAttentionDetail,
+} from '../../features/practitioner';
 import {
   CancelAppointmentDialog,
   useAppointments,
 } from '../../features/practitionerSchedule';
-import type {
-  AppointmentResponseDTO,
-  AttentionResponseDTO,
-  ProgressNoteResponseDTO,
-} from '../../types/attention.types';
+import type { AppointmentResponseDTO } from '../../types/attention.types';
 
 export default function PatientEvolutionPage() {
-  const { patientId, attentionId } = useParams();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [attention, setAttention] = useState<AttentionResponseDTO | null>(null);
-  const [notes, setNotes] = useState<ProgressNoteResponseDTO[]>([]);
-  const [noteContent, setNoteContent] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [finalizingAttention, setFinalizingAttention] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [cancelTarget, setCancelTarget] =
-    useState<AppointmentResponseDTO | null>(null);
+  const { attentionId } = useParams();
+  const numericId = Number(attentionId) || null;
+
+  const {
+    attention,
+    notes,
+    loading,
+    mutating,
+    feedback,
+    reload,
+    addNote,
+    finalize,
+    cancel: cancelAttn,
+    clearFeedback,
+  } = useAttentionDetail(numericId);
 
   const {
     appointments,
     mutatingId,
-    feedback,
+    feedback: scheduleFeedback,
     complete,
     markNoShow,
     cancel,
-    clearFeedback,
+    clearFeedback: clearScheduleFeedback,
   } = useAppointments();
+
+  const [addNoteOpen, setAddNoteOpen] = useState(false);
+  const [finalizeOpen, setFinalizeOpen] = useState(false);
+  const [cancelAttnOpen, setCancelAttnOpen] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<AppointmentResponseDTO | null>(null);
+
+  const termination = attention
+    ? checkAttentionTermination(attention)
+    : null;
+  const blockerMessage = termination ? terminationBlockerMessage(termination) : null;
+  const canTerminate = termination?.canTerminate ?? false;
+
+  // After successful termination (finalize OR cancel) close the modal —
+  // the hook already updated the local attention state.
+  useEffect(() => {
+    if (feedback.success === 'Atención finalizada.') setFinalizeOpen(false);
+    if (feedback.success === 'Caso clínico cancelado.') setCancelAttnOpen(false);
+  }, [feedback.success]);
 
   const nextAppointment = attention
     ? appointments
         .filter(
-          (appointment) =>
-            appointment.status === 'SCHEDULED' &&
-            appointment.patientId === attention.patientId &&
-            (appointment.attentionId == null || appointment.attentionId === attention.id)
+          (a) =>
+            a.status === 'SCHEDULED' &&
+            a.patientId === attention.patientId &&
+            (a.attentionId == null || a.attentionId === attention.id)
         )
         .sort(
           (a, b) =>
-            new Date(a.appointmentTime).getTime() -
-            new Date(b.appointmentTime).getTime()
+            new Date(a.appointmentTime).getTime() - new Date(b.appointmentTime).getTime()
         )[0] ?? null
     : null;
 
-  useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const attentions = await getMyAttentions();
-        const id = Number(attentionId);
-        const pId = Number(patientId);
-        const found = attentions.find((a) => a.id === id && a.patientId === pId);
-        if (!found) {
-          setError('Atención no encontrada');
-          return;
-        }
-        setAttention(found);
-        const progress = await getProgressNotes(found.id);
-        setNotes(progress);
-      } catch (err) {
-        console.error(err);
-        setError('Error al cargar la evolución');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void load();
-  }, [patientId, attentionId]);
-
-  const handleAdd = async () => {
-    if (!attention || noteContent.trim().length < 10) {
-      setError('La nota debe tener al menos 10 caracteres');
-      return;
-    }
-    try {
-      setSubmitting(true);
-      setError(null);
-      await addProgressNote(attention.id, { content: noteContent.trim() });
-      const progress = await getProgressNotes(attention.id);
-      setNotes(progress);
-      setNoteContent('');
-      setShowAddForm(false);
-    } catch (err) {
-      console.error(err);
-      setError('Error al agregar la evolución');
-    } finally {
-      setSubmitting(false);
-    }
+  const handleFinalizeConfirm = async () => {
+    await finalize();
   };
 
-  const handleFinalizeAttention = async () => {
-    if (!attention) return;
-    if (!window.confirm('¿Estás seguro de finalizar esta atención?')) return;
-
-    try {
-      setFinalizingAttention(true);
-      setError(null);
-      const updatedAttention = await finalizeAttention(attention.id);
-      setAttention(updatedAttention);
-      setSuccess('Atención finalizada exitosamente');
-    } catch (err) {
-      console.error('Error finalizing attention:', err);
-      setError('Error al finalizar la atención');
-    } finally {
-      setFinalizingAttention(false);
-    }
-  };
-
-  const handleCancelConfirm = async (id: number, motive: string) => {
-    await cancel(id, motive);
+  const handleCancelConfirm = async (id: number, reason: string) => {
+    await cancel(id, reason);
     setCancelTarget(null);
+    await reload();
   };
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="60vh">
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
         <CircularProgress />
       </Box>
     );
   }
 
+  if (!attention) {
+    return (
+      <Alert severity="error" sx={{ mt: 3 }}>
+        {feedback.error ?? 'No se encontró la atención solicitada.'}
+      </Alert>
+    );
+  }
+
   return (
-    <Box sx={{ display: 'flex', gap: 4, alignItems: 'flex-start' }}>
-      <Box sx={{ width: { xs: '100%', md: 320 } }}>
-        <Paper sx={{ p: 2, mb: 3, borderRadius: 2 }}>
+    <Box sx={{ display: 'flex', gap: 4, alignItems: 'flex-start', flexDirection: { xs: 'column', md: 'row' } }}>
+      <Box sx={{ width: { xs: '100%', md: 320 }, flexShrink: 0 }}>
+        <Paper sx={{ p: 2.5, mb: 3, borderRadius: 2 }}>
           <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-            Datos del Paciente
+            Datos del paciente
           </Typography>
           <Divider sx={{ mb: 2 }} />
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="caption" color="text.secondary">
             NOMBRE COMPLETO
           </Typography>
-          <Typography variant="h6" fontWeight={700} sx={{ mt: 1 }}>
-            {attention?.patientName}
+          <Typography variant="h6" fontWeight={700} sx={{ mt: 0.5 }}>
+            {attention.patientName}
           </Typography>
         </Paper>
 
-        <Paper sx={{ p: 2, borderRadius: 2 }}>
-          <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-            Tratamiento Actual
-          </Typography>
+        <Paper sx={{ p: 2.5, borderRadius: 2 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+            <Typography variant="subtitle1" fontWeight={700}>
+              Tratamiento actual
+            </Typography>
+            <AttentionStatusChip status={attention.status} />
+          </Box>
           <Divider sx={{ mb: 2 }} />
-          <Typography variant="caption" color="text.secondary">TRATAMIENTO</Typography>
-          <Typography variant="body1" fontWeight={600} sx={{ mt: 0.5 }}>{attention?.treatmentName}</Typography>
-          <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>INICIO</Typography>
-          {attention?.startDate && (
-            <Typography variant="body2" sx={{ mt: 0.5 }}>{format(parseISO(attention.startDate), "dd/MM/yyyy")}</Typography>
-          )}
+          <Typography variant="caption" color="text.secondary">
+            TRATAMIENTO
+          </Typography>
+          <Typography variant="body1" fontWeight={600} sx={{ mt: 0.5 }}>
+            {attention.treatmentName}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block' }}>
+            INICIO
+          </Typography>
+          <Typography variant="body2" sx={{ mt: 0.5 }}>
+            {format(parseISO(attention.startDate), 'dd/MM/yyyy')}
+          </Typography>
           <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block' }}>
             PRÓXIMO TURNO
           </Typography>
           {nextAppointment ? (
             <>
               <Typography variant="body2" sx={{ mt: 0.5 }}>
-                {format(parseISO(nextAppointment.appointmentTime), 'dd/MM/yyyy')} - {format(parseISO(nextAppointment.appointmentTime), 'HH:mm')}
+                {format(parseISO(nextAppointment.appointmentTime), 'dd/MM/yyyy HH:mm')}
               </Typography>
               <Stack
                 direction={{ xs: 'column', sm: 'row' }}
@@ -225,166 +194,106 @@ export default function PatientEvolutionPage() {
               </Stack>
             </>
           ) : (
-            <Typography variant="body2" sx={{ mt: 0.5 }} color="text.secondary">
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
               Sin turnos próximos.
             </Typography>
           )}
         </Paper>
 
-        {attention?.status === 'IN_PROGRESS' && (
-          <Box sx={{ mt: 2 }}>
-            <Button
-              variant="contained"
-              color="success"
-              size="small"
-              onClick={() => void handleFinalizeAttention()}
-              disabled={finalizingAttention}
-              fullWidth
-            >
-              Finalizar Atención
-            </Button>
-          </Box>
+        {attention.status === 'IN_PROGRESS' && (
+          <Stack spacing={1} sx={{ mt: 2 }}>
+            <Tooltip title={blockerMessage ?? ''} disableHoverListener={!blockerMessage}>
+              <span>
+                <Button
+                  variant="contained"
+                  color="success"
+                  onClick={() => setFinalizeOpen(true)}
+                  disabled={mutating || !canTerminate}
+                  fullWidth
+                >
+                  Finalizar atención
+                </Button>
+              </span>
+            </Tooltip>
+            <Tooltip title={blockerMessage ?? ''} disableHoverListener={!blockerMessage}>
+              <span>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  startIcon={<Block />}
+                  onClick={() => setCancelAttnOpen(true)}
+                  disabled={mutating || !canTerminate}
+                  fullWidth
+                >
+                  Cancelar caso
+                </Button>
+              </span>
+            </Tooltip>
+          </Stack>
         )}
       </Box>
 
-      <Box sx={{ flex: 1 }}>
-        <Typography variant="h4" fontWeight={700} sx={{ mb: 3 }}>Evolución Clínica</Typography>
-
-        {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-        {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
-
-        <Box sx={{ mb: 3, display: 'flex', justifyContent: 'flex-end' }}>
-          <Button
-            variant="contained"
-            color="primary"
-            size="small"
-            startIcon={<Add />}
-            onClick={() => setShowAddForm(true)}
-          >
-            Agregar evolución
-          </Button>
+      <Box sx={{ flex: 1, width: '100%' }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 1 }}>
+          <Typography variant="h4" fontWeight={700}>
+            Evolución clínica
+          </Typography>
+          {attention.status === 'IN_PROGRESS' && (
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => setAddNoteOpen(true)}
+            >
+              Agregar evolución
+            </Button>
+          )}
         </Box>
 
-        <Dialog
-          open={showAddForm}
-          onClose={() => setShowAddForm(false)}
-          maxWidth="md"
-          fullWidth
-          PaperProps={{
-            sx: {
-              borderRadius: 3,
-              boxShadow: (theme) => theme.shadows[10],
-            },
-          }}
-        >
-          <DialogTitle
-            sx={{
-              pb: 1,
-              pt: 3,
-              px: 3,
-              backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.02),
-              borderBottom: (theme) => `1px solid ${theme.palette.divider}`,
-              display: 'flex',
-              alignItems: 'flex-start',
-              justifyContent: 'space-between',
-            }}
-          >
-            <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, flex: 1 }}>
-              <Description sx={{ color: 'primary.main', fontSize: 28, mt: 0.3 }} />
-              <Box>
-                <Typography variant="h6" fontWeight={700}>
-                  Agregar evolución - {attention?.patientName}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                  {attention?.treatmentName}
-                </Typography>
-              </Box>
-            </Box>
-            <IconButton
-              edge="end"
-              color="inherit"
-              onClick={() => setShowAddForm(false)}
-              aria-label="cerrar"
-              size="small"
-              sx={{
-                color: 'text.secondary',
-                '&:hover': {
-                  backgroundColor: (theme) => alpha(theme.palette.error.main, 0.1),
-                  color: 'error.main',
-                },
-              }}
-            >
-              <Close />
-            </IconButton>
-          </DialogTitle>
-          <DialogContent sx={{ px: 3, pt: 3 }}>
-            <Box sx={{ pt: 2 }}>
-              <TextField
-                label="Nueva evolución"
-                value={noteContent}
-                onChange={(e) => setNoteContent(e.target.value)}
-                fullWidth
-                multiline
-                rows={4}
-                placeholder="Describe la evolución del paciente (mínimo 10 caracteres)"
-                helperText={`${noteContent.length}/5000 caracteres`}
-              />
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={handleAdd}
-                sx={{ mt: 2 }}
-                disabled={noteContent.trim().length < 10 || submitting}
-              >
-                Agregar evolución
-              </Button>
-            </Box>
-          </DialogContent>
-          <DialogActions
-            sx={{
-              px: 3,
-              py: 2.5,
-              backgroundColor: (theme) => alpha(theme.palette.background.default, 0.5),
-              borderTop: (theme) => `1px solid ${theme.palette.divider}`,
-            }}
-          >
-            <Button
-              onClick={() => setShowAddForm(false)}
-              variant="contained"
-              sx={{
-                fontSize: '0.9rem',
-                fontWeight: 700,
-                borderRadius: 2,
-                px: 3,
-                py: 1,
-                boxShadow: (theme) => theme.shadows[3],
-                '&:hover': {
-                  boxShadow: (theme) => theme.shadows[6],
-                },
-              }}
-            >
-              Cerrar
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        <Paper sx={{ p: 2, borderRadius: 2 }}>
-          <Typography variant="subtitle1" fontWeight={700} gutterBottom>Historial de Evoluciones ({notes.length})</Typography>
-          {notes.length === 0 ? (
-            <Alert severity="info">No hay notas registradas</Alert>
-          ) : (
-            <Stack spacing={2}>
-              {notes.map((n) => (
-                <Paper key={n.id} sx={{ p: 2, borderRadius: 2 }} elevation={0}>
-                  <Typography variant="caption" color="text.secondary">{format(parseISO(n.createdAt), "dd/MM/yyyy HH:mm", { locale: es })}</Typography>
-                  <Typography variant="body1" sx={{ mt: 1 }}>{n.note}</Typography>
-                </Paper>
-              ))}
-            </Stack>
-          )}
+        <Paper sx={{ p: { xs: 2, sm: 3 }, borderRadius: 2 }}>
+          <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
+            Historial ({notes.length})
+          </Typography>
+          <ProgressNoteTimeline notes={notes} />
         </Paper>
-
       </Box>
+
+      <AddProgressNoteDialog
+        open={addNoteOpen}
+        attentionLabel={`${attention.patientName} · ${attention.treatmentName}`}
+        submitting={mutating}
+        onClose={() => setAddNoteOpen(false)}
+        onSubmit={async (content) => {
+          const ok = await addNote(content);
+          if (ok) setAddNoteOpen(false);
+          return ok;
+        }}
+      />
+
+      <FinalizeAttentionDialog
+        open={finalizeOpen}
+        attention={attention}
+        submitting={mutating}
+        errorMessage={finalizeOpen ? feedback.error : null}
+        onClose={() => {
+          setFinalizeOpen(false);
+          clearFeedback();
+        }}
+        onConfirm={handleFinalizeConfirm}
+      />
+
+      <CancelAttentionDialog
+        open={cancelAttnOpen}
+        attention={attention}
+        submitting={mutating}
+        errorMessage={cancelAttnOpen ? feedback.error : null}
+        onClose={() => {
+          setCancelAttnOpen(false);
+          clearFeedback();
+        }}
+        onConfirm={async (reason) => {
+          await cancelAttn(reason);
+        }}
+      />
 
       <CancelAppointmentDialog
         open={Boolean(cancelTarget)}
@@ -406,13 +315,35 @@ export default function PatientEvolutionPage() {
       </Snackbar>
 
       <Snackbar
-        open={Boolean(feedback.error)}
+        open={Boolean(feedback.error) && !finalizeOpen && !cancelAttnOpen}
         autoHideDuration={5000}
         onClose={clearFeedback}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
         <Alert severity="error" variant="filled" onClose={clearFeedback}>
           {feedback.error}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={Boolean(scheduleFeedback.success)}
+        autoHideDuration={3500}
+        onClose={clearScheduleFeedback}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity="success" variant="filled" onClose={clearScheduleFeedback}>
+          {scheduleFeedback.success}
+        </Alert>
+      </Snackbar>
+
+      <Snackbar
+        open={Boolean(scheduleFeedback.error)}
+        autoHideDuration={5000}
+        onClose={clearScheduleFeedback}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert severity="error" variant="filled" onClose={clearScheduleFeedback}>
+          {scheduleFeedback.error}
         </Alert>
       </Snackbar>
     </Box>

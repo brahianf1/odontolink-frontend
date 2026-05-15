@@ -17,10 +17,11 @@ interface CancelAppointmentDialogProps {
   appointment: AppointmentResponseDTO | null;
   submitting: boolean;
   onClose: () => void;
-  onConfirm: (id: number, motive: string) => Promise<void> | void;
+  onConfirm: (id: number, reason: string) => Promise<void> | void;
 }
 
-const MIN_MOTIVE_LENGTH = 5;
+const MIN_REASON_LENGTH = 5;
+const MAX_REASON_LENGTH = 1000;
 
 export default function CancelAppointmentDialog({
   open,
@@ -29,15 +30,17 @@ export default function CancelAppointmentDialog({
   onClose,
   onConfirm,
 }: CancelAppointmentDialogProps) {
-  const [motive, setMotive] = useState('');
+  const [reason, setReason] = useState('');
   const [touched, setTouched] = useState(false);
 
-  const trimmed = motive.trim();
-  const isInvalid = trimmed.length < MIN_MOTIVE_LENGTH;
+  const trimmed = reason.trim();
+  const isTooShort = trimmed.length < MIN_REASON_LENGTH;
+  const isTooLong = trimmed.length > MAX_REASON_LENGTH;
+  const isInvalid = isTooShort || isTooLong;
 
   const handleClose = () => {
     if (submitting) return;
-    setMotive('');
+    setReason('');
     setTouched(false);
     onClose();
   };
@@ -46,9 +49,15 @@ export default function CancelAppointmentDialog({
     setTouched(true);
     if (!appointment || isInvalid) return;
     await onConfirm(appointment.id, trimmed);
-    setMotive('');
+    setReason('');
     setTouched(false);
   };
+
+  const helperText = touched && isTooShort
+    ? `Indica un motivo de al menos ${MIN_REASON_LENGTH} caracteres`
+    : isTooLong
+      ? `El motivo no puede exceder ${MAX_REASON_LENGTH} caracteres`
+      : ' ';
 
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
@@ -71,8 +80,8 @@ export default function CancelAppointmentDialog({
 
         <TextField
           label="Motivo de la cancelación"
-          value={motive}
-          onChange={(e) => setMotive(e.target.value)}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
           onBlur={() => setTouched(true)}
           fullWidth
           multiline
@@ -80,12 +89,9 @@ export default function CancelAppointmentDialog({
           required
           autoFocus
           error={touched && isInvalid}
-          helperText={
-            touched && isInvalid
-              ? `Indica un motivo de al menos ${MIN_MOTIVE_LENGTH} caracteres`
-              : ' '
-          }
+          helperText={helperText}
           disabled={submitting}
+          inputProps={{ maxLength: MAX_REASON_LENGTH }}
         />
       </DialogContent>
       <DialogActions>

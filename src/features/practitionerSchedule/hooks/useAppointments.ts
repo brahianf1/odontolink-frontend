@@ -22,7 +22,7 @@ interface UseAppointmentsResult {
   reload: () => Promise<void>;
   complete: (id: number) => Promise<void>;
   markNoShow: (id: number) => Promise<void>;
-  cancel: (id: number, motive: string) => Promise<void>;
+  cancel: (id: number, reason: string) => Promise<void>;
   clearFeedback: () => void;
 }
 
@@ -117,10 +117,10 @@ export function useAppointments(): UseAppointmentsResult {
   );
 
   const cancel = useCallback(
-    (id: number, motive: string) =>
+    (id: number, reason: string) =>
       runMutation(
         id,
-        () => cancelAppointment(id, { motive }),
+        () => cancelAppointment(id, { reason }),
         'Turno cancelado',
         'No se pudo cancelar el turno'
       ),

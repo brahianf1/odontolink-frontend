@@ -100,7 +100,7 @@ export default function AppointmentBookingDialog({
   }, [currentWeekStart]);
 
   const isDateAvailable = (date: Date): boolean => {
-    if (treatment.availabilityBlocked) return false;
+    if (treatment.quotaExhausted) return false;
     const today = startOfDay(new Date());
     if (isBefore(date, today)) return false;
     if (offerStart && isBefore(date, startOfDay(offerStart))) return false;
@@ -267,9 +267,9 @@ export default function AppointmentBookingDialog({
           </Paper>
         )}
 
-        {treatment.availabilityBlocked && (
+        {treatment.quotaExhausted && (
           <Alert severity="warning" sx={{ borderRadius: 2 }}>
-            La disponibilidad de este tratamiento está temporalmente bloqueada por el practicante.
+            Este tratamiento alcanzó su cupo máximo. No se pueden reservar más turnos.
           </Alert>
         )}
 
