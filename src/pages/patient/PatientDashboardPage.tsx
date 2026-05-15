@@ -1,25 +1,23 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Box,
-  Typography,
   Alert,
-  CircularProgress,
-  Paper,
+  Box,
   Button,
-  Chip,
+  Paper,
+  Skeleton,
+  Stack,
+  Typography,
 } from '@mui/material';
 import {
-  Event as EventIcon,
   Assignment as AssignmentIcon,
+  Event as EventIcon,
   MedicalServices as MedicalServicesIcon,
   Star as StarIcon,
-  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { useNavigate } from 'react-router-dom';
 import patientService from '../../services/api/patientService';
 import StatsCard from '../../components/patient/StatsCard';
+import { AppointmentCard, EmptyState, mapBusinessError } from '../../features/patient';
 import type { AppointmentResponseDTO } from '../../types/appointment.types';
 import type { AttentionResponseDTO } from '../../types/attention.types';
 
@@ -27,102 +25,77 @@ export default function PatientDashboardPage() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [upcomingAppointments, setUpcomingAppointments] = useState<AppointmentResponseDTO[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentResponseDTO[]>([]);
   const [attentions, setAttentions] = useState<AttentionResponseDTO[]>([]);
-  const [treatmentsCount, setTreatmentsCount] = useState(0);
+  const [treatmentsTotal, setTreatmentsTotal] = useState(0);
 
   useEffect(() => {
-    loadDashboardData();
-  }, []);
-
-  const loadDashboardData = async () => {
-    try {
+    const load = async () => {
       setLoading(true);
       setError(null);
-
-      const [appointmentsData, attentionsData, treatmentsData] = await Promise.all([
-        patientService.getMyUpcomingAppointments(),
-        patientService.getMyAttentions(),
-        patientService.getAvailableTreatments(),
-      ]);
-
-      setUpcomingAppointments(appointmentsData);
-      setAttentions(attentionsData);
-      setTreatmentsCount(treatmentsData.length);
-    } catch (err) {
-      console.error('Error loading dashboard data:', err);
-      setError('Error al cargar los datos del dashboard');
-    } finally {
-      setLoading(false);
-    }
-  };
+      try {
+        const [appointmentsData, attentionsData, treatmentsPage] = await Promise.all([
+          patientService.getMyUpcomingAppointments(),
+          patientService.getMyAttentions(),
+          patientService.searchAvailableTreatments({ page: 0, size: 1 }),
+        ]);
+        setAppointments(appointmentsData);
+        setAttentions(attentionsData);
+        setTreatmentsTotal(treatmentsPage.totalElements);
+      } catch (err) {
+        const { message } = mapBusinessError(err, 'No pudimos cargar tu dashboard.');
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const activeAttentions = attentions.filter((att) => att.status === 'IN_PROGRESS');
   const completedAttentions = attentions.filter((att) => att.status === 'COMPLETED');
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'SCHEDULED':
-        return 'info';
-      case 'CONFIRMED':
-        return 'success';
-      case 'COMPLETED':
-        return 'success';
-      case 'CANCELLED':
-        return 'error';
-      case 'NO_SHOW':
-        return 'warning';
-      default:
-        return 'default';
-    }
-  };
-
-  const getStatusLabel = (status: string) => {
-    switch (status) {
-      case 'SCHEDULED':
-        return 'Programado';
-      case 'CONFIRMED':
-        return 'Confirmado';
-      case 'COMPLETED':
-        return 'Completado';
-      case 'CANCELLED':
-        return 'Cancelado';
-      case 'NO_SHOW':
-        return 'No Asistió';
-      default:
-        return status;
-    }
-  };
+  const nextAppointments = [...appointments]
+    .sort(
+      (a, b) =>
+        new Date(a.appointmentTime).getTime() - new Date(b.appointmentTime).getTime()
+    )
+    .slice(0, 3);
 
   if (loading) {
     return (
-      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
-        <CircularProgress />
+      <Box>
+        <Skeleton variant="text" width="40%" height={48} sx={{ mb: 1 }} />
+        <Skeleton variant="text" width="60%" sx={{ mb: 4 }} />
+        <Box
+          sx={{
+            display: 'grid',
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
+            gap: { xs: 2, md: 3 },
+            mb: 4,
+          }}
+        >
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} variant="rounded" height={140} />
+          ))}
+        </Box>
+        <Skeleton variant="rounded" height={260} sx={{ mb: 3 }} />
+        <Skeleton variant="rounded" height={200} />
       </Box>
     );
   }
 
   return (
     <Box sx={{ width: '100%' }}>
-      {/* Header Section */}
       <Box sx={{ mb: { xs: 3, md: 4 } }}>
-        <Typography 
-          variant="h4" 
-          fontWeight="bold" 
+        <Typography
+          variant="h4"
+          fontWeight={700}
           gutterBottom
-          sx={{
-            fontSize: { xs: '1.75rem', sm: '2rem', md: '2.125rem' },
-          }}
+          sx={{ fontSize: { xs: '1.75rem', sm: '2rem', md: '2.125rem' } }}
         >
           Dashboard
         </Typography>
-        <Typography 
-          variant="body1" 
-          color="text.secondary"
-          sx={{
-            fontSize: { xs: '0.875rem', sm: '1rem' },
-          }}
-        >
+        <Typography variant="body1" color="text.secondary">
           Bienvenido a tu panel de control. Aquí puedes ver un resumen de tu actividad.
         </Typography>
       </Box>
@@ -133,42 +106,37 @@ export default function PatientDashboardPage() {
         </Alert>
       )}
 
-      {/* Stats Cards */}
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: {
-            xs: '1fr',
-            sm: 'repeat(2, 1fr)',
-            lg: 'repeat(4, 1fr)',
-          },
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
           gap: { xs: 2, sm: 2.5, md: 3 },
           mb: { xs: 3, md: 4 },
         }}
       >
         <StatsCard
-          title="Próximos Turnos"
-          value={upcomingAppointments.length}
+          title="Próximos turnos"
+          value={appointments.length}
           icon={<EventIcon />}
           color="primary"
-          subtitle="Turnos confirmados"
+          subtitle="Turnos programados"
         />
         <StatsCard
-          title="Atenciones en Curso"
+          title="Atenciones en curso"
           value={activeAttentions.length}
           icon={<AssignmentIcon />}
           color="info"
           subtitle="Tratamientos activos"
         />
         <StatsCard
-          title="Tratamientos Disponibles"
-          value={treatmentsCount}
+          title="Tratamientos disponibles"
+          value={treatmentsTotal}
           icon={<MedicalServicesIcon />}
           color="success"
           subtitle="Para reservar"
         />
         <StatsCard
-          title="Atenciones Completadas"
+          title="Atenciones completadas"
           value={completedAttentions.length}
           icon={<StarIcon />}
           color="warning"
@@ -176,287 +144,120 @@ export default function PatientDashboardPage() {
         />
       </Box>
 
-      {/* Upcoming Appointments */}
-      <Paper 
+      <Paper
         elevation={0}
-        sx={{ 
-          p: { xs: 2, sm: 3 }, 
+        sx={{
+          p: { xs: 2, sm: 3 },
           mb: { xs: 2, md: 3 },
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: 2,
         }}
       >
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: { xs: 'flex-start', sm: 'center' },
-            flexDirection: { xs: 'column', sm: 'row' },
-            gap: { xs: 1, sm: 0 },
-            mb: 2,
-          }}
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          justifyContent="space-between"
+          alignItems={{ xs: 'flex-start', sm: 'center' }}
+          spacing={1}
+          sx={{ mb: 2 }}
         >
-          <Typography 
-            variant="h6" 
-            fontWeight="bold"
-            sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}
-          >
-            Próximos Turnos
+          <Typography variant="h6" fontWeight={700}>
+            Próximos turnos
           </Typography>
           <Button
             variant="outlined"
             size="small"
             onClick={() => navigate('/patient/appointments')}
-            sx={{ 
-              alignSelf: { xs: 'flex-start', sm: 'auto' },
-              fontSize: { xs: '0.8rem', sm: '0.875rem' },
-            }}
           >
             Ver todos
           </Button>
-        </Box>
+        </Stack>
 
-        {upcomingAppointments.length === 0 ? (
-          <Alert 
-            severity="info"
-            sx={{
-              '& .MuiAlert-message': {
-                width: '100%',
-              },
-            }}
-          >
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 1, alignItems: { xs: 'flex-start', sm: 'center' } }}>
-              <span>No tienes turnos próximos.</span>
-              <Button 
-                size="small" 
-                variant="text"
-                onClick={() => navigate('/patient/treatments')}
-                sx={{ p: 0, minWidth: 'auto', fontWeight: 'bold' }}
-              >
-                Reservar turno
-              </Button>
-            </Box>
-          </Alert>
+        {nextAppointments.length === 0 ? (
+          <EmptyState
+            variant="plain"
+            title="No tienes turnos próximos"
+            description="Reserva con un practicante para verlos aquí."
+            actionLabel="Reservar turno"
+            onAction={() => navigate('/patient/treatments')}
+          />
         ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 } }}>
-            {upcomingAppointments.slice(0, 3).map((appointment) => (
-              <Paper
-                key={appointment.id}
-                variant="outlined"
-                sx={{ 
-                  p: { xs: 1.5, sm: 2 }, 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: { xs: 1.5, sm: 2 },
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    boxShadow: 2,
-                    borderColor: 'primary.main',
-                  },
-                }}
-              >
-                <Box
-                  sx={{
-                    width: { xs: 55, sm: 60 },
-                    height: { xs: 55, sm: 60 },
-                    minWidth: { xs: 55, sm: 60 },
-                    borderRadius: 2,
-                    backgroundColor: 'primary.light',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'primary.main',
-                  }}
-                >
-                  <Typography variant="caption" fontWeight="bold" sx={{ fontSize: { xs: '0.65rem', sm: '0.75rem' } }}>
-                    {format(new Date(appointment.appointmentTime), 'MMM', { locale: es }).toUpperCase()}
-                  </Typography>
-                  <Typography variant="h6" fontWeight="bold" sx={{ fontSize: { xs: '1.2rem', sm: '1.25rem' } }}>
-                    {format(new Date(appointment.appointmentTime), 'd')}
-                  </Typography>
-                </Box>
-                <Box sx={{ flexGrow: 1, minWidth: 0, width: { xs: '100%', sm: 'auto' } }}>
-                  <Typography 
-                    variant="subtitle1" 
-                    fontWeight="bold"
-                    sx={{ 
-                      fontSize: { xs: '0.95rem', sm: '1rem' },
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {appointment.treatmentName}
-                  </Typography>
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{ 
-                      fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    Practicante: {appointment.practitionerName}
-                  </Typography>
-                  <Typography 
-                    variant="caption" 
-                    color="text.secondary"
-                    sx={{ 
-                      fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                      display: 'block',
-                      mt: 0.5,
-                    }}
-                  >
-                    {format(new Date(appointment.appointmentTime), "EEEE d 'de' MMMM 'a las' HH:mm", {
-                      locale: es,
-                    })}
-                  </Typography>
-                </Box>
-                <Chip
-                  label={getStatusLabel(appointment.status)}
-                  color={getStatusColor(appointment.status)}
-                  size="small"
-                  sx={{ 
-                    alignSelf: { xs: 'flex-start', sm: 'center' },
-                    fontSize: { xs: '0.7rem', sm: '0.8125rem' },
-                  }}
-                />
-              </Paper>
+          <Stack spacing={1.5}>
+            {nextAppointments.map((appointment) => (
+              <AppointmentCard key={appointment.id} appointment={appointment} />
             ))}
-          </Box>
+          </Stack>
         )}
       </Paper>
 
-      {/* Active Attentions */}
-      <Paper 
+      <Paper
         elevation={0}
-        sx={{ 
+        sx={{
           p: { xs: 2, sm: 3 },
           border: '1px solid',
           borderColor: 'divider',
           borderRadius: 2,
         }}
       >
-        <Box 
-          sx={{ 
-            display: 'flex', 
-            justifyContent: 'space-between', 
-            alignItems: { xs: 'flex-start', sm: 'center' },
-            flexDirection: { xs: 'column', sm: 'row' },
-            gap: { xs: 1, sm: 0 },
-            mb: 2,
-          }}
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          justifyContent="space-between"
+          alignItems={{ xs: 'flex-start', sm: 'center' }}
+          spacing={1}
+          sx={{ mb: 2 }}
         >
-          <Typography 
-            variant="h6" 
-            fontWeight="bold"
-            sx={{ fontSize: { xs: '1.1rem', sm: '1.25rem' } }}
-          >
-            Atenciones en Curso
+          <Typography variant="h6" fontWeight={700}>
+            Atenciones en curso
           </Typography>
           <Button
             variant="outlined"
             size="small"
             onClick={() => navigate('/patient/attentions')}
-            sx={{ 
-              alignSelf: { xs: 'flex-start', sm: 'auto' },
-              fontSize: { xs: '0.8rem', sm: '0.875rem' },
-            }}
           >
             Ver todas
           </Button>
-        </Box>
+        </Stack>
 
         {activeAttentions.length === 0 ? (
-          <Alert severity="info">No tienes atenciones en curso.</Alert>
+          <EmptyState
+            variant="plain"
+            title="No tienes atenciones en curso"
+            description="Cuando inicies un tratamiento aparecerá aquí."
+          />
         ) : (
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: { xs: 1.5, sm: 2 } }}>
+          <Stack spacing={1.5}>
             {activeAttentions.slice(0, 3).map((attention) => (
               <Paper
                 key={attention.id}
                 variant="outlined"
-                sx={{ 
-                  p: { xs: 1.5, sm: 2 }, 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: { xs: 1.5, sm: 2 },
-                  flexDirection: { xs: 'column', sm: 'row' },
-                  transition: 'all 0.2s',
-                  '&:hover': {
-                    boxShadow: 2,
-                    borderColor: 'info.main',
-                  },
+                sx={{
+                  p: { xs: 1.5, sm: 2 },
+                  borderRadius: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 2,
+                  flexWrap: 'wrap',
                 }}
               >
-                <Box
-                  sx={{
-                    width: { xs: 44, sm: 48 },
-                    height: { xs: 44, sm: 48 },
-                    minWidth: { xs: 44, sm: 48 },
-                    borderRadius: '50%',
-                    backgroundColor: 'info.light',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'info.main',
-                  }}
-                >
-                  <TrendingUpIcon sx={{ fontSize: { xs: '1.2rem', sm: '1.5rem' } }} />
-                </Box>
-                <Box sx={{ flexGrow: 1, minWidth: 0, width: { xs: '100%', sm: 'auto' } }}>
-                  <Typography 
-                    variant="subtitle1" 
-                    fontWeight="bold"
-                    sx={{ 
-                      fontSize: { xs: '0.95rem', sm: '1rem' },
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography variant="subtitle1" fontWeight={700} noWrap>
                     {attention.treatmentName}
                   </Typography>
-                  <Typography 
-                    variant="body2" 
-                    color="text.secondary"
-                    sx={{ 
-                      fontSize: { xs: '0.8rem', sm: '0.875rem' },
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
+                  <Typography variant="body2" color="text.secondary">
                     Practicante: {attention.practitionerName}
                   </Typography>
-                  <Typography 
-                    variant="caption" 
-                    color="text.secondary"
-                    sx={{ 
-                      fontSize: { xs: '0.7rem', sm: '0.75rem' },
-                      display: 'block',
-                      mt: 0.5,
-                    }}
-                  >
-                    Inicio: {format(new Date(attention.startDate), "d 'de' MMMM, yyyy", { locale: es })}
-                  </Typography>
                 </Box>
-                <Chip 
-                  label="En Curso" 
-                  color="info" 
-                  size="small" 
-                  sx={{ 
-                    alignSelf: { xs: 'flex-start', sm: 'center' },
-                    fontSize: { xs: '0.7rem', sm: '0.8125rem' },
-                  }}
-                />
+                <Button
+                  size="small"
+                  variant="text"
+                  onClick={() => navigate('/patient/attentions')}
+                >
+                  Ver detalle
+                </Button>
               </Paper>
             ))}
-          </Box>
+          </Stack>
         )}
       </Paper>
     </Box>

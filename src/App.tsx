@@ -27,6 +27,7 @@ import PatientFeedbackPage from './pages/patient/PatientFeedbackPage';
 import PatientChatPage from './pages/patient/PatientChatPage';
 import PatientProfilePage from './pages/patient/PatientProfilePage';
 import BookingConfirmationPage from './pages/patient/BookingConfirmationPage';
+import { PatientFeedbackProvider } from './features/patient';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
@@ -79,7 +80,9 @@ function App() {
             path="/patient/booking-confirmed"
             element={
               <ProtectedRoute allowedRoles={["PATIENT"]}>
-                <BookingConfirmationPage />
+                <PatientFeedbackProvider>
+                  <BookingConfirmationPage />
+                </PatientFeedbackProvider>
               </ProtectedRoute>
             }
           />
@@ -88,7 +91,9 @@ function App() {
             path="/patient/*"
             element={
               <ProtectedRoute allowedRoles={['PATIENT']}>
-                <DashboardLayout />
+                <PatientFeedbackProvider>
+                  <DashboardLayout />
+                </PatientFeedbackProvider>
               </ProtectedRoute>
             }
           >

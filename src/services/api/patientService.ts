@@ -1,62 +1,96 @@
 import apiClient from './apiClient';
-import type { AppointmentResponseDTO } from '../../types/appointment.types';
+import type {
+  AppointmentResponseDTO,
+  AppointmentRequestDTO,
+  CancelAppointmentByPatientRequestDTO,
+} from '../../types/appointment.types';
 import type { AttentionResponseDTO } from '../../types/attention.types';
 import type { OfferedTreatmentResponseDTO } from '../../types/practitioner.types';
 import type { FeedbackResponseDTO, CreateFeedbackRequestDTO } from '../../types/feedback.types';
-import type { AppointmentBookingRequest } from '../../types/patient.types';
 import type { PageResponse } from '../../types/common.types';
+import type { SearchTreatmentsParams } from '../../types/patient.types';
+
+const PATIENT_BASE = '/api/patient';
+
+const buildSearchParams = (params: SearchTreatmentsParams = {}): Record<string, string | number> => {
+  const query: Record<string, string | number> = {};
+  if (params.keyword?.trim()) query.keyword = params.keyword.trim();
+  if (params.specialty?.trim()) query.specialty = params.specialty.trim();
+  if (params.availability) query.availability = params.availability;
+  if (params.page !== undefined) query.page = params.page;
+  if (params.size !== undefined) query.size = params.size;
+  if (params.sortBy) query.sortBy = params.sortBy;
+  if (params.sortDirection) query.sortDirection = params.sortDirection;
+  return query;
+};
 
 const patientService = {
-  // Get available treatments catalog (RF08, RF09)
-  getAvailableTreatments: async (treatmentId?: number): Promise<OfferedTreatmentResponseDTO[]> => {
-    const params = treatmentId ? { treatmentId } : {};
+  searchAvailableTreatments: async (
+    params: SearchTreatmentsParams = {}
+  ): Promise<PageResponse<OfferedTreatmentResponseDTO>> => {
     const response = await apiClient.get<PageResponse<OfferedTreatmentResponseDTO>>(
-      '/api/patient/offered-treatments',
-      { params }
+      `${PATIENT_BASE}/offered-treatments`,
+      { params: buildSearchParams(params) }
+    );
+    return response.data;
+  },
+
+  getAvailableTreatments: async (): Promise<OfferedTreatmentResponseDTO[]> => {
+    const response = await apiClient.get<PageResponse<OfferedTreatmentResponseDTO>>(
+      `${PATIENT_BASE}/offered-treatments`
     );
     return response.data.content;
   },
 
-  // Get available time slots for a treatment (RF10)
   getAvailableSlots: async (offeredTreatmentId: number, date: string): Promise<string[]> => {
     const response = await apiClient.get<string[]>(
-      `/api/patient/offered-treatments/${offeredTreatmentId}/availability`,
+      `${PATIENT_BASE}/offered-treatments/${offeredTreatmentId}/availability`,
       { params: { date } }
     );
     return response.data;
   },
 
-  // Schedule an appointment (RF10)
-  scheduleAppointment: async (request: AppointmentBookingRequest): Promise<AppointmentResponseDTO> => {
-    const response = await apiClient.post<AppointmentResponseDTO>('/api/patient/appointments', request);
+  scheduleAppointment: async (request: AppointmentRequestDTO): Promise<AttentionResponseDTO> => {
+    const response = await apiClient.post<AttentionResponseDTO>(
+      `${PATIENT_BASE}/appointments`,
+      request
+    );
     return response.data;
   },
 
-  // Get upcoming appointments (RF15)
   getMyUpcomingAppointments: async (): Promise<AppointmentResponseDTO[]> => {
-    const response = await apiClient.get<AppointmentResponseDTO[]>('/api/patient/appointments/upcoming');
+    const response = await apiClient.get<AppointmentResponseDTO[]>(
+      `${PATIENT_BASE}/appointments/upcoming`
+    );
     return response.data;
   },
 
-  // Get my attentions as patient
+  cancelAppointment: async (
+    appointmentId: number,
+    payload: CancelAppointmentByPatientRequestDTO = {}
+  ): Promise<AppointmentResponseDTO> => {
+    const response = await apiClient.post<AppointmentResponseDTO>(
+      `${PATIENT_BASE}/appointments/${appointmentId}/cancel`,
+      payload
+    );
+    return response.data;
+  },
+
   getMyAttentions: async (): Promise<AttentionResponseDTO[]> => {
-    const response = await apiClient.get<AttentionResponseDTO[]>('/api/patient/attentions');
+    const response = await apiClient.get<AttentionResponseDTO[]>(`${PATIENT_BASE}/attentions`);
     return response.data;
   },
 
-  // Get feedback for a specific attention
   getFeedbackForAttention: async (attentionId: number): Promise<FeedbackResponseDTO[]> => {
     const response = await apiClient.get<FeedbackResponseDTO[]>(`/api/feedback/attention/${attentionId}`);
     return response.data;
   },
 
-  // Get feedback received by the authenticated patient
   getReceivedFeedback: async (): Promise<FeedbackResponseDTO[]> => {
-    const response = await apiClient.get<FeedbackResponseDTO[]>('/api/patient/feedback/received');
+    const response = await apiClient.get<FeedbackResponseDTO[]>(`${PATIENT_BASE}/feedback/received`);
     return response.data;
   },
 
-  // Create feedback for practitioner (RF22)
   createFeedback: async (request: CreateFeedbackRequestDTO): Promise<FeedbackResponseDTO> => {
     const response = await apiClient.post<FeedbackResponseDTO>('/api/feedback', request);
     return response.data;

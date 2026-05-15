@@ -1,5 +1,3 @@
-// Patient-specific types for OdontoLink
-
 export interface Patient {
   id: number;
   email: string;
@@ -19,14 +17,36 @@ export interface PatientProfile extends Patient {
   medicalHistory?: string;
 }
 
-export interface PatientStats {
-  upcomingAppointments: number;
-  activeAttentions: number;
-  completedAttentions: number;
-  availableTreatments: number;
-}
-
 export interface AppointmentBookingRequest {
   offeredTreatmentId: number;
-  appointmentTime: string; // ISO 8601 format
+  appointmentTime: string;
+}
+
+export type DayOfWeek =
+  | 'MONDAY'
+  | 'TUESDAY'
+  | 'WEDNESDAY'
+  | 'THURSDAY'
+  | 'FRIDAY'
+  | 'SATURDAY'
+  | 'SUNDAY';
+
+export type OfferedTreatmentSortField =
+  | 'treatmentName'
+  | 'specialty'
+  | 'duration'
+  | 'offerStartDate'
+  | 'offerEndDate'
+  | 'id';
+
+export type SortDirection = 'ASC' | 'DESC';
+
+export interface SearchTreatmentsParams {
+  keyword?: string;
+  specialty?: string;
+  availability?: DayOfWeek;
+  page?: number;
+  size?: number;
+  sortBy?: OfferedTreatmentSortField;
+  sortDirection?: SortDirection;
 }
