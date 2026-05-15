@@ -32,6 +32,12 @@ const pageTitles: Record<string, string> = {
   '/admin/users': 'Gestión de Usuarios',
   '/admin/treatments': 'Catálogo de Tratamientos',
   '/admin/settings': 'Configuración Institucional',
+
+  // Rutas de supervisor (docente)
+  '/supervisor/dashboard': 'Dashboard',
+  '/supervisor/practitioners': 'Practicantes a Cargo',
+  '/supervisor/feedback': 'Panel de Feedback',
+  '/supervisor/profile': 'Mi Perfil',
 };
 
 export default function DashboardLayout() {
