@@ -32,6 +32,12 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminTreatmentsPage from './pages/admin/AdminTreatmentsPage';
+import SupervisorDashboardPage from './pages/supervisor/SupervisorDashboardPage';
+import MyPractitionersPage from './pages/supervisor/MyPractitionersPage';
+import PractitionerAttentionsPage from './pages/supervisor/PractitionerAttentionsPage';
+import AttentionAuditPage from './pages/supervisor/AttentionAuditPage';
+import FeedbackDashboardPage from './pages/supervisor/FeedbackDashboardPage';
+import SupervisorProfilePage from './pages/supervisor/SupervisorProfilePage';
 
 function App() {
   const { mode } = useThemeStore();
@@ -119,6 +125,29 @@ function App() {
             <Route path="users" element={<AdminUsersPage />} />
             <Route path="treatments" element={<AdminTreatmentsPage />} />
             <Route path="settings" element={<AdminSettingsPage />} />
+          </Route>
+
+          {/* Supervisor (Docente) Dashboard Routes */}
+          <Route
+            path="/supervisor/*"
+            element={
+              <ProtectedRoute allowedRoles={['SUPERVISOR']}>
+                <DashboardLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route path="dashboard" element={<SupervisorDashboardPage />} />
+            <Route path="practitioners" element={<MyPractitionersPage />} />
+            <Route
+              path="practitioners/:practitionerId/attentions"
+              element={<PractitionerAttentionsPage />}
+            />
+            <Route
+              path="practitioners/:practitionerId/attentions/:attentionId"
+              element={<AttentionAuditPage />}
+            />
+            <Route path="feedback" element={<FeedbackDashboardPage />} />
+            <Route path="profile" element={<SupervisorProfilePage />} />
           </Route>
         </Routes>
       </Router>
