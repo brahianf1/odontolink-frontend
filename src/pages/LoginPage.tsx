@@ -20,6 +20,12 @@ import { login } from '../services/api/authService';
 import { useAuthStore } from '../store/authStore';
 import type { LoginRequestDTO } from '../types/auth.types';
 import { getDashboardPathForRole } from '../utils/authRedirect';
+import {
+  formatRetryMessage,
+  getErrorMessage,
+  getRetryAfterSeconds,
+  isStatusCode,
+} from '../features/profile/utils/apiErrors';
 
 const LoginPage = () => {
   const theme = useTheme();
@@ -45,13 +51,25 @@ const LoginPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
 
     try {
       const response = await login(formData);
       loginStore(response);
       navigate(getDashboardPathForRole(response.role), { replace: true });
-    } catch (err: any) {
-      setError(err.message || 'Error al iniciar sesión. Verifica tus credenciales.');
+    } catch (err) {
+      if (isStatusCode(err, 429)) {
+        setError(
+          formatRetryMessage(
+            getRetryAfterSeconds(err),
+            'Demasiados intentos. Intentá nuevamente en unos minutos.'
+          )
+        );
+      } else {
+        setError(
+          getErrorMessage(err, 'Error al iniciar sesión. Verifica tus credenciales.')
+        );
+      }
     } finally {
       setLoading(false);
     }

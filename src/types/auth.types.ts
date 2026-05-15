@@ -13,6 +13,7 @@ export interface JwtResponseDTO {
   role: string;
   firstName: string;
   lastName: string;
+  profilePictureUrl?: string | null;
 }
 
 export interface RegisterPatientRequestDTO {

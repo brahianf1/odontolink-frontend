@@ -26,6 +26,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useThemeStore } from '../../store/themeStore';
+import { getProfilePathForRole, getRoleLabel } from '../../features/profile';
 
 interface AppBarProps {
   drawerWidth: number;
@@ -55,9 +56,9 @@ export default function AppBar({ drawerWidth, onMenuClick, title }: AppBarProps)
 
   const handleProfile = () => {
     handleMenuClose();
-    const role = user?.role?.toLowerCase();
-    if (role === 'patient' || role === 'practitioner') {
-      navigate(`/${role}/profile`);
+    const path = getProfilePathForRole(user?.role);
+    if (path !== '/') {
+      navigate(path);
     }
   };
 
@@ -68,18 +69,7 @@ export default function AppBar({ drawerWidth, onMenuClick, title }: AppBarProps)
     return `${firstInitial}${lastInitial}`.toUpperCase();
   };
 
-  const getRoleName = () => {
-    switch (user?.role) {
-      case 'PATIENT':
-        return 'Paciente';
-      case 'PRACTITIONER':
-        return 'Practicante';
-      case 'SUPERVISOR':
-        return 'Supervisor';
-      default:
-        return 'Usuario';
-    }
-  };
+  const getRoleName = () => getRoleLabel(user?.role) || 'Usuario';
 
   return (
     <MuiAppBar
@@ -170,6 +160,8 @@ export default function AppBar({ drawerWidth, onMenuClick, title }: AppBarProps)
               aria-expanded={anchorEl ? 'true' : undefined}
             >
               <Avatar
+                src={user?.profilePictureUrl ?? undefined}
+                alt={user ? `${user.firstName ?? ''} ${user.lastName ?? ''}` : 'Usuario'}
                 sx={{
                   width: 36,
                   height: 36,
