@@ -6,6 +6,12 @@ import Sidebar from '../components/layout/Sidebar';
 
 const DRAWER_WIDTH = 260;
 
+// Match base paths so that nested routes like /chat/:sessionId share the same title.
+const dynamicPrefixes: Array<{ prefix: string; title: string }> = [
+  { prefix: '/patient/chat', title: 'Mensajes' },
+  { prefix: '/practitioner/chat', title: 'Mensajes' },
+];
+
 // Mapeo de rutas a títulos de página
 const pageTitles: Record<string, string> = {
   // Rutas de paciente
@@ -46,7 +52,12 @@ export default function DashboardLayout() {
 
   // Obtener el título de la página actual
   const pageTitle = useMemo(() => {
-    return pageTitles[location.pathname] || 'OdontoLink';
+    const exact = pageTitles[location.pathname];
+    if (exact) return exact;
+    const dynamic = dynamicPrefixes.find((p) =>
+      location.pathname.startsWith(p.prefix)
+    );
+    return dynamic?.title || 'OdontoLink';
   }, [location.pathname]);
 
   const handleDrawerToggle = () => {

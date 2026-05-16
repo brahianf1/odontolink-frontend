@@ -95,6 +95,7 @@ function AppRoutes() {
         />
         <Route path="feedback" element={<FeedbackPage />} />
         <Route path="chat" element={<ChatPage />} />
+        <Route path="chat/:sessionId" element={<ChatPage />} />
         <Route path="profile" element={<MyProfilePage />} />
       </Route>
 
@@ -126,6 +127,7 @@ function AppRoutes() {
         <Route path="attentions" element={<MyAttentionsPage />} />
         <Route path="feedback" element={<PatientFeedbackPage />} />
         <Route path="chat" element={<PatientChatPage />} />
+        <Route path="chat/:sessionId" element={<PatientChatPage />} />
         <Route path="profile" element={<MyProfilePage />} />
       </Route>
 
