@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { useThemeStore } from './store/themeStore';
 import { lightTheme, darkTheme } from './theme/theme';
@@ -35,6 +35,15 @@ import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminTreatmentsPage from './pages/admin/AdminTreatmentsPage';
+import AdminAiAgentPage from './pages/admin/AdminAiAgentPage';
+import {
+  DashboardTab as AiAgentDashboardTab,
+  ConfigurationTab as AiAgentConfigurationTab,
+  GuardrailsTab as AiAgentGuardrailsTab,
+  KnowledgeBaseTab as AiAgentKnowledgeBaseTab,
+  GovernanceTab as AiAgentGovernanceTab,
+  HistoryTab as AiAgentHistoryTab,
+} from './features/admin/aiAgent';
 import SupervisorDashboardPage from './pages/supervisor/SupervisorDashboardPage';
 import MyPractitionersPage from './pages/supervisor/MyPractitionersPage';
 import PractitionerAttentionsPage from './pages/supervisor/PractitionerAttentionsPage';
@@ -144,6 +153,15 @@ function AppRoutes() {
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="treatments" element={<AdminTreatmentsPage />} />
         <Route path="settings" element={<AdminSettingsPage />} />
+        <Route path="ai-agent" element={<AdminAiAgentPage />}>
+          <Route index element={<Navigate to="dashboard" replace />} />
+          <Route path="dashboard" element={<AiAgentDashboardTab />} />
+          <Route path="configuration" element={<AiAgentConfigurationTab />} />
+          <Route path="guardrails" element={<AiAgentGuardrailsTab />} />
+          <Route path="knowledge-base" element={<AiAgentKnowledgeBaseTab />} />
+          <Route path="governance" element={<AiAgentGovernanceTab />} />
+          <Route path="history" element={<AiAgentHistoryTab />} />
+        </Route>
         <Route path="profile" element={<MyProfilePage />} />
       </Route>
 

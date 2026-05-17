@@ -1,0 +1,9 @@
+export { AiAgentProvider, useAiAgentContext } from './components/AiAgentContext';
+export type { AiAgentTabId } from './components/AiAgentContext';
+export { default as AiAgentTabs } from './components/AiAgentTabs';
+export { default as DashboardTab } from './components/dashboard/DashboardTab';
+export { default as ConfigurationTab } from './components/configuration/ConfigurationTab';
+export { default as GuardrailsTab } from './components/guardrails/GuardrailsTab';
+export { default as KnowledgeBaseTab } from './components/knowledgeBase/KnowledgeBaseTab';
+export { default as GovernanceTab } from './components/governance/GovernanceTab';
+export { default as HistoryTab } from './components/history/HistoryTab';

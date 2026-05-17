@@ -10,6 +10,7 @@ const DRAWER_WIDTH = 260;
 const dynamicPrefixes: Array<{ prefix: string; title: string }> = [
   { prefix: '/patient/chat', title: 'Mensajes' },
   { prefix: '/practitioner/chat', title: 'Mensajes' },
+  { prefix: '/admin/ai-agent', title: 'Agente IA' },
 ];
 
 // Mapeo de rutas a títulos de página

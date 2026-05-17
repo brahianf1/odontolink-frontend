@@ -28,6 +28,7 @@ import {
   Settings as SettingsIcon,
   ManageAccounts as ManageAccountsIcon,
   Category as CategoryIcon,
+  SmartToy as SmartToyIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
@@ -300,6 +301,12 @@ export default function Sidebar({ drawerWidth, mobileOpen, onMobileClose }: Side
               description: 'Catálogo maestro'
             },
             {
+              text: 'Agente IA',
+              icon: <SmartToyIcon />,
+              path: '/admin/ai-agent',
+              description: 'Chatbot y RAG'
+            },
+            {
               text: 'Configuración',
               icon: <SettingsIcon />,
               path: '/admin/settings',
@@ -333,7 +340,7 @@ export default function Sidebar({ drawerWidth, mobileOpen, onMobileClose }: Side
   };
 
   const isActive = (path: string) => {
-    return location.pathname === path;
+    return location.pathname === path || location.pathname.startsWith(`${path}/`);
   };
 
   const drawer = (
