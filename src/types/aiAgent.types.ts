@@ -1,0 +1,193 @@
+export type AiAgentLifecycle = 'UNCONFIGURED' | 'DRAFT' | 'PUBLISHED';
+
+export type RetrievalMethod = 'REWRITE' | 'STEP_BACK' | 'SUB_QUERIES' | 'NONE';
+
+export type KnowledgeBaseDocumentKind = 'FAQ_TEXT' | 'UPLOADED_FILE';
+
+export type KnowledgeBaseDocumentStatus =
+  | 'PENDING_UPLOAD'
+  | 'UPLOADED'
+  | 'REGISTERED'
+  | 'INDEXING'
+  | 'INDEXED'
+  | 'FAILED';
+
+export type AiAdminAuditEventType =
+  | 'AGENT_PUBLISH'
+  | 'AGENT_PUBLISH_FAILED'
+  | 'AGENT_ROLLBACK'
+  | 'GOVERNANCE_POLICY_UPDATED';
+
+export type AiAgentErrorCode =
+  | 'AI_PROVIDER_UNAVAILABLE'
+  | 'AI_PROVIDER_BAD_REQUEST'
+  | 'AI_AGENT_CONFIG_INVALID'
+  | 'AI_AGENT_NOT_CONFIGURED'
+  | 'AI_AGENT_NOT_PUBLISHED'
+  | 'AI_KB_DOCUMENT_NOT_FOUND'
+  | 'AI_KB_FILE_EMPTY'
+  | 'AI_KB_FILE_TOO_LARGE'
+  | 'AI_KB_UNSUPPORTED_TYPE'
+  | 'AI_KB_INDEXING_FAILED';
+
+export interface AiAgentConfigurationResponseDTO {
+  displayName: string;
+  systemPromptCore: string;
+  welcomeMessage?: string | null;
+  temperature: number;
+  topP: number;
+  maxTokens?: number | null;
+  k?: number | null;
+  retrievalMethod: RetrievalMethod;
+  lifecycle: AiAgentLifecycle;
+  finalInstructionPreview?: string | null;
+  providerAgentId?: string | null;
+  providerSyncedAt?: string | null;
+  lastSyncError?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface UpdateAiAgentConfigurationRequestDTO {
+  displayName: string;
+  systemPromptCore: string;
+  welcomeMessage?: string | null;
+  temperature: number;
+  topP: number;
+  maxTokens?: number | null;
+  k?: number | null;
+  retrievalMethod: RetrievalMethod;
+}
+
+export interface AiAgentHealthResponseDTO {
+  lifecycle: AiAgentLifecycle;
+  missingRequirements?: string[];
+  providerReachable: boolean;
+  providerErrorDetail?: string | null;
+}
+
+export interface AiAgentInstructionPreviewResponseDTO {
+  composedInstruction: string;
+  activeGuardrailLabels: string[];
+}
+
+export interface GuardrailRequestDTO {
+  label: string;
+  text: string;
+  active?: boolean;
+}
+
+export interface GuardrailResponseDTO {
+  id: number;
+  label: string;
+  text: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateAiGovernancePolicyRequestDTO {
+  requireGuardrails: boolean;
+  minActiveGuardrails: number;
+  requireSystemPrompt: boolean;
+  requireWelcomeMessage: boolean;
+  requireIndexedDocuments: boolean;
+  allowOverride: boolean;
+}
+
+export interface AiGovernancePolicyResponseDTO {
+  requireGuardrails: boolean;
+  minActiveGuardrails: number;
+  requireSystemPrompt: boolean;
+  requireWelcomeMessage: boolean;
+  requireIndexedDocuments: boolean;
+  allowOverride: boolean;
+  updatedAt?: string | null;
+}
+
+export interface AddFaqDocumentRequestDTO {
+  title: string;
+  content: string;
+}
+
+export interface UpdateKnowledgeBaseDocumentRequestDTO {
+  title: string;
+  content?: string;
+}
+
+export interface KnowledgeBaseDocumentResponseDTO {
+  id: number;
+  title: string;
+  kind: KnowledgeBaseDocumentKind;
+  inlineContent?: string | null;
+  originalFileName?: string | null;
+  sizeBytes?: number | null;
+  contentType?: string | null;
+  providerDataSourceId?: string | null;
+  status: KnowledgeBaseDocumentStatus;
+  lastIndexingJobId?: string | null;
+  lastIndexedAt?: string | null;
+  errorMessage?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface IndexingJobStatusResponseDTO {
+  jobId: string;
+  status: string;
+  updatedAt?: string | null;
+  errorMessage?: string | null;
+}
+
+export interface AiAgentConfigurationVersionResponseDTO {
+  versionNumber: number;
+  displayName: string;
+  systemPromptCore: string;
+  welcomeMessage?: string | null;
+  temperature: number;
+  topP: number;
+  maxTokens?: number | null;
+  k?: number | null;
+  retrievalMethod: RetrievalMethod;
+  composedInstruction?: string | null;
+  guardrailsLabelsSnapshot?: string | null;
+  publishedByUserId?: number | null;
+  publishedWithOverride?: boolean | null;
+  missingRequirementsAtPublish?: string | null;
+  publishedAt: string;
+}
+
+export interface AiAdminAuditEventResponseDTO {
+  id: number;
+  type: AiAdminAuditEventType;
+  actorUserId?: number | null;
+  relatedVersionNumber?: number | null;
+  withOverride?: boolean | null;
+  details?: string | null;
+  occurredAt: string;
+}
+
+export interface KbDocumentsQuery {
+  status?: KnowledgeBaseDocumentStatus;
+  page?: number;
+  size?: number;
+}
+
+export interface VersionsQuery {
+  page?: number;
+  size?: number;
+}
+
+export interface AuditEventsQuery {
+  type?: AiAdminAuditEventType;
+  from?: string;
+  to?: string;
+  page?: number;
+  size?: number;
+}
+
+export type ParsedRequirement =
+  | { kind: 'SYSTEM_PROMPT' }
+  | { kind: 'WELCOME_MESSAGE' }
+  | { kind: 'INDEXED_DOCUMENTS' }
+  | { kind: 'MIN_ACTIVE_GUARDRAILS'; required: number; current: number }
+  | { kind: 'UNKNOWN'; raw: string };
