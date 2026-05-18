@@ -18,6 +18,16 @@ export type AiAdminAuditEventType =
   | 'AGENT_ROLLBACK'
   | 'GOVERNANCE_POLICY_UPDATED';
 
+export type AccessMode = 'PUBLIC' | 'PRIVATE' | 'DISABLED';
+
+export type PiiPolicy = 'BLOCK' | 'ANONYMIZE';
+
+export type AllowedRole =
+  | 'ROLE_PATIENT'
+  | 'ROLE_PRACTITIONER'
+  | 'ROLE_SUPERVISOR'
+  | 'ROLE_ADMIN';
+
 export type AiAgentErrorCode =
   | 'AI_PROVIDER_UNAVAILABLE'
   | 'AI_PROVIDER_BAD_REQUEST'
@@ -28,7 +38,8 @@ export type AiAgentErrorCode =
   | 'AI_KB_FILE_EMPTY'
   | 'AI_KB_FILE_TOO_LARGE'
   | 'AI_KB_UNSUPPORTED_TYPE'
-  | 'AI_KB_INDEXING_FAILED';
+  | 'AI_KB_INDEXING_FAILED'
+  | 'AI_AGENT_INVOCATION_URL_UNAVAILABLE';
 
 export interface AiAgentConfigurationResponseDTO {
   displayName: string;
@@ -45,6 +56,14 @@ export interface AiAgentConfigurationResponseDTO {
   providerSyncedAt?: string | null;
   lastSyncError?: string | null;
   updatedAt?: string | null;
+  accessMode: AccessMode;
+  allowedRoles?: AllowedRole[] | null;
+  piiPolicy: PiiPolicy;
+  conversationBufferSize: number;
+  rateLimitAnonymousPerHour: number;
+  rateLimitAuthenticatedPerHour: number;
+  agentInvocationUrl?: string | null;
+  emergencyBannerText: string;
 }
 
 export interface UpdateAiAgentConfigurationRequestDTO {
@@ -56,6 +75,13 @@ export interface UpdateAiAgentConfigurationRequestDTO {
   maxTokens?: number | null;
   k?: number | null;
   retrievalMethod: RetrievalMethod;
+  accessMode: AccessMode;
+  allowedRoles?: AllowedRole[];
+  piiPolicy: PiiPolicy;
+  conversationBufferSize: number;
+  rateLimitAnonymousPerHour: number;
+  rateLimitAuthenticatedPerHour: number;
+  emergencyBannerText: string;
 }
 
 export interface AiAgentHealthResponseDTO {
@@ -190,4 +216,23 @@ export type ParsedRequirement =
   | { kind: 'WELCOME_MESSAGE' }
   | { kind: 'INDEXED_DOCUMENTS' }
   | { kind: 'MIN_ACTIVE_GUARDRAILS'; required: number; current: number }
+  | { kind: 'ALLOWED_ROLES_FOR_PRIVATE' }
   | { kind: 'UNKNOWN'; raw: string };
+
+export interface EmergencyKeywordResponseDTO {
+  id: number;
+  term: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateEmergencyKeywordRequestDTO {
+  term: string;
+  active?: boolean;
+}
+
+export interface UpdateEmergencyKeywordRequestDTO {
+  term: string;
+  active?: boolean;
+}

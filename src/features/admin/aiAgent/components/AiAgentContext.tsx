@@ -26,6 +26,7 @@ export type AiAgentTabId =
   | 'dashboard'
   | 'configuration'
   | 'guardrails'
+  | 'emergency-keywords'
   | 'knowledge-base'
   | 'governance'
   | 'history';

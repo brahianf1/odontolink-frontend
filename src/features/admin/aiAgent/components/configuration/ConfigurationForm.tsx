@@ -25,6 +25,10 @@ import {
 import PromptsSection from './PromptsSection';
 import ParametersSection from './ParametersSection';
 import RetrievalMethodSelect from './RetrievalMethodSelect';
+import EmergencyBannerSection from './EmergencyBannerSection';
+import AccessSecuritySection from './AccessSecuritySection';
+import RateLimitBufferSection from './RateLimitBufferSection';
+import ClearInvocationUrlCacheButton from './ClearInvocationUrlCacheButton';
 import type {
   AiAgentConfigurationResponseDTO,
   UpdateAiAgentConfigurationRequestDTO,
@@ -55,6 +59,23 @@ const buildInitialValues = (
     typeof config.maxTokens === 'number' ? config.maxTokens : DEFAULT_CONFIG_VALUES.maxTokens,
   k: typeof config.k === 'number' ? config.k : DEFAULT_CONFIG_VALUES.k,
   retrievalMethod: config.retrievalMethod ?? 'REWRITE',
+  accessMode: config.accessMode ?? DEFAULT_CONFIG_VALUES.accessMode,
+  allowedRoles: config.allowedRoles ?? DEFAULT_CONFIG_VALUES.allowedRoles,
+  piiPolicy: config.piiPolicy ?? DEFAULT_CONFIG_VALUES.piiPolicy,
+  conversationBufferSize:
+    typeof config.conversationBufferSize === 'number'
+      ? config.conversationBufferSize
+      : DEFAULT_CONFIG_VALUES.conversationBufferSize,
+  rateLimitAnonymousPerHour:
+    typeof config.rateLimitAnonymousPerHour === 'number'
+      ? config.rateLimitAnonymousPerHour
+      : DEFAULT_CONFIG_VALUES.rateLimitAnonymousPerHour,
+  rateLimitAuthenticatedPerHour:
+    typeof config.rateLimitAuthenticatedPerHour === 'number'
+      ? config.rateLimitAuthenticatedPerHour
+      : DEFAULT_CONFIG_VALUES.rateLimitAuthenticatedPerHour,
+  emergencyBannerText:
+    config.emergencyBannerText ?? DEFAULT_CONFIG_VALUES.emergencyBannerText,
 });
 
 export default function ConfigurationForm({
@@ -100,6 +121,14 @@ export default function ConfigurationForm({
       maxTokens: values.maxTokens,
       k: values.k,
       retrievalMethod: values.retrievalMethod,
+      accessMode: values.accessMode,
+      allowedRoles:
+        values.accessMode === 'PRIVATE' ? values.allowedRoles : [],
+      piiPolicy: values.piiPolicy,
+      conversationBufferSize: values.conversationBufferSize,
+      rateLimitAnonymousPerHour: values.rateLimitAnonymousPerHour,
+      rateLimitAuthenticatedPerHour: values.rateLimitAuthenticatedPerHour,
+      emergencyBannerText: values.emergencyBannerText.trim(),
     };
     try {
       const wasPublished = configuration.lifecycle === 'PUBLISHED';
@@ -160,8 +189,15 @@ export default function ConfigurationForm({
         <form onSubmit={onSubmit} noValidate>
           <Stack spacing={3} divider={<Divider flexItem />}>
             <PromptsSection control={control} disabled={saving} />
+            <EmergencyBannerSection control={control} disabled={saving} />
             <ParametersSection control={control} disabled={saving} />
             <RetrievalMethodSelect control={control} disabled={saving} />
+            <AccessSecuritySection control={control} disabled={saving} />
+            <RateLimitBufferSection control={control} disabled={saving} />
+            <ClearInvocationUrlCacheButton
+              agentInvocationUrl={configuration.agentInvocationUrl}
+              disabled={saving}
+            />
           </Stack>
 
           <Divider sx={{ my: 3 }} />

@@ -40,11 +40,13 @@ import {
   DashboardTab as AiAgentDashboardTab,
   ConfigurationTab as AiAgentConfigurationTab,
   GuardrailsTab as AiAgentGuardrailsTab,
+  EmergencyKeywordsTab as AiAgentEmergencyKeywordsTab,
   KnowledgeBaseTab as AiAgentKnowledgeBaseTab,
   GovernanceTab as AiAgentGovernanceTab,
   HistoryTab as AiAgentHistoryTab,
 } from './features/admin/aiAgent';
 import SupervisorDashboardPage from './pages/supervisor/SupervisorDashboardPage';
+import { ChatbotWidget } from './features/chatbot';
 import MyPractitionersPage from './pages/supervisor/MyPractitionersPage';
 import PractitionerAttentionsPage from './pages/supervisor/PractitionerAttentionsPage';
 import AttentionAuditPage from './pages/supervisor/AttentionAuditPage';
@@ -59,6 +61,7 @@ function App() {
       <CssBaseline />
       <Router>
         <AppRoutes />
+        <ChatbotWidget />
       </Router>
     </ThemeProvider>
   );
@@ -158,6 +161,7 @@ function AppRoutes() {
           <Route path="dashboard" element={<AiAgentDashboardTab />} />
           <Route path="configuration" element={<AiAgentConfigurationTab />} />
           <Route path="guardrails" element={<AiAgentGuardrailsTab />} />
+          <Route path="emergency-keywords" element={<AiAgentEmergencyKeywordsTab />} />
           <Route path="knowledge-base" element={<AiAgentKnowledgeBaseTab />} />
           <Route path="governance" element={<AiAgentGovernanceTab />} />
           <Route path="history" element={<AiAgentHistoryTab />} />

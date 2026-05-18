@@ -85,7 +85,9 @@ apiClient.interceptors.response.use(
     const status = error.response?.status;
     const payload = error.response?.data as Partial<ApiErrorPayload> | undefined;
 
-    if (status === 401 && !requestUrl.includes('/auth/login')) {
+    const isAuthLoginRoute = requestUrl.includes('/auth/login');
+    const isChatbotPublicRoute = requestUrl.includes('/api/chatbot/');
+    if (status === 401 && !isAuthLoginRoute && !isChatbotPublicRoute) {
       useAuthStore.getState().logout();
       if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
         window.location.href = '/login';

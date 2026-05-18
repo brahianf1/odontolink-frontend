@@ -51,6 +51,8 @@ const FRIENDLY: Record<AiAgentErrorCode, string> = {
   AI_KB_FILE_TOO_LARGE: 'El archivo supera el tamaño máximo permitido (10 MB).',
   AI_KB_UNSUPPORTED_TYPE: 'El tipo de archivo no está soportado.',
   AI_KB_INDEXING_FAILED: 'La indexación del documento falló. Intentá nuevamente.',
+  AI_AGENT_INVOCATION_URL_UNAVAILABLE:
+    'No se pudo resolver la URL del agente. Probá limpiar la caché de la URL o verificá la configuración del deployment.',
 };
 
 export const mapAiAgentError = (
