@@ -5,6 +5,7 @@ import {
   Button,
   Card,
   CardContent,
+  Chip,
   CircularProgress,
   Divider,
   Grid,
@@ -27,23 +28,42 @@ import {
   type ConfigurationFormValues,
 } from '../../schemas/configuration.schemas';
 import PromptsSection from './PromptsSection';
+import EmergencyBannerSection from './EmergencyBannerSection';
 import ParametersSection from './ParametersSection';
 import RetrievalMethodSelect from './RetrievalMethodSelect';
+import AccessSecuritySection from './AccessSecuritySection';
+import RateLimitBufferSection from './RateLimitBufferSection';
 import { useAiAgentContext } from '../AiAgentContext';
 import type { UpdateAiAgentConfigurationRequestDTO } from '../../../../../types/aiAgent.types';
 import { mapAiAgentError } from '../../utils/apiErrors';
 import { retrievalMethodMeta } from '../../utils/retrievalMethods';
+import { accessModeMeta } from '../../utils/accessMode';
+import { piiPolicyMeta } from '../../utils/piiPolicy';
+import { allowedRoleLabel } from '../../utils/allowedRoles';
 
 interface InitialSetupWizardProps {
   onSubmit: (payload: UpdateAiAgentConfigurationRequestDTO) => Promise<void>;
   submitting: boolean;
 }
 
-const STEPS = ['Identidad y prompts', 'Parámetros del modelo', 'Revisión final'];
+const STEPS = [
+  'Identidad y prompts',
+  'Parámetros del modelo',
+  'Acceso y seguridad',
+  'Revisión final',
+];
 
 const STEP_FIELDS: Array<Array<keyof ConfigurationFormValues>> = [
-  ['displayName', 'systemPromptCore', 'welcomeMessage'],
+  ['displayName', 'systemPromptCore', 'welcomeMessage', 'emergencyBannerText'],
   ['temperature', 'topP', 'maxTokens', 'k', 'retrievalMethod'],
+  [
+    'accessMode',
+    'allowedRoles',
+    'piiPolicy',
+    'conversationBufferSize',
+    'rateLimitAnonymousPerHour',
+    'rateLimitAuthenticatedPerHour',
+  ],
   [],
 ];
 
@@ -91,6 +111,13 @@ export default function InitialSetupWizard({ onSubmit, submitting }: InitialSetu
         maxTokens: values.maxTokens,
         k: values.k,
         retrievalMethod: values.retrievalMethod,
+        accessMode: values.accessMode,
+        allowedRoles: values.accessMode === 'PRIVATE' ? values.allowedRoles : [],
+        piiPolicy: values.piiPolicy,
+        conversationBufferSize: values.conversationBufferSize,
+        rateLimitAnonymousPerHour: values.rateLimitAnonymousPerHour,
+        rateLimitAuthenticatedPerHour: values.rateLimitAuthenticatedPerHour,
+        emergencyBannerText: values.emergencyBannerText.trim(),
       });
     } catch (err) {
       const mapped = mapAiAgentError(err, 'No se pudo crear la configuración inicial.');
@@ -120,7 +147,13 @@ export default function InitialSetupWizard({ onSubmit, submitting }: InitialSetu
         </Stepper>
 
         <Box sx={{ minHeight: 360 }}>
-          {activeStep === 0 && <PromptsSection control={control} disabled={submitting} />}
+          {activeStep === 0 && (
+            <Stack spacing={3}>
+              <PromptsSection control={control} disabled={submitting} />
+              <Divider />
+              <EmergencyBannerSection control={control} disabled={submitting} />
+            </Stack>
+          )}
           {activeStep === 1 && (
             <Stack spacing={3}>
               <ParametersSection control={control} disabled={submitting} />
@@ -128,7 +161,14 @@ export default function InitialSetupWizard({ onSubmit, submitting }: InitialSetu
               <RetrievalMethodSelect control={control} disabled={submitting} />
             </Stack>
           )}
-          {activeStep === 2 && <ReviewStep values={summaryValues} />}
+          {activeStep === 2 && (
+            <Stack spacing={3}>
+              <AccessSecuritySection control={control} disabled={submitting} />
+              <Divider />
+              <RateLimitBufferSection control={control} disabled={submitting} />
+            </Stack>
+          )}
+          {activeStep === 3 && <ReviewStep values={summaryValues} />}
         </Box>
 
         {serverError && (
@@ -187,13 +227,15 @@ export default function InitialSetupWizard({ onSubmit, submitting }: InitialSetu
 
 function ReviewStep({ values }: { values: ConfigurationFormValues }) {
   const methodMeta = retrievalMethodMeta(values.retrievalMethod);
+  const accessMeta = accessModeMeta(values.accessMode);
+  const piiMeta = piiPolicyMeta(values.piiPolicy);
   return (
     <Box>
       <Typography variant="subtitle1" fontWeight={700} gutterBottom>
         Revisá la configuración antes de crear
       </Typography>
       <Grid container spacing={2}>
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <SummaryRow label="Nombre del agente" value={values.displayName || '—'} />
           <SummaryRow label="Método de recuperación" value={methodMeta.label} />
           <SummaryRow label="Temperatura" value={values.temperature.toFixed(2)} />
@@ -202,9 +244,46 @@ function ReviewStep({ values }: { values: ConfigurationFormValues }) {
             label="Tokens máximos"
             value={values.maxTokens !== undefined ? String(values.maxTokens) : '—'}
           />
-          <SummaryRow label="k (documentos)" value={values.k !== undefined ? String(values.k) : '—'} />
+          <SummaryRow
+            label="k (documentos)"
+            value={values.k !== undefined ? String(values.k) : '—'}
+          />
         </Grid>
-        <Grid size={{ xs: 12, md: 6 }}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <SummaryRow label="Modo de acceso" value={accessMeta.label} />
+          {values.accessMode === 'PRIVATE' && (
+            <Box sx={{ mb: 1.2 }}>
+              <Typography variant="caption" color="text.secondary" display="block">
+                Roles permitidos
+              </Typography>
+              {values.allowedRoles.length === 0 ? (
+                <Typography variant="body2" color="error">
+                  Sin roles seleccionados
+                </Typography>
+              ) : (
+                <Stack direction="row" spacing={0.5} flexWrap="wrap" sx={{ rowGap: 0.5 }}>
+                  {values.allowedRoles.map((role) => (
+                    <Chip key={role} label={allowedRoleLabel(role)} size="small" />
+                  ))}
+                </Stack>
+              )}
+            </Box>
+          )}
+          <SummaryRow label="Política PII" value={piiMeta.label} />
+          <SummaryRow
+            label="Buffer de conversación"
+            value={`${values.conversationBufferSize} mensajes`}
+          />
+          <SummaryRow
+            label="Rate limit anónimo"
+            value={`${values.rateLimitAnonymousPerHour} mensajes/hora`}
+          />
+          <SummaryRow
+            label="Rate limit autenticado"
+            value={`${values.rateLimitAuthenticatedPerHour} mensajes/hora`}
+          />
+        </Grid>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Typography variant="caption" color="text.secondary">
             System prompt
           </Typography>
@@ -214,7 +293,7 @@ function ReviewStep({ values }: { values: ConfigurationFormValues }) {
               backgroundColor: 'background.default',
               border: '1px solid',
               borderColor: 'divider',
-              maxHeight: 180,
+              maxHeight: 150,
               overflow: 'auto',
               whiteSpace: 'pre-wrap',
               fontFamily: 'ui-monospace, monospace',
@@ -233,13 +312,31 @@ function ReviewStep({ values }: { values: ConfigurationFormValues }) {
               backgroundColor: 'background.default',
               border: '1px solid',
               borderColor: 'divider',
-              maxHeight: 120,
+              maxHeight: 100,
+              overflow: 'auto',
+              whiteSpace: 'pre-wrap',
+              fontSize: '0.85rem',
+              mb: 2,
+            }}
+          >
+            {values.welcomeMessage || '—'}
+          </Box>
+          <Typography variant="caption" color="text.secondary">
+            Banner de emergencia
+          </Typography>
+          <Box
+            sx={{
+              p: 1.5,
+              backgroundColor: 'background.default',
+              border: '1px solid',
+              borderColor: 'divider',
+              maxHeight: 100,
               overflow: 'auto',
               whiteSpace: 'pre-wrap',
               fontSize: '0.85rem',
             }}
           >
-            {values.welcomeMessage || '—'}
+            {values.emergencyBannerText || '—'}
           </Box>
         </Grid>
       </Grid>

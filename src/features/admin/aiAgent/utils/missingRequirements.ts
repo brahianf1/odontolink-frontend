@@ -6,6 +6,9 @@ export const parseRequirement = (raw: string): ParsedRequirement => {
   if (raw === 'REQUIRES_SYSTEM_PROMPT') return { kind: 'SYSTEM_PROMPT' };
   if (raw === 'REQUIRES_WELCOME_MESSAGE') return { kind: 'WELCOME_MESSAGE' };
   if (raw === 'REQUIRES_INDEXED_DOCUMENTS') return { kind: 'INDEXED_DOCUMENTS' };
+  if (raw === 'REQUIRES_ALLOWED_ROLES_FOR_PRIVATE') {
+    return { kind: 'ALLOWED_ROLES_FOR_PRIVATE' };
+  }
   const match = MIN_ACTIVE_GUARDRAILS_RE.exec(raw);
   if (match) {
     return {
@@ -34,6 +37,8 @@ export const requirementLabel = (req: ParsedRequirement): string => {
       return `Activá al menos ${req.required} ${
         req.required === 1 ? 'guardrail' : 'guardrails'
       } (tenés ${req.current}).`;
+    case 'ALLOWED_ROLES_FOR_PRIVATE':
+      return 'Seleccioná al menos un rol permitido cuando el modo de acceso es PRIVADO.';
     case 'UNKNOWN':
       return req.raw;
   }

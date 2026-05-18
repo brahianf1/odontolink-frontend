@@ -40,6 +40,7 @@ import {
   DashboardTab as AiAgentDashboardTab,
   ConfigurationTab as AiAgentConfigurationTab,
   GuardrailsTab as AiAgentGuardrailsTab,
+  EmergencyKeywordsTab as AiAgentEmergencyKeywordsTab,
   KnowledgeBaseTab as AiAgentKnowledgeBaseTab,
   GovernanceTab as AiAgentGovernanceTab,
   HistoryTab as AiAgentHistoryTab,
@@ -158,6 +159,7 @@ function AppRoutes() {
           <Route path="dashboard" element={<AiAgentDashboardTab />} />
           <Route path="configuration" element={<AiAgentConfigurationTab />} />
           <Route path="guardrails" element={<AiAgentGuardrailsTab />} />
+          <Route path="emergency-keywords" element={<AiAgentEmergencyKeywordsTab />} />
           <Route path="knowledge-base" element={<AiAgentKnowledgeBaseTab />} />
           <Route path="governance" element={<AiAgentGovernanceTab />} />
           <Route path="history" element={<AiAgentHistoryTab />} />

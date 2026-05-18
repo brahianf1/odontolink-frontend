@@ -9,6 +9,8 @@ import type {
   AiAgentInstructionPreviewResponseDTO,
   AiGovernancePolicyResponseDTO,
   AuditEventsQuery,
+  CreateEmergencyKeywordRequestDTO,
+  EmergencyKeywordResponseDTO,
   GuardrailRequestDTO,
   GuardrailResponseDTO,
   IndexingJobStatusResponseDTO,
@@ -16,6 +18,7 @@ import type {
   KnowledgeBaseDocumentResponseDTO,
   UpdateAiAgentConfigurationRequestDTO,
   UpdateAiGovernancePolicyRequestDTO,
+  UpdateEmergencyKeywordRequestDTO,
   UpdateKnowledgeBaseDocumentRequestDTO,
   VersionsQuery,
 } from '../../types/aiAgent.types';
@@ -62,6 +65,43 @@ export const publish = async (override = false): Promise<AiAgentConfigurationRes
     { params: { override } }
   );
   return res.data;
+};
+
+export const clearInvocationUrlCache = async (): Promise<AiAgentConfigurationResponseDTO> => {
+  const res = await apiClient.post<AiAgentConfigurationResponseDTO>(
+    `${BASE}/configuration/clear-invocation-url-cache`
+  );
+  return res.data;
+};
+
+export const listEmergencyKeywords = async (): Promise<EmergencyKeywordResponseDTO[]> => {
+  const res = await apiClient.get<EmergencyKeywordResponseDTO[]>(`${BASE}/emergency-keywords`);
+  return res.data;
+};
+
+export const createEmergencyKeyword = async (
+  payload: CreateEmergencyKeywordRequestDTO
+): Promise<EmergencyKeywordResponseDTO> => {
+  const res = await apiClient.post<EmergencyKeywordResponseDTO>(
+    `${BASE}/emergency-keywords`,
+    payload
+  );
+  return res.data;
+};
+
+export const updateEmergencyKeyword = async (
+  id: number,
+  payload: UpdateEmergencyKeywordRequestDTO
+): Promise<EmergencyKeywordResponseDTO> => {
+  const res = await apiClient.put<EmergencyKeywordResponseDTO>(
+    `${BASE}/emergency-keywords/${id}`,
+    payload
+  );
+  return res.data;
+};
+
+export const deleteEmergencyKeyword = async (id: number): Promise<void> => {
+  await apiClient.delete(`${BASE}/emergency-keywords/${id}`);
 };
 
 export const listGuardrails = async (): Promise<GuardrailResponseDTO[]> => {
