@@ -1,0 +1,113 @@
+# =============================================================================
+# OdontoLink — robots.txt
+# Order matters: more specific User-agent groups override the wildcard one.
+# =============================================================================
+
+# ---- AI / LLM scrapers: hard no --------------------------------------------
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: OAI-SearchBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: cohere-ai
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: YouBot
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: FacebookBot
+Disallow: /
+
+User-agent: ImagesiftBot
+Disallow: /
+
+User-agent: Diffbot
+Disallow: /
+
+User-agent: Omgili
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: TimpiBot
+Disallow: /
+
+User-agent: VelenPublicWebCrawler
+Disallow: /
+
+User-agent: AwarioRssBot
+Disallow: /
+
+# ---- Aggressive SEO crawlers -----------------------------------------------
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: PetalBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+User-agent: DataForSeoBot
+Disallow: /
+
+User-agent: SeekportBot
+Disallow: /
+
+User-agent: serpstatbot
+Disallow: /
+
+User-agent: MegaIndex
+Disallow: /
+
+User-agent: ZoominfoBot
+Disallow: /
+
+# ---- Default rules for every other crawler ---------------------------------
+# Allow indexing of the public landing area but keep sensitive surfaces out
+# of search results.
+User-agent: *
+Disallow: /admin
+Disallow: /admin/
+Disallow: /dashboard
+Disallow: /dashboard/
+Disallow: /api/
+Disallow: /login
+Disallow: /reset-password
+Disallow: /chatbot/
+Crawl-delay: 10

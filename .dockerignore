@@ -1,0 +1,70 @@
+# --- Version control ----------------------------------------------------------
+.git
+.gitignore
+.gitattributes
+.github
+
+# --- Dependencies (rebuilt inside the container) -----------------------------
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# --- Build artefacts (regenerated inside the container) ----------------------
+dist
+dist-ssr
+build
+.vite
+.cache
+.temp
+tmp
+temp
+coverage
+.nyc_output
+
+# --- Environment & secrets (must never enter the image) ----------------------
+.env
+.env.*
+*.env
+*.local
+*.secret.*
+secrets.json
+config.local.js
+
+# --- Editor & OS metadata ----------------------------------------------------
+.vscode
+.idea
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# --- Logs --------------------------------------------------------------------
+logs
+*.log
+
+# --- Docs & repo-only files (not needed for the runtime image) ---------------
+README.md
+DEPLOYMENT.md
+docs
+openapi.json
+project.md
+LICENSE
+CHANGELOG.md
+
+# --- Tool-specific -----------------------------------------------------------
+.claude
+.eslintcache
+.stylelintcache
+.husky
+
+# --- Docker self-reference (avoid recursion when COPY .) ---------------------
+Dockerfile
+.dockerignore
+docker-compose*.yml
+.devcontainer
