@@ -46,6 +46,7 @@ import {
   HistoryTab as AiAgentHistoryTab,
 } from './features/admin/aiAgent';
 import SupervisorDashboardPage from './pages/supervisor/SupervisorDashboardPage';
+import { ChatbotWidget } from './features/chatbot';
 import MyPractitionersPage from './pages/supervisor/MyPractitionersPage';
 import PractitionerAttentionsPage from './pages/supervisor/PractitionerAttentionsPage';
 import AttentionAuditPage from './pages/supervisor/AttentionAuditPage';
@@ -60,6 +61,7 @@ function App() {
       <CssBaseline />
       <Router>
         <AppRoutes />
+        <ChatbotWidget />
       </Router>
     </ThemeProvider>
   );
