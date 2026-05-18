@@ -1,0 +1,7 @@
+# OdontoLink — security disclosure (RFC 9116)
+# TODO: replace the contact e-mail with the address your team monitors.
+
+Contact: mailto:admin@utnpf.site
+Expires: 2027-05-18T00:00:00.000Z
+Preferred-Languages: es, en
+Canonical: https://odontolink.utnpf.site/.well-known/security.txt
