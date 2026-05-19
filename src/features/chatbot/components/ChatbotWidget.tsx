@@ -30,9 +30,12 @@ export default function ChatbotWidget() {
   if (error) return null;
   if (!info) return null;
 
-  const shouldShowWidget =
-    info.accessGranted || info.denyReason === 'AUTHENTICATION_REQUIRED';
-  if (!shouldShowWidget) return null;
+  // Stealth: si el backend no concede acceso (agente PRIVATE con visitante
+  // anónimo, agente DISABLED/NOT_PUBLISHED, rol no permitido), el widget no
+  // se renderiza — ni FAB ni Panel. No quedan rastros en el DOM que un user
+  // pudiera des-ocultar desde DevTools. El backend es la barrera real
+  // (POST /messages devuelve 401/403) y el frontend respeta esa señal.
+  if (!info.accessGranted) return null;
 
   const handleToggle = () => {
     const nextOpen = !open;
