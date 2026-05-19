@@ -1,7 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
-import { useThemeStore } from './store/themeStore';
-import { lightTheme, darkTheme } from './theme/theme';
+import { useAppTheme } from './theme/theme';
 import PublicLayout from './components/PublicLayout';
 import AuthLayout from './components/AuthLayout';
 import HomePage from './pages/HomePage';
@@ -54,8 +53,7 @@ import AttentionAuditPage from './pages/supervisor/AttentionAuditPage';
 import FeedbackDashboardPage from './pages/supervisor/FeedbackDashboardPage';
 
 function App() {
-  const { mode } = useThemeStore();
-  const theme = mode === 'dark' ? darkTheme : lightTheme;
+  const theme = useAppTheme();
 
   return (
     <ThemeProvider theme={theme}>

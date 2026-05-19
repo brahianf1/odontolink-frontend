@@ -1,7 +1,5 @@
 import type { TypographyOptions } from '@mui/material/styles/createTypography';
-
-const FONT_FAMILY =
-  '"Roboto Flex Variable", "Roboto Flex", "Roboto", "Inter", system-ui, sans-serif';
+import type { FontPair } from '../fonts';
 
 type Scale = {
   fontSize: string;
@@ -22,6 +20,7 @@ const scale = (
   fontWeight,
 });
 
+/** Material 3 type scale (size / line / tracking / weight). */
 export const m3TypeScale = {
   displayLarge: scale(57, 64, -0.25, 500),
   displayMedium: scale(45, 52, 0, 500),
@@ -42,56 +41,68 @@ export const m3TypeScale = {
 
 export type M3TypeScale = typeof m3TypeScale;
 
-const withFamily = (s: Scale): Scale & { fontFamily: string } => ({
-  fontFamily: FONT_FAMILY,
+const withFamily = (s: Scale, family: string): Scale & { fontFamily: string } => ({
+  fontFamily: family,
   ...s,
 });
 
-export const createTypography = (): TypographyOptions => ({
-  fontFamily: FONT_FAMILY,
-  htmlFontSize: 16,
-  fontWeightLight: 300,
-  fontWeightRegular: 400,
-  fontWeightMedium: 500,
-  fontWeightBold: 700,
+/**
+ * Build the MUI Typography options for the given font pair. Display variants
+ * (displayLarge..headlineLarge) use the pair's `display` family; the rest
+ * use `sans`. `fontFamilyMono` is exposed for components that need it.
+ */
+export const createTypography = (fontPair: FontPair): TypographyOptions => {
+  const { display, sans, mono } = fontPair;
+  return {
+    fontFamily: sans,
+    htmlFontSize: 16,
+    fontWeightLight: 300,
+    fontWeightRegular: 400,
+    fontWeightMedium: 500,
+    fontWeightBold: 700,
 
-  // MUI base variants mapped to M3 scale
-  h1: withFamily(m3TypeScale.displayMedium),
-  h2: withFamily(m3TypeScale.displaySmall),
-  h3: withFamily(m3TypeScale.headlineLarge),
-  h4: withFamily(m3TypeScale.headlineMedium),
-  h5: withFamily(m3TypeScale.headlineSmall),
-  h6: withFamily(m3TypeScale.titleLarge),
-  subtitle1: withFamily(m3TypeScale.titleMedium),
-  subtitle2: withFamily(m3TypeScale.titleSmall),
-  body1: withFamily(m3TypeScale.bodyLarge),
-  body2: withFamily(m3TypeScale.bodyMedium),
-  caption: withFamily(m3TypeScale.bodySmall),
-  overline: {
-    ...withFamily(m3TypeScale.labelSmall),
-    textTransform: 'uppercase' as const,
-  },
-  button: {
-    ...withFamily(m3TypeScale.labelLarge),
-    textTransform: 'none' as const,
-  },
+    // Display tier — editorial / expressive
+    h1: withFamily(m3TypeScale.displayMedium, display),
+    h2: withFamily(m3TypeScale.displaySmall, display),
+    h3: withFamily(m3TypeScale.headlineLarge, display),
+    // Headline tier — informational
+    h4: withFamily(m3TypeScale.headlineMedium, sans),
+    h5: withFamily(m3TypeScale.headlineSmall, sans),
+    h6: withFamily(m3TypeScale.titleLarge, sans),
+    // Title tier
+    subtitle1: withFamily(m3TypeScale.titleMedium, sans),
+    subtitle2: withFamily(m3TypeScale.titleSmall, sans),
+    // Body
+    body1: withFamily(m3TypeScale.bodyLarge, sans),
+    body2: withFamily(m3TypeScale.bodyMedium, sans),
+    caption: withFamily(m3TypeScale.bodySmall, sans),
+    overline: {
+      ...withFamily(m3TypeScale.labelSmall, sans),
+      textTransform: 'uppercase' as const,
+    },
+    button: {
+      ...withFamily(m3TypeScale.labelLarge, sans),
+      textTransform: 'none' as const,
+    },
 
-  // Custom M3 variants (typed via augmentation)
-  displayLarge: withFamily(m3TypeScale.displayLarge),
-  displayMedium: withFamily(m3TypeScale.displayMedium),
-  displaySmall: withFamily(m3TypeScale.displaySmall),
-  headlineLarge: withFamily(m3TypeScale.headlineLarge),
-  headlineMedium: withFamily(m3TypeScale.headlineMedium),
-  headlineSmall: withFamily(m3TypeScale.headlineSmall),
-  titleLarge: withFamily(m3TypeScale.titleLarge),
-  titleMedium: withFamily(m3TypeScale.titleMedium),
-  titleSmall: withFamily(m3TypeScale.titleSmall),
-  bodyLarge: withFamily(m3TypeScale.bodyLarge),
-  bodyMedium: withFamily(m3TypeScale.bodyMedium),
-  bodySmall: withFamily(m3TypeScale.bodySmall),
-  labelLarge: withFamily(m3TypeScale.labelLarge),
-  labelMedium: withFamily(m3TypeScale.labelMedium),
-  labelSmall: withFamily(m3TypeScale.labelSmall),
-});
+    // Custom M3 variants
+    displayLarge: withFamily(m3TypeScale.displayLarge, display),
+    displayMedium: withFamily(m3TypeScale.displayMedium, display),
+    displaySmall: withFamily(m3TypeScale.displaySmall, display),
+    headlineLarge: withFamily(m3TypeScale.headlineLarge, display),
+    headlineMedium: withFamily(m3TypeScale.headlineMedium, sans),
+    headlineSmall: withFamily(m3TypeScale.headlineSmall, sans),
+    titleLarge: withFamily(m3TypeScale.titleLarge, sans),
+    titleMedium: withFamily(m3TypeScale.titleMedium, sans),
+    titleSmall: withFamily(m3TypeScale.titleSmall, sans),
+    bodyLarge: withFamily(m3TypeScale.bodyLarge, sans),
+    bodyMedium: withFamily(m3TypeScale.bodyMedium, sans),
+    bodySmall: withFamily(m3TypeScale.bodySmall, sans),
+    labelLarge: withFamily(m3TypeScale.labelLarge, sans),
+    labelMedium: withFamily(m3TypeScale.labelMedium, sans),
+    labelSmall: withFamily(m3TypeScale.labelSmall, sans),
 
-export const fontFamily = FONT_FAMILY;
+    // Custom — monospace family available via theme.typography.fontFamilyMono
+    fontFamilyMono: mono,
+  } as TypographyOptions;
+};

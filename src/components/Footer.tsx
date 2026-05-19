@@ -143,7 +143,7 @@ const Footer = () => {
                 Comunicación segura por chat
               </Typography>
               <Typography variant="bodyMedium" color="text.secondary">
-                Historial de prácticas privadas
+                Historial de atenciones privadas
               </Typography>
             </Stack>
           </Box>

@@ -1,102 +1,86 @@
-import {
-  Hct,
-  MaterialDynamicColors,
-  SchemeExpressive,
-  argbFromHex,
-  hexFromArgb,
-} from '@material/material-color-utilities';
+import { alpha } from '@mui/material/styles';
+import type { ThemeVariantColors, Mode } from '../variants/_types';
 
-export const SEED_COLOR_HEX = '#0F8A72';
-
-export type M3ColorRole =
-  | 'primary'
-  | 'onPrimary'
-  | 'primaryContainer'
-  | 'onPrimaryContainer'
-  | 'inversePrimary'
-  | 'secondary'
-  | 'onSecondary'
-  | 'secondaryContainer'
-  | 'onSecondaryContainer'
-  | 'tertiary'
-  | 'onTertiary'
-  | 'tertiaryContainer'
-  | 'onTertiaryContainer'
-  | 'error'
-  | 'onError'
-  | 'errorContainer'
-  | 'onErrorContainer'
-  | 'background'
-  | 'onBackground'
-  | 'surface'
-  | 'onSurface'
-  | 'surfaceVariant'
-  | 'onSurfaceVariant'
-  | 'surfaceDim'
-  | 'surfaceBright'
-  | 'surfaceContainerLowest'
-  | 'surfaceContainerLow'
-  | 'surfaceContainer'
-  | 'surfaceContainerHigh'
-  | 'surfaceContainerHighest'
-  | 'outline'
-  | 'outlineVariant'
-  | 'shadow'
-  | 'scrim'
-  | 'inverseSurface'
-  | 'inverseOnSurface'
-  | 'surfaceTint';
-
-export type M3ColorScheme = Record<M3ColorRole, string>;
-
-const buildScheme = (sourceHex: string, isDark: boolean): M3ColorScheme => {
-  const sourceHct = Hct.fromInt(argbFromHex(sourceHex));
-  const scheme = new SchemeExpressive(sourceHct, isDark, 0);
-  const m = new MaterialDynamicColors();
-  const toHex = (argb: number) => hexFromArgb(argb);
-  return {
-    primary: toHex(m.primary().getArgb(scheme)),
-    onPrimary: toHex(m.onPrimary().getArgb(scheme)),
-    primaryContainer: toHex(m.primaryContainer().getArgb(scheme)),
-    onPrimaryContainer: toHex(m.onPrimaryContainer().getArgb(scheme)),
-    inversePrimary: toHex(m.inversePrimary().getArgb(scheme)),
-    secondary: toHex(m.secondary().getArgb(scheme)),
-    onSecondary: toHex(m.onSecondary().getArgb(scheme)),
-    secondaryContainer: toHex(m.secondaryContainer().getArgb(scheme)),
-    onSecondaryContainer: toHex(m.onSecondaryContainer().getArgb(scheme)),
-    tertiary: toHex(m.tertiary().getArgb(scheme)),
-    onTertiary: toHex(m.onTertiary().getArgb(scheme)),
-    tertiaryContainer: toHex(m.tertiaryContainer().getArgb(scheme)),
-    onTertiaryContainer: toHex(m.onTertiaryContainer().getArgb(scheme)),
-    error: toHex(m.error().getArgb(scheme)),
-    onError: toHex(m.onError().getArgb(scheme)),
-    errorContainer: toHex(m.errorContainer().getArgb(scheme)),
-    onErrorContainer: toHex(m.onErrorContainer().getArgb(scheme)),
-    background: toHex(m.background().getArgb(scheme)),
-    onBackground: toHex(m.onBackground().getArgb(scheme)),
-    surface: toHex(m.surface().getArgb(scheme)),
-    onSurface: toHex(m.onSurface().getArgb(scheme)),
-    surfaceVariant: toHex(m.surfaceVariant().getArgb(scheme)),
-    onSurfaceVariant: toHex(m.onSurfaceVariant().getArgb(scheme)),
-    surfaceDim: toHex(m.surfaceDim().getArgb(scheme)),
-    surfaceBright: toHex(m.surfaceBright().getArgb(scheme)),
-    surfaceContainerLowest: toHex(m.surfaceContainerLowest().getArgb(scheme)),
-    surfaceContainerLow: toHex(m.surfaceContainerLow().getArgb(scheme)),
-    surfaceContainer: toHex(m.surfaceContainer().getArgb(scheme)),
-    surfaceContainerHigh: toHex(m.surfaceContainerHigh().getArgb(scheme)),
-    surfaceContainerHighest: toHex(m.surfaceContainerHighest().getArgb(scheme)),
-    outline: toHex(m.outline().getArgb(scheme)),
-    outlineVariant: toHex(m.outlineVariant().getArgb(scheme)),
-    shadow: toHex(m.shadow().getArgb(scheme)),
-    scrim: toHex(m.scrim().getArgb(scheme)),
-    inverseSurface: toHex(m.inverseSurface().getArgb(scheme)),
-    inverseOnSurface: toHex(m.inverseOnSurface().getArgb(scheme)),
-    surfaceTint: toHex(m.surfaceTint().getArgb(scheme)),
-  };
-};
-
-export const lightScheme: M3ColorScheme = buildScheme(SEED_COLOR_HEX, false);
-export const darkScheme: M3ColorScheme = buildScheme(SEED_COLOR_HEX, true);
-
-export const buildSchemeFor = (sourceHex: string, isDark: boolean): M3ColorScheme =>
-  buildScheme(sourceHex, isDark);
+/**
+ * Map a variant's ThemeVariantColors set into the MUI PaletteOptions shape,
+ * including our augmented `tertiary`, `surfaces`, `outlineVariant`, `m3`
+ * and `charts` extensions.
+ */
+export const buildPaletteFromVariant = (colors: ThemeVariantColors, mode: Mode) => ({
+  mode,
+  primary: {
+    main: colors.primary,
+    light: colors.primaryContainer,
+    dark: colors.onPrimaryContainer,
+    contrastText: colors.onPrimary,
+    container: colors.primaryContainer,
+    onContainer: colors.onPrimaryContainer,
+  },
+  secondary: {
+    main: colors.secondary,
+    light: colors.secondaryContainer,
+    dark: colors.onSecondaryContainer,
+    contrastText: colors.onSecondary,
+    container: colors.secondaryContainer,
+    onContainer: colors.onSecondaryContainer,
+  },
+  tertiary: {
+    main: colors.tertiary,
+    light: colors.tertiaryContainer,
+    dark: colors.onTertiaryContainer,
+    contrastText: colors.onTertiary,
+    container: colors.tertiaryContainer,
+    onContainer: colors.onTertiaryContainer,
+  },
+  error: {
+    main: colors.error,
+    light: colors.errorContainer,
+    dark: colors.onErrorContainer,
+    contrastText: colors.onError,
+    container: colors.errorContainer,
+    onContainer: colors.onErrorContainer,
+  },
+  warning: {
+    main: mode === 'light' ? '#B25C00' : '#FFB779',
+    light: mode === 'light' ? '#FFDCC0' : '#5A3A14',
+    dark: mode === 'light' ? '#3A2400' : '#FFDCC0',
+    contrastText: mode === 'light' ? '#FFFFFF' : '#1A1100',
+  },
+  info: {
+    main: colors.tertiary,
+    light: colors.tertiaryContainer,
+    dark: colors.onTertiaryContainer,
+    contrastText: colors.onTertiary,
+  },
+  success: {
+    main: mode === 'light' ? '#1F7A4D' : '#7BD9A8',
+    light: mode === 'light' ? '#B7F2CE' : '#10532E',
+    dark: mode === 'light' ? '#003521' : '#B7F2CE',
+    contrastText: mode === 'light' ? '#FFFFFF' : '#003521',
+  },
+  background: {
+    default: colors.background,
+    paper: colors.surfaceContainerLow,
+  },
+  text: {
+    primary: colors.onSurface,
+    secondary: colors.onSurfaceVariant,
+    disabled: alpha(colors.onSurface, 0.38),
+  },
+  divider: colors.outlineVariant,
+  surfaces: {
+    dim: colors.surfaceDim,
+    bright: colors.surfaceBright,
+    containerLowest: colors.surfaceContainerLowest,
+    containerLow: colors.surfaceContainerLow,
+    container: colors.surfaceContainer,
+    containerHigh: colors.surfaceContainerHigh,
+    containerHighest: colors.surfaceContainerHighest,
+    tint: colors.surfaceTint,
+    variant: colors.surfaceVariant,
+    onVariant: colors.onSurfaceVariant,
+  },
+  outlineVariant: colors.outlineVariant,
+  charts: [colors.chart1, colors.chart2, colors.chart3, colors.chart4, colors.chart5] as readonly string[],
+  m3: colors,
+});

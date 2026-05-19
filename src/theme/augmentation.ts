@@ -1,6 +1,6 @@
 import '@mui/material/styles';
 import '@mui/material/Typography';
-import type { M3ColorScheme } from './tokens/palette';
+import type { ThemeVariantColors } from './variants/_types';
 import type { Motion } from './tokens/motion';
 
 declare module '@mui/material/styles' {
@@ -19,14 +19,16 @@ declare module '@mui/material/styles' {
       onVariant: string;
     };
     outlineVariant: string;
-    m3: M3ColorScheme;
+    charts: readonly string[];
+    m3: ThemeVariantColors;
   }
 
   interface PaletteOptions {
     tertiary?: PaletteColorOptions;
     surfaces?: Partial<Palette['surfaces']>;
     outlineVariant?: string;
-    m3?: M3ColorScheme;
+    charts?: readonly string[];
+    m3?: ThemeVariantColors;
   }
 
   interface PaletteColor {
@@ -63,6 +65,7 @@ declare module '@mui/material/styles' {
     labelLarge: React.CSSProperties;
     labelMedium: React.CSSProperties;
     labelSmall: React.CSSProperties;
+    fontFamilyMono: string;
   }
 
   interface TypographyVariantsOptions {
@@ -81,6 +84,7 @@ declare module '@mui/material/styles' {
     labelLarge?: React.CSSProperties;
     labelMedium?: React.CSSProperties;
     labelSmall?: React.CSSProperties;
+    fontFamilyMono?: string;
   }
 }
 

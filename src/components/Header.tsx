@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type MouseEvent } from 'react';
 import {
   AppBar,
   Toolbar,
@@ -15,6 +15,7 @@ import Brightness7Icon from '@mui/icons-material/Brightness7';
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 import { useThemeStore } from '../store/themeStore';
 import { useAuthStore } from '../store/authStore';
+import { originFromEvent, withViewTransition } from '../theme/viewTransition';
 
 const Header = () => {
   const theme = useTheme();
@@ -172,7 +173,9 @@ const Header = () => {
             )}
 
             <IconButton
-              onClick={toggleTheme}
+              onClick={(event: MouseEvent<HTMLButtonElement>) => {
+                withViewTransition(toggleTheme, originFromEvent(event));
+              }}
               color="inherit"
               aria-label="toggle theme"
               size={isMobile ? 'small' : 'medium'}
