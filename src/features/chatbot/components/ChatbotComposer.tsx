@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Box, IconButton, TextField, Tooltip, Typography, useTheme } from '@mui/material';
 import { Send as SendIcon } from '@mui/icons-material';
 
@@ -7,21 +7,40 @@ const MAX_LENGTH = 2000;
 interface ChatbotComposerProps {
   disabled?: boolean;
   disabledReason?: string;
+  /**
+   * Contador externo que, al cambiar, fuerza el foco al input.
+   * Lo usa el panel para devolver el foco al abrirse, después de cada respuesta
+   * del bot y al iniciar nueva conversación.
+   */
+  focusSignal?: number;
   onSend: (text: string) => Promise<void> | void;
 }
 
 export default function ChatbotComposer({
   disabled = false,
   disabledReason,
+  focusSignal,
   onSend,
 }: ChatbotComposerProps) {
   const theme = useTheme();
   const [value, setValue] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement | null>(null);
 
   const trimmedLength = value.trim().length;
   const overLimit = value.length > MAX_LENGTH;
   const canSubmit = !disabled && !submitting && trimmedLength > 0 && !overLimit;
+
+  useEffect(() => {
+    if (focusSignal === undefined || focusSignal === 0) return;
+    // Pequeño delay porque el TextField multiline necesita un tick para
+    // estar listo (Slide/Grow del panel + transición de disabled).
+    const t = setTimeout(() => {
+      const el = inputRef.current;
+      if (el && !el.disabled) el.focus({ preventScroll: true });
+    }, 80);
+    return () => clearTimeout(t);
+  }, [focusSignal]);
 
   const handleSubmit = useCallback(async () => {
     if (!canSubmit) return;
@@ -30,6 +49,10 @@ export default function ChatbotComposer({
     try {
       await onSend(toSend);
       setValue('');
+      // Mantener el foco después de enviar para encadenar mensajes.
+      // preventScroll evita que el browser scrollee el contenedor del chat
+      // al focusear (pisaría el anchor del user message al top).
+      inputRef.current?.focus({ preventScroll: true });
     } finally {
       setSubmitting(false);
     }
@@ -72,6 +95,7 @@ export default function ChatbotComposer({
           onChange={(e) => setValue(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={disabled || submitting}
+          inputRef={inputRef}
           inputProps={{
             'aria-label': 'Mensaje al asistente',
             maxLength: MAX_LENGTH + 100,
