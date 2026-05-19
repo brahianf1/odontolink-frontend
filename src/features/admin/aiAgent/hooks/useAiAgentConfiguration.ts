@@ -32,23 +32,30 @@ export function useAiAgentConfiguration(): UseAiAgentConfigurationResult {
     isUnconfigured,
     refreshConfiguration,
     setConfiguration,
+    refreshHealth,
   } = useAiAgentContext();
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [reverting, setReverting] = useState(false);
 
+  // El bootstrap del context dispara refreshHealth solo una vez al cargar
+  // la configuration inicial. save/publish/revert cambian el lifecycle (y
+  // pueden cambiar campos que afectan missingRequirements), así que ahora
+  // pedimos refresh de health explícito acá — antes el useEffect del context
+  // lo hacía automáticamente al cambiar configuration.
   const save = useCallback(
     async (payload: UpdateAiAgentConfigurationRequestDTO) => {
       setSaving(true);
       try {
         const updated = await saveConfiguration(payload);
         setConfiguration(updated);
+        void refreshHealth();
         return updated;
       } finally {
         setSaving(false);
       }
     },
-    [setConfiguration]
+    [setConfiguration, refreshHealth]
   );
 
   const revert = useCallback(async () => {
@@ -56,11 +63,12 @@ export function useAiAgentConfiguration(): UseAiAgentConfigurationResult {
     try {
       const updated = await revertToDraft();
       setConfiguration(updated);
+      void refreshHealth();
       return updated;
     } finally {
       setReverting(false);
     }
-  }, [setConfiguration]);
+  }, [setConfiguration, refreshHealth]);
 
   const publish = useCallback(
     async (override = false) => {
@@ -68,12 +76,13 @@ export function useAiAgentConfiguration(): UseAiAgentConfigurationResult {
       try {
         const updated = await publishConfiguration(override);
         setConfiguration(updated);
+        void refreshHealth();
         return updated;
       } finally {
         setPublishing(false);
       }
     },
-    [setConfiguration]
+    [setConfiguration, refreshHealth]
   );
 
   return {

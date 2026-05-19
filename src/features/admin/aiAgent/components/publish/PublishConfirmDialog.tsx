@@ -14,6 +14,7 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  Skeleton,
   Stack,
   Typography,
 } from '@mui/material';
@@ -30,6 +31,10 @@ import {
   parseRequirements,
   requirementLabel,
 } from '../../utils/missingRequirements';
+import {
+  computeLocalRequirements,
+  mergeRequirements,
+} from '../../utils/localRequirements';
 import { useAiAgentContext } from '../AiAgentContext';
 
 interface PublishConfirmDialogProps {
@@ -48,7 +53,8 @@ export default function PublishConfirmDialog({
   onConfirm,
 }: PublishConfirmDialogProps) {
   const navigate = useNavigate();
-  const { health, healthLoading, healthError, isUnconfigured } = useAiAgentContext();
+  const { health, healthLoading, healthError, isUnconfigured, configuration, governance } =
+    useAiAgentContext();
 
   const [override, setOverride] = useState(false);
   const [serverRequirements, setServerRequirements] = useState<ParsedRequirement[] | null>(null);
@@ -68,8 +74,15 @@ export default function PublishConfirmDialog({
     }
   }, [open]);
 
-  const requirementsFromHealth = parseRequirements(health?.missingRequirements);
-  const requirements = serverRequirements ?? requirementsFromHealth;
+  // Si el publish devolvió 422 con missingRequirements parseados, usamos esos
+  // (autoritativos del momento del intento). Si no, mostramos la unión de
+  // (health backend) + (lo que podemos derivar localmente con certeza) para
+  // que el admin no se sorprenda con un error que ya era predecible.
+  const requirementsBase = mergeRequirements(
+    parseRequirements(health?.missingRequirements),
+    computeLocalRequirements(configuration, governance)
+  );
+  const requirements = serverRequirements ?? requirementsBase;
   const hasRequirements = requirements.length > 0;
   const providerReachable = health?.providerReachable ?? true;
   const showOverrideCheckbox = allowOverride && hasRequirements;
@@ -105,10 +118,15 @@ export default function PublishConfirmDialog({
     <Dialog open={open} onClose={publishing ? undefined : onClose} maxWidth="sm" fullWidth>
       <DialogTitle>Publicar agente IA</DialogTitle>
       <DialogContent dividers>
-        {healthLoading && !health ? (
-          <Stack alignItems="center" sx={{ py: 4 }}>
-            <CircularProgress />
-          </Stack>
+        {healthLoading ? (
+          <Box aria-live="polite" sx={{ py: 0.5 }}>
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Skeleton variant="circular" width={24} height={24} />
+              <Typography variant="body2" sx={{ width: 320 }}>
+                <Skeleton variant="text" />
+              </Typography>
+            </Stack>
+          </Box>
         ) : showNotConfigured ? (
           <Alert severity="warning" icon={<WarnIcon />}>
             El agente todavía no fue configurado. Completá la configuración inicial antes de
@@ -194,7 +212,11 @@ export default function PublishConfirmDialog({
             <Button
               variant="contained"
               startIcon={
-                publishing ? <CircularProgress size={16} color="inherit" /> : <PublishIcon />
+                publishing ? (
+                  <CircularProgress size={16} color="inherit" />
+                ) : (
+                  <PublishIcon />
+                )
               }
               onClick={handleConfirm}
               disabled={
@@ -204,7 +226,7 @@ export default function PublishConfirmDialog({
                 (hasRequirements && !override)
               }
             >
-              Publicar
+              {publishing ? 'Publicando…' : 'Publicar'}
             </Button>
           </>
         )}

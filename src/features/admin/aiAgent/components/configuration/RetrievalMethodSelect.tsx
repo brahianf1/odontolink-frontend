@@ -1,12 +1,17 @@
 import {
   Box,
+  Divider,
   FormControl,
   FormControlLabel,
   FormHelperText,
   Radio,
   RadioGroup,
+  Stack,
+  Switch,
+  Tooltip,
   Typography,
 } from '@mui/material';
+import { HelpOutline as HelpIcon } from '@mui/icons-material';
 import { Controller, type Control } from 'react-hook-form';
 import type { ConfigurationFormValues } from '../../schemas/configuration.schemas';
 import { RETRIEVAL_METHODS } from '../../utils/retrievalMethods';
@@ -56,6 +61,42 @@ export default function RetrievalMethodSelect({
             </RadioGroup>
             {fieldState.error && <FormHelperText>{fieldState.error.message}</FormHelperText>}
           </FormControl>
+        )}
+      />
+
+      <Divider sx={{ my: 2 }} />
+
+      <Controller
+        name="provideCitations"
+        control={control}
+        render={({ field }) => (
+          <Box>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={field.value}
+                  onChange={(e) => field.onChange(e.target.checked)}
+                  disabled={disabled}
+                />
+              }
+              label={
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <Typography variant="body2" fontWeight={600}>
+                    Incluir citas en las respuestas
+                  </Typography>
+                  <Tooltip
+                    arrow
+                    title="Si está activo, el agente devuelve junto a cada respuesta las referencias a los documentos de la Knowledge Base que usó. Útil para contextos académicos o auditables. Para chat de pacientes, recomendado dejarlo desactivado."
+                  >
+                    <HelpIcon fontSize="small" color="action" />
+                  </Tooltip>
+                </Stack>
+              }
+            />
+            <Typography variant="caption" color="text.secondary" display="block">
+              Por defecto: desactivado (respuestas limpias para el paciente).
+            </Typography>
+          </Box>
         )}
       />
     </Box>

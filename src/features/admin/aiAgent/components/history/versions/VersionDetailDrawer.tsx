@@ -157,7 +157,7 @@ export default function VersionDetailDrawer({ version, open, onClose }: VersionD
           )}
 
           {guardrailLabels.length > 0 && (
-            <Field label="Guardrails activos al publicar">
+            <Field label="Reglas activas al publicar">
               <Stack direction="row" spacing={1} flexWrap="wrap" rowGap={1}>
                 {guardrailLabels.map((label) => (
                   <Chip key={label} label={label} size="small" variant="outlined" color="primary" />

@@ -25,7 +25,8 @@ import { mapAiAgentError } from '../utils/apiErrors';
 export type AiAgentTabId =
   | 'dashboard'
   | 'configuration'
-  | 'guardrails'
+  | 'policy-rules'
+  | 'provider-guardrails'
   | 'emergency-keywords'
   | 'knowledge-base'
   | 'governance'
@@ -54,6 +55,13 @@ interface AiAgentContextValue {
   lifecycle: AiAgentLifecycle | null;
   refreshConfiguration: () => Promise<void>;
   setConfiguration: (config: AiAgentConfigurationResponseDTO | null) => void;
+  /**
+   * Marca el lifecycle local como DRAFT sin pegarle al backend. Usar después
+   * de mutaciones que el backend confirma que revierten el agente (toggle de
+   * PolicyRule, attachment de ProviderGuardrail, alta/baja de KB, etc.). Es
+   * 0-latency y evita el "Verificando…" repetido que veríamos si re-fetchearamos.
+   */
+  markConfigurationDraft: () => void;
 
   governance: AiGovernancePolicyResponseDTO | null;
   governanceLoading: boolean;
@@ -146,6 +154,13 @@ export function AiAgentProvider({ children }: AiAgentProviderProps) {
     setIsUnconfigured(config === null);
   }, []);
 
+  const markConfigurationDraft = useCallback(() => {
+    setConfigurationState((prev) => {
+      if (!prev || prev.lifecycle !== 'PUBLISHED') return prev;
+      return { ...prev, lifecycle: 'DRAFT' };
+    });
+  }, []);
+
   const refreshConfiguration = useCallback(async () => {
     setConfigurationLoading(true);
     setConfigurationError(null);
@@ -188,34 +203,56 @@ export function AiAgentProvider({ children }: AiAgentProviderProps) {
     void refreshGovernance();
   }, [refreshConfiguration, refreshGovernance]);
 
-  const refreshHealth = useCallback(async () => {
+  // Coalescing: si ya hay un refresh en vuelo, reutilizamos su Promise en
+  // lugar de disparar un segundo fetch concurrente. El admin puede
+  // disparar varios refreshes encadenados (botón manual + mutación que
+  // también refresca, o múltiples mutaciones rápidas) y todos comparten
+  // el mismo round-trip.
+  const healthInFlightRef = useRef<Promise<void> | null>(null);
+
+  const refreshHealth = useCallback((): Promise<void> => {
     if (configuration === null) {
       setHealthState(null);
       setHealthError(null);
-      return;
+      return Promise.resolve();
     }
+    if (healthInFlightRef.current) return healthInFlightRef.current;
     setHealthLoading(true);
     setHealthError(null);
-    try {
-      const data = await getHealth();
-      if (!mountedRef.current) return;
-      setHealthState(data);
-    } catch (err) {
-      const mapped = mapAiAgentError(err, 'No se pudo cargar el estado de salud.');
-      if (!mountedRef.current) return;
-      if (mapped.isNotConfigured) {
-        setHealthState(null);
-      } else {
-        setHealthError(mapped.message);
+    const promise = (async () => {
+      try {
+        const data = await getHealth();
+        if (!mountedRef.current) return;
+        setHealthState(data);
+      } catch (err) {
+        const mapped = mapAiAgentError(err, 'No se pudo cargar el estado de salud.');
+        if (!mountedRef.current) return;
+        if (mapped.isNotConfigured) {
+          setHealthState(null);
+        } else {
+          setHealthError(mapped.message);
+        }
+      } finally {
+        healthInFlightRef.current = null;
+        if (mountedRef.current) setHealthLoading(false);
       }
-    } finally {
-      if (mountedRef.current) setHealthLoading(false);
-    }
+    })();
+    healthInFlightRef.current = promise;
+    return promise;
   }, [configuration]);
 
+  // Bootstrap: refresh health al MONTAR (cuando la config carga por primera
+  // vez). Después de eso, las mutaciones deciden explícitamente cuándo
+  // refrescar health. Sin esto, cualquier mutación local de configuration
+  // (markConfigurationDraft, save, publish, revert) dispararía refreshHealth
+  // en cascada por dependencia, anulando la estrategia de triggers reducidos.
+  const healthBootstrappedRef = useRef(false);
   useEffect(() => {
-    void refreshHealth();
-  }, [refreshHealth]);
+    if (configuration && !healthBootstrappedRef.current) {
+      healthBootstrappedRef.current = true;
+      void refreshHealth();
+    }
+  }, [configuration, refreshHealth]);
 
   const handleClose = (_event: unknown, reason?: string) => {
     if (reason === 'clickaway') return;
@@ -245,6 +282,7 @@ export function AiAgentProvider({ children }: AiAgentProviderProps) {
       lifecycle,
       refreshConfiguration,
       setConfiguration,
+      markConfigurationDraft,
       governance,
       governanceLoading,
       governanceError,
@@ -271,6 +309,7 @@ export function AiAgentProvider({ children }: AiAgentProviderProps) {
       lifecycle,
       refreshConfiguration,
       setConfiguration,
+      markConfigurationDraft,
       governance,
       governanceLoading,
       governanceError,

@@ -10,26 +10,26 @@ import {
   Typography,
 } from '@mui/material';
 import { Add as AddIcon } from '@mui/icons-material';
-import { useGuardrails } from '../../hooks/useGuardrails';
+import { usePolicyRules } from '../../hooks/usePolicyRules';
 import { useAiAgentContext } from '../AiAgentContext';
-import GuardrailsTable from './GuardrailsTable';
-import GuardrailFormDialog from './GuardrailFormDialog';
-import DeleteGuardrailDialog from './DeleteGuardrailDialog';
+import PolicyRulesTable from './PolicyRulesTable';
+import PolicyRuleFormDialog from './PolicyRuleFormDialog';
+import DeletePolicyRuleDialog from './DeletePolicyRuleDialog';
 import type {
-  GuardrailRequestDTO,
-  GuardrailResponseDTO,
+  PolicyRuleRequestDTO,
+  PolicyRuleResponseDTO,
 } from '../../../../../types/aiAgent.types';
 import { mapAiAgentError } from '../../utils/apiErrors';
 
 const HIGHLIGHT_DURATION_MS = 2200;
 
-export default function GuardrailsTab() {
-  const { guardrails, loading, mutatingId, error, refresh, create, update, remove, setActive } =
-    useGuardrails();
+export default function PolicyRulesTab() {
+  const { policyRules, loading, mutatingId, error, refresh, create, update, remove, setActive } =
+    usePolicyRules();
   const { notifySuccess, notifyError, isUnconfigured } = useAiAgentContext();
   const [formOpen, setFormOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<GuardrailResponseDTO | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<GuardrailResponseDTO | null>(null);
+  const [editTarget, setEditTarget] = useState<PolicyRuleResponseDTO | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PolicyRuleResponseDTO | null>(null);
   const [recentId, setRecentId] = useState<number | null>(null);
   const highlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -50,39 +50,39 @@ export default function GuardrailsTab() {
     setFormOpen(true);
   };
 
-  const openEdit = (g: GuardrailResponseDTO) => {
-    setEditTarget(g);
+  const openEdit = (rule: PolicyRuleResponseDTO) => {
+    setEditTarget(rule);
     setFormOpen(true);
   };
 
-  const handleSubmit = async (payload: GuardrailRequestDTO) => {
+  const handleSubmit = async (payload: PolicyRuleRequestDTO) => {
     try {
       if (editTarget) {
         const updated = await update(editTarget.id, payload);
         highlight(updated.id);
-        notifySuccess(`Guardrail "${payload.label}" actualizado.`);
+        notifySuccess(`Regla "${payload.label}" actualizada.`);
       } else {
         const created = await create(payload);
         highlight(created.id);
-        notifySuccess(`Guardrail "${payload.label}" creado.`);
+        notifySuccess(`Regla "${payload.label}" creada.`);
       }
       setFormOpen(false);
       setEditTarget(null);
     } catch (err) {
-      const mapped = mapAiAgentError(err, 'No se pudo guardar el guardrail.');
+      const mapped = mapAiAgentError(err, 'No se pudo guardar la regla.');
       notifyError(mapped.message);
     }
   };
 
-  const handleToggle = async (g: GuardrailResponseDTO, nextActive: boolean) => {
+  const handleToggle = async (rule: PolicyRuleResponseDTO, nextActive: boolean) => {
     try {
-      const updated = await setActive(g.id, nextActive);
+      const updated = await setActive(rule.id, nextActive);
       highlight(updated.id);
       notifySuccess(
-        nextActive ? `Guardrail "${g.label}" activado.` : `Guardrail "${g.label}" desactivado.`
+        nextActive ? `Regla "${rule.label}" activada.` : `Regla "${rule.label}" desactivada.`
       );
     } catch (err) {
-      const mapped = mapAiAgentError(err, 'No se pudo cambiar el estado del guardrail.');
+      const mapped = mapAiAgentError(err, 'No se pudo cambiar el estado de la regla.');
       notifyError(mapped.message);
     }
   };
@@ -92,10 +92,10 @@ export default function GuardrailsTab() {
     const label = deleteTarget.label;
     try {
       await remove(deleteTarget.id);
-      notifySuccess(`Guardrail "${label}" eliminado.`);
+      notifySuccess(`Regla "${label}" eliminada.`);
       setDeleteTarget(null);
     } catch (err) {
-      const mapped = mapAiAgentError(err, 'No se pudo eliminar el guardrail.');
+      const mapped = mapAiAgentError(err, 'No se pudo eliminar la regla.');
       notifyError(mapped.message);
     }
   };
@@ -112,21 +112,22 @@ export default function GuardrailsTab() {
         >
           <Box>
             <Typography variant="subtitle1" fontWeight={700}>
-              Guardrails
+              Reglas de comportamiento del agente
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Reglas que el agente debe respetar en cada respuesta. Los guardrails activos se
-              añaden al prompt final.
+              Reglas en español que se concatenan al <em>system prompt</em> del agente. Aparecen
+              dentro del campo <strong>Instruction</strong> en el dashboard de DigitalOcean (no
+              como guardrails separados).
             </Typography>
           </Box>
           <Button variant="contained" startIcon={<AddIcon />} onClick={openCreate}>
-            Nuevo guardrail
+            Nueva regla
           </Button>
         </Stack>
 
         {isUnconfigured && (
           <Alert severity="info" sx={{ mb: 2 }}>
-            Podés crear y editar guardrails ahora. Se aplicarán automáticamente cuando publiques el
+            Podés crear y editar reglas ahora. Se aplicarán automáticamente cuando publiques el
             agente por primera vez.
           </Alert>
         )}
@@ -149,17 +150,17 @@ export default function GuardrailsTab() {
             ))}
           </Stack>
         ) : (
-          <GuardrailsTable
-            guardrails={guardrails}
+          <PolicyRulesTable
+            policyRules={policyRules}
             mutatingId={mutatingId}
             recentId={recentId}
             onEdit={openEdit}
-            onDelete={(g) => setDeleteTarget(g)}
+            onDelete={(rule) => setDeleteTarget(rule)}
             onToggleActive={handleToggle}
           />
         )}
 
-        <GuardrailFormDialog
+        <PolicyRuleFormDialog
           open={formOpen}
           target={editTarget}
           saving={mutatingId !== null}
@@ -169,7 +170,7 @@ export default function GuardrailsTab() {
           }}
           onSubmit={handleSubmit}
         />
-        <DeleteGuardrailDialog
+        <DeletePolicyRuleDialog
           open={deleteTarget !== null}
           target={deleteTarget}
           deleting={mutatingId !== null}

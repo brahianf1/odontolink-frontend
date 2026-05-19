@@ -51,7 +51,7 @@ const isTerminalStatus = (status: KnowledgeBaseDocumentStatus): boolean =>
   status === 'INDEXED' || status === 'FAILED';
 
 export function useKnowledgeBase(): UseKnowledgeBaseResult {
-  const { refreshHealth } = useAiAgentContext();
+  const { refreshHealth, markConfigurationDraft } = useAiAgentContext();
   const [page, setPage] = useState<PageResponse<KnowledgeBaseDocumentResponseDTO> | null>(null);
   const [loading, setLoading] = useState(true);
   const [mutatingId, setMutatingId] = useState<number | null>(null);
@@ -145,13 +145,14 @@ export function useKnowledgeBase(): UseKnowledgeBaseResult {
       try {
         const created = await addFileDocument(title, file);
         await fetchPage(query);
+        markConfigurationDraft();
         void refreshHealth();
         return created;
       } finally {
         if (mountedRef.current) setUploading(false);
       }
     },
-    [fetchPage, query, refreshHealth]
+    [fetchPage, query, refreshHealth, markConfigurationDraft]
   );
 
   const addFaq = useCallback(
@@ -160,13 +161,14 @@ export function useKnowledgeBase(): UseKnowledgeBaseResult {
       try {
         const created = await addFaqDocument(payload);
         await fetchPage(query);
+        markConfigurationDraft();
         void refreshHealth();
         return created;
       } finally {
         if (mountedRef.current) setUploading(false);
       }
     },
-    [fetchPage, query, refreshHealth]
+    [fetchPage, query, refreshHealth, markConfigurationDraft]
   );
 
   const updateDoc = useCallback(
@@ -175,8 +177,10 @@ export function useKnowledgeBase(): UseKnowledgeBaseResult {
       try {
         const updated = await updateDocument(id, payload);
         patchDocument(updated);
-        // El rename no afecta health; cambio de content de FAQ sí (vuelve a INDEXING).
+        // El rename de título no afecta health ni lifecycle; cambio de
+        // content de FAQ vuelve el doc a INDEXING y revierte la config.
         if (payload.content !== undefined) {
+          markConfigurationDraft();
           void refreshHealth();
         }
         return updated;
@@ -184,7 +188,7 @@ export function useKnowledgeBase(): UseKnowledgeBaseResult {
         if (mountedRef.current) setMutatingId(null);
       }
     },
-    [patchDocument, refreshHealth]
+    [patchDocument, refreshHealth, markConfigurationDraft]
   );
 
   const removeDoc = useCallback(
@@ -193,12 +197,13 @@ export function useKnowledgeBase(): UseKnowledgeBaseResult {
       try {
         await deleteDocument(id);
         await fetchPage(query);
+        markConfigurationDraft();
         void refreshHealth();
       } finally {
         if (mountedRef.current) setMutatingId(null);
       }
     },
-    [fetchPage, query, refreshHealth]
+    [fetchPage, query, refreshHealth, markConfigurationDraft]
   );
 
   const refreshDocStatus = useCallback(
@@ -211,8 +216,11 @@ export function useKnowledgeBase(): UseKnowledgeBaseResult {
   );
 
   const reindex = useCallback(async () => {
-    return triggerReindex();
-  }, []);
+    const job = await triggerReindex();
+    // Disparar re-indexación revierte el agente: marcamos DRAFT al instante.
+    markConfigurationDraft();
+    return job;
+  }, [markConfigurationDraft]);
 
   const download = useCallback(async (id: number) => downloadDocument(id), []);
 

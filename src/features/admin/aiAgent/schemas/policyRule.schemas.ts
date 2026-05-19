@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const guardrailFormSchema = z.object({
+export const policyRuleFormSchema = z.object({
   label: z
     .string()
     .trim()
@@ -14,9 +14,9 @@ export const guardrailFormSchema = z.object({
   active: z.boolean(),
 });
 
-export type GuardrailFormValues = z.infer<typeof guardrailFormSchema>;
+export type PolicyRuleFormValues = z.infer<typeof policyRuleFormSchema>;
 
-export const DEFAULT_GUARDRAIL_VALUES: GuardrailFormValues = {
+export const DEFAULT_POLICY_RULE_VALUES: PolicyRuleFormValues = {
   label: '',
   text: '',
   active: true,

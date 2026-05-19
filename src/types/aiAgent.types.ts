@@ -64,6 +64,7 @@ export interface AiAgentConfigurationResponseDTO {
   rateLimitAuthenticatedPerHour: number;
   agentInvocationUrl?: string | null;
   emergencyBannerText: string;
+  provideCitations?: boolean | null;
 }
 
 export interface UpdateAiAgentConfigurationRequestDTO {
@@ -82,6 +83,7 @@ export interface UpdateAiAgentConfigurationRequestDTO {
   rateLimitAnonymousPerHour: number;
   rateLimitAuthenticatedPerHour: number;
   emergencyBannerText: string;
+  provideCitations: boolean;
 }
 
 export interface AiAgentHealthResponseDTO {
@@ -96,13 +98,13 @@ export interface AiAgentInstructionPreviewResponseDTO {
   activeGuardrailLabels: string[];
 }
 
-export interface GuardrailRequestDTO {
+export interface PolicyRuleRequestDTO {
   label: string;
   text: string;
   active?: boolean;
 }
 
-export interface GuardrailResponseDTO {
+export interface PolicyRuleResponseDTO {
   id: number;
   label: string;
   text: string;
@@ -235,4 +237,28 @@ export interface CreateEmergencyKeywordRequestDTO {
 export interface UpdateEmergencyKeywordRequestDTO {
   term: string;
   active?: boolean;
+}
+
+export type ProviderGuardrailType =
+  | 'JAILBREAK'
+  | 'SENSITIVE_DATA'
+  | 'CONTENT_MODERATION'
+  | 'OTHER';
+
+export interface ProviderGuardrailResponseDTO {
+  id: number;
+  providerGuardrailUuid: string;
+  type: ProviderGuardrailType;
+  displayName: string | null;
+  description: string | null;
+  attached: boolean;
+  priority: number;
+  defaultResponse: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpdateProviderGuardrailAttachmentRequestDTO {
+  attached: boolean;
+  priority: number;
 }

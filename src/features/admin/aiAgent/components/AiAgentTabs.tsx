@@ -4,6 +4,7 @@ import {
   Dashboard as DashboardIcon,
   Settings as SettingsIcon,
   Shield as ShieldIcon,
+  FilterAlt as FilterAltIcon,
   ReportProblem as ReportProblemIcon,
   LibraryBooks as LibraryIcon,
   Gavel as GavelIcon,
@@ -23,7 +24,13 @@ interface TabSpec {
 const TABS: TabSpec[] = [
   { id: 'dashboard', path: 'dashboard', label: 'Estado', icon: <DashboardIcon /> },
   { id: 'configuration', path: 'configuration', label: 'Configuración', icon: <SettingsIcon /> },
-  { id: 'guardrails', path: 'guardrails', label: 'Guardrails', icon: <ShieldIcon /> },
+  { id: 'policy-rules', path: 'policy-rules', label: 'Reglas de comportamiento', icon: <ShieldIcon /> },
+  {
+    id: 'provider-guardrails',
+    path: 'provider-guardrails',
+    label: 'Filtros de plataforma',
+    icon: <FilterAltIcon />,
+  },
   {
     id: 'emergency-keywords',
     path: 'emergency-keywords',
