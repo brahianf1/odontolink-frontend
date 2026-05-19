@@ -7,6 +7,7 @@ import { createRoot } from 'react-dom/client'
 // `globalThis.Temporal` to the same module our mapper uses, so the identity
 // check inside schedule-x's validateEvents passes.
 import 'temporal-polyfill/global'
+import '@fontsource-variable/roboto-flex'
 import './index.css'
 import App from './App.tsx'
 
