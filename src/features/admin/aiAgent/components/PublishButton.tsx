@@ -10,7 +10,7 @@ import { useAiAgentContext } from './AiAgentContext';
 export default function PublishButton() {
   const { configuration, publishing, publish, loading } = useAiAgentConfiguration();
   const { policy, loading: loadingPolicy } = useGovernancePolicy();
-  const { health, healthLoading, notifySuccess, refreshHealth } = useAiAgentContext();
+  const { health, healthLoading, notifySuccess } = useAiAgentContext();
   const [open, setOpen] = useState(false);
 
   if (loading || loadingPolicy) {
@@ -25,13 +25,23 @@ export default function PublishButton() {
     return null;
   }
 
-  const lifecycle = configuration.lifecycle;
+  // Preferir el lifecycle del health (que se actualiza tras cualquier
+  // refreshHealth) sobre el de configuration, que puede quedar stale entre
+  // mutaciones que revierten el agente a DRAFT en el backend. Si health no
+  // está cargado todavía, fallback a configuration.
+  const lifecycle = health?.lifecycle ?? configuration.lifecycle;
   const allowOverride = policy?.allowOverride ?? false;
   const missingCount = health?.missingRequirements?.length ?? 0;
   const providerReachable = health?.providerReachable ?? true;
   const isPublished = lifecycle === 'PUBLISHED';
 
-  const isWaitingForHealth = healthLoading && !health;
+  // Reflejá cualquier consulta de health (primer fetch, refresh manual del
+  // admin desde HealthSummaryCard, refresh post-mutación de PolicyRule /
+  // ProviderGuardrail / KB, refresh disparado al abrir este mismo dialog) —
+  // no solo el primer fetch. La fuente de verdad es `healthLoading` del
+  // AiAgentContext: cualquier acción que dispare refreshHealth se refleja
+  // acá automáticamente, sin condicionar en cada llamador.
+  const isWaitingForHealth = healthLoading;
 
   // Lógica de habilitación MD3
   let disabled = false;
@@ -59,9 +69,13 @@ export default function PublishButton() {
     tooltipText = 'Publicar la versión actual del agente.';
   }
 
-  const handleOpen = async () => {
+  // No re-fetcheamos health al abrir: ya está fresco en el context (el
+  // HealthSummaryCard lo cargó al entrar y las mutaciones de PolicyRule /
+  // ProviderGuardrail / KB invocan refreshHealth automáticamente). El backend
+  // valida igual en POST /publish y si rechaza, parseamos los
+  // serverRequirements del 422. Ahorra hasta 30s de latencia por publish.
+  const handleOpen = () => {
     setOpen(true);
-    void refreshHealth();
   };
 
   const handleConfirm = async (override: boolean) => {
@@ -78,11 +92,21 @@ export default function PublishButton() {
           <Button
             variant="contained"
             color="primary"
-            startIcon={<PublishIcon />}
+            startIcon={
+              isWaitingForHealth || publishing ? (
+                <CircularProgress size={16} color="inherit" />
+              ) : (
+                <PublishIcon />
+              )
+            }
             disabled={disabled || publishing}
             onClick={handleOpen}
           >
-            {isPublished ? 'Publicado' : 'Publicar'}
+            {isPublished
+              ? 'Publicado'
+              : isWaitingForHealth
+                ? 'Verificando…'
+                : 'Publicar'}
           </Button>
         </span>
       </Tooltip>

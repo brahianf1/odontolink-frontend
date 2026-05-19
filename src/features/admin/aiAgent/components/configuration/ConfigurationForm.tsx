@@ -76,6 +76,8 @@ const buildInitialValues = (
       : DEFAULT_CONFIG_VALUES.rateLimitAuthenticatedPerHour,
   emergencyBannerText:
     config.emergencyBannerText ?? DEFAULT_CONFIG_VALUES.emergencyBannerText,
+  provideCitations:
+    typeof config.provideCitations === 'boolean' ? config.provideCitations : false,
 });
 
 export default function ConfigurationForm({
@@ -129,6 +131,7 @@ export default function ConfigurationForm({
       rateLimitAnonymousPerHour: values.rateLimitAnonymousPerHour,
       rateLimitAuthenticatedPerHour: values.rateLimitAuthenticatedPerHour,
       emergencyBannerText: values.emergencyBannerText.trim(),
+      provideCitations: values.provideCitations,
     };
     try {
       const wasPublished = configuration.lifecycle === 'PUBLISHED';

@@ -11,8 +11,10 @@ import type {
   AuditEventsQuery,
   CreateEmergencyKeywordRequestDTO,
   EmergencyKeywordResponseDTO,
-  GuardrailRequestDTO,
-  GuardrailResponseDTO,
+  PolicyRuleRequestDTO,
+  PolicyRuleResponseDTO,
+  ProviderGuardrailResponseDTO,
+  UpdateProviderGuardrailAttachmentRequestDTO,
   IndexingJobStatusResponseDTO,
   KbDocumentsQuery,
   KnowledgeBaseDocumentResponseDTO,
@@ -24,6 +26,13 @@ import type {
 } from '../../types/aiAgent.types';
 
 const BASE = '/api/admin/ai-agent';
+
+// /configuration/health puede tardar más que el timeout default del apiClient
+// por cold starts del proveedor de IA. Damos un margen amplio y reintentamos
+// una vez ante errores transitorios (network / 5xx / timeout) para no romper
+// el flujo del PublishButton ante hipos puntuales.
+const HEALTH_TIMEOUT_MS = 30_000;
+const HEALTH_RETRY_DELAY_MS = 800;
 
 export const getConfiguration = async (): Promise<AiAgentConfigurationResponseDTO | null> => {
   const res = await apiClient.get<AiAgentConfigurationResponseDTO>(`${BASE}/configuration`, {
@@ -47,8 +56,22 @@ export const getInstructionPreview = async (): Promise<AiAgentInstructionPreview
 };
 
 export const getHealth = async (): Promise<AiAgentHealthResponseDTO> => {
-  const res = await apiClient.get<AiAgentHealthResponseDTO>(`${BASE}/configuration/health`);
-  return res.data;
+  const fetchHealth = async (): Promise<AiAgentHealthResponseDTO> => {
+    const res = await apiClient.get<AiAgentHealthResponseDTO>(`${BASE}/configuration/health`, {
+      timeout: HEALTH_TIMEOUT_MS,
+    });
+    return res.data;
+  };
+  try {
+    return await fetchHealth();
+  } catch (err) {
+    const status = (err as { status?: number } | null)?.status;
+    if (typeof status === 'number' && status >= 400 && status < 500) {
+      throw err;
+    }
+    await new Promise((resolve) => setTimeout(resolve, HEALTH_RETRY_DELAY_MS));
+    return fetchHealth();
+  }
 };
 
 export const revertToDraft = async (): Promise<AiAgentConfigurationResponseDTO> => {
@@ -104,42 +127,65 @@ export const deleteEmergencyKeyword = async (id: number): Promise<void> => {
   await apiClient.delete(`${BASE}/emergency-keywords/${id}`);
 };
 
-export const listGuardrails = async (): Promise<GuardrailResponseDTO[]> => {
-  const res = await apiClient.get<GuardrailResponseDTO[]>(`${BASE}/guardrails`);
+export const listPolicyRules = async (): Promise<PolicyRuleResponseDTO[]> => {
+  const res = await apiClient.get<PolicyRuleResponseDTO[]>(`${BASE}/policy-rules`);
   return res.data;
 };
 
-export const getGuardrail = async (id: number): Promise<GuardrailResponseDTO> => {
-  const res = await apiClient.get<GuardrailResponseDTO>(`${BASE}/guardrails/${id}`);
+export const getPolicyRule = async (id: number): Promise<PolicyRuleResponseDTO> => {
+  const res = await apiClient.get<PolicyRuleResponseDTO>(`${BASE}/policy-rules/${id}`);
   return res.data;
 };
 
-export const createGuardrail = async (
-  payload: GuardrailRequestDTO
-): Promise<GuardrailResponseDTO> => {
-  const res = await apiClient.post<GuardrailResponseDTO>(`${BASE}/guardrails`, payload);
+export const createPolicyRule = async (
+  payload: PolicyRuleRequestDTO
+): Promise<PolicyRuleResponseDTO> => {
+  const res = await apiClient.post<PolicyRuleResponseDTO>(`${BASE}/policy-rules`, payload);
   return res.data;
 };
 
-export const updateGuardrail = async (
+export const updatePolicyRule = async (
   id: number,
-  payload: GuardrailRequestDTO
-): Promise<GuardrailResponseDTO> => {
-  const res = await apiClient.put<GuardrailResponseDTO>(`${BASE}/guardrails/${id}`, payload);
+  payload: PolicyRuleRequestDTO
+): Promise<PolicyRuleResponseDTO> => {
+  const res = await apiClient.put<PolicyRuleResponseDTO>(`${BASE}/policy-rules/${id}`, payload);
   return res.data;
 };
 
-export const deleteGuardrail = async (id: number): Promise<void> => {
-  await apiClient.delete(`${BASE}/guardrails/${id}`);
+export const deletePolicyRule = async (id: number): Promise<void> => {
+  await apiClient.delete(`${BASE}/policy-rules/${id}`);
 };
 
-export const activateGuardrail = async (id: number): Promise<GuardrailResponseDTO> => {
-  const res = await apiClient.post<GuardrailResponseDTO>(`${BASE}/guardrails/${id}/activate`);
+export const activatePolicyRule = async (id: number): Promise<PolicyRuleResponseDTO> => {
+  const res = await apiClient.post<PolicyRuleResponseDTO>(`${BASE}/policy-rules/${id}/activate`);
   return res.data;
 };
 
-export const deactivateGuardrail = async (id: number): Promise<GuardrailResponseDTO> => {
-  const res = await apiClient.post<GuardrailResponseDTO>(`${BASE}/guardrails/${id}/deactivate`);
+export const deactivatePolicyRule = async (id: number): Promise<PolicyRuleResponseDTO> => {
+  const res = await apiClient.post<PolicyRuleResponseDTO>(`${BASE}/policy-rules/${id}/deactivate`);
+  return res.data;
+};
+
+export const listProviderGuardrails = async (): Promise<ProviderGuardrailResponseDTO[]> => {
+  const res = await apiClient.get<ProviderGuardrailResponseDTO[]>(`${BASE}/provider-guardrails`);
+  return res.data;
+};
+
+export const refreshProviderGuardrails = async (): Promise<ProviderGuardrailResponseDTO[]> => {
+  const res = await apiClient.post<ProviderGuardrailResponseDTO[]>(
+    `${BASE}/provider-guardrails/refresh`
+  );
+  return res.data;
+};
+
+export const updateProviderGuardrailAttachment = async (
+  id: number,
+  payload: UpdateProviderGuardrailAttachmentRequestDTO
+): Promise<ProviderGuardrailResponseDTO> => {
+  const res = await apiClient.put<ProviderGuardrailResponseDTO>(
+    `${BASE}/provider-guardrails/${id}/attachment`,
+    payload
+  );
   return res.data;
 };
 

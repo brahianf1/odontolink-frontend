@@ -39,7 +39,8 @@ import AdminAiAgentPage from './pages/admin/AdminAiAgentPage';
 import {
   DashboardTab as AiAgentDashboardTab,
   ConfigurationTab as AiAgentConfigurationTab,
-  GuardrailsTab as AiAgentGuardrailsTab,
+  PolicyRulesTab as AiAgentPolicyRulesTab,
+  ProviderGuardrailsTab as AiAgentProviderGuardrailsTab,
   EmergencyKeywordsTab as AiAgentEmergencyKeywordsTab,
   KnowledgeBaseTab as AiAgentKnowledgeBaseTab,
   GovernanceTab as AiAgentGovernanceTab,
@@ -160,7 +161,8 @@ function AppRoutes() {
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<AiAgentDashboardTab />} />
           <Route path="configuration" element={<AiAgentConfigurationTab />} />
-          <Route path="guardrails" element={<AiAgentGuardrailsTab />} />
+          <Route path="policy-rules" element={<AiAgentPolicyRulesTab />} />
+          <Route path="provider-guardrails" element={<AiAgentProviderGuardrailsTab />} />
           <Route path="emergency-keywords" element={<AiAgentEmergencyKeywordsTab />} />
           <Route path="knowledge-base" element={<AiAgentKnowledgeBaseTab />} />
           <Route path="governance" element={<AiAgentGovernanceTab />} />

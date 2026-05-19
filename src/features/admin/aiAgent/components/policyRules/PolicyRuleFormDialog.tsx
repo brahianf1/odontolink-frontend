@@ -14,37 +14,37 @@ import {
 import { Controller, useForm, useFormState } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
-  DEFAULT_GUARDRAIL_VALUES,
-  guardrailFormSchema,
-  type GuardrailFormValues,
-} from '../../schemas/guardrail.schemas';
+  DEFAULT_POLICY_RULE_VALUES,
+  policyRuleFormSchema,
+  type PolicyRuleFormValues,
+} from '../../schemas/policyRule.schemas';
 import type {
-  GuardrailRequestDTO,
-  GuardrailResponseDTO,
+  PolicyRuleRequestDTO,
+  PolicyRuleResponseDTO,
 } from '../../../../../types/aiAgent.types';
 
-interface GuardrailFormDialogProps {
+interface PolicyRuleFormDialogProps {
   open: boolean;
-  target: GuardrailResponseDTO | null;
+  target: PolicyRuleResponseDTO | null;
   saving: boolean;
   onClose: () => void;
-  onSubmit: (payload: GuardrailRequestDTO) => Promise<void>;
+  onSubmit: (payload: PolicyRuleRequestDTO) => Promise<void>;
 }
 
-export default function GuardrailFormDialog({
+export default function PolicyRuleFormDialog({
   open,
   target,
   saving,
   onClose,
   onSubmit,
-}: GuardrailFormDialogProps) {
+}: PolicyRuleFormDialogProps) {
   const isEdit = target !== null;
-  const { control, handleSubmit, reset } = useForm<GuardrailFormValues>({
-    resolver: zodResolver(guardrailFormSchema),
+  const { control, handleSubmit, reset } = useForm<PolicyRuleFormValues>({
+    resolver: zodResolver(policyRuleFormSchema),
     mode: 'onChange',
     defaultValues: target
       ? { label: target.label, text: target.text, active: target.active }
-      : DEFAULT_GUARDRAIL_VALUES,
+      : DEFAULT_POLICY_RULE_VALUES,
   });
   const { isValid } = useFormState({ control });
 
@@ -53,7 +53,7 @@ export default function GuardrailFormDialog({
       reset(
         target
           ? { label: target.label, text: target.text, active: target.active }
-          : DEFAULT_GUARDRAIL_VALUES
+          : DEFAULT_POLICY_RULE_VALUES
       );
     }
   }, [open, target, reset]);
@@ -68,7 +68,7 @@ export default function GuardrailFormDialog({
 
   return (
     <Dialog open={open} onClose={saving ? undefined : onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{isEdit ? 'Editar guardrail' : 'Nuevo guardrail'}</DialogTitle>
+      <DialogTitle>{isEdit ? 'Editar regla' : 'Nueva regla'}</DialogTitle>
       <form onSubmit={submit} noValidate>
         <DialogContent dividers>
           <Stack spacing={2}>
@@ -83,7 +83,7 @@ export default function GuardrailFormDialog({
                   required
                   disabled={saving}
                   error={!!fieldState.error}
-                  helperText={fieldState.error?.message ?? 'Nombre corto para identificarlo.'}
+                  helperText={fieldState.error?.message ?? 'Nombre corto para identificarla.'}
                   inputProps={{ maxLength: 100 }}
                 />
               )}
@@ -94,7 +94,7 @@ export default function GuardrailFormDialog({
               render={({ field, fieldState }) => (
                 <TextField
                   {...field}
-                  label="Texto del guardrail"
+                  label="Texto de la regla"
                   fullWidth
                   required
                   multiline
@@ -121,7 +121,7 @@ export default function GuardrailFormDialog({
                       disabled={saving}
                     />
                   }
-                  label="Activo"
+                  label="Activa"
                 />
               )}
             />
@@ -137,7 +137,7 @@ export default function GuardrailFormDialog({
             disabled={saving || !isValid}
             startIcon={saving ? <CircularProgress size={16} color="inherit" /> : undefined}
           >
-            {isEdit ? 'Guardar cambios' : 'Crear guardrail'}
+            {isEdit ? 'Guardar cambios' : 'Crear regla'}
           </Button>
         </DialogActions>
       </form>

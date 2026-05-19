@@ -7,29 +7,29 @@ import {
   DialogContentText,
   DialogTitle,
 } from '@mui/material';
-import type { GuardrailResponseDTO } from '../../../../../types/aiAgent.types';
+import type { PolicyRuleResponseDTO } from '../../../../../types/aiAgent.types';
 
-interface DeleteGuardrailDialogProps {
+interface DeletePolicyRuleDialogProps {
   open: boolean;
-  target: GuardrailResponseDTO | null;
+  target: PolicyRuleResponseDTO | null;
   deleting: boolean;
   onCancel: () => void;
   onConfirm: () => void;
 }
 
-export default function DeleteGuardrailDialog({
+export default function DeletePolicyRuleDialog({
   open,
   target,
   deleting,
   onCancel,
   onConfirm,
-}: DeleteGuardrailDialogProps) {
+}: DeletePolicyRuleDialogProps) {
   return (
     <Dialog open={open} onClose={deleting ? undefined : onCancel} maxWidth="xs" fullWidth>
-      <DialogTitle>Eliminar guardrail</DialogTitle>
+      <DialogTitle>Eliminar regla</DialogTitle>
       <DialogContent>
         <DialogContentText>
-          ¿Seguro que querés eliminar el guardrail "{target?.label ?? ''}"? Esta acción no se puede
+          ¿Seguro que querés eliminar la regla "{target?.label ?? ''}"? Esta acción no se puede
           deshacer.
         </DialogContentText>
       </DialogContent>

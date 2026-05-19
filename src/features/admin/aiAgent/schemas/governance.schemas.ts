@@ -17,7 +17,7 @@ export const governanceFormSchema = z
     (data) => (data.requireGuardrails ? data.minActiveGuardrails >= 1 : true),
     {
       message:
-        'Si exigís guardrails, debe haber al menos 1 guardrail activo como mínimo.',
+        'Si exigís reglas activas, debe haber al menos 1 regla activa como mínimo.',
       path: ['minActiveGuardrails'],
     }
   );

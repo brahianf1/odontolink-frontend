@@ -39,7 +39,7 @@ export default function InstructionPreviewCard({
               Instrucción final compuesta
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Combinación del system prompt con los guardrails activos.
+              Combinación del system prompt con las reglas de comportamiento activas.
             </Typography>
           </Box>
           {onRefresh && (
@@ -54,7 +54,7 @@ export default function InstructionPreviewCard({
         </Stack>
 
         <Typography variant="subtitle2" fontWeight={700} gutterBottom>
-          Guardrails activos
+          Reglas activas
         </Typography>
         {hasGuardrails ? (
           <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 2, rowGap: 1 }}>
@@ -64,7 +64,7 @@ export default function InstructionPreviewCard({
           </Stack>
         ) : (
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            No hay guardrails activos.
+            No hay reglas activas.
           </Typography>
         )}
 

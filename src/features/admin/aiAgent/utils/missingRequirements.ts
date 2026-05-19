@@ -35,7 +35,7 @@ export const requirementLabel = (req: ParsedRequirement): string => {
       return 'Subí al menos un documento que se haya indexado correctamente.';
     case 'MIN_ACTIVE_GUARDRAILS':
       return `Activá al menos ${req.required} ${
-        req.required === 1 ? 'guardrail' : 'guardrails'
+        req.required === 1 ? 'regla de comportamiento' : 'reglas de comportamiento'
       } (tenés ${req.current}).`;
     case 'ALLOWED_ROLES_FOR_PRIVATE':
       return 'Seleccioná al menos un rol permitido cuando el modo de acceso es PRIVADO.';

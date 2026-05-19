@@ -148,7 +148,7 @@ export default function GovernancePolicyForm({
 
         <Box>
           <Typography variant="subtitle1" fontWeight={700} gutterBottom>
-            Guardrails
+            Reglas de comportamiento
           </Typography>
           <Controller
             name="requireGuardrails"
@@ -162,7 +162,7 @@ export default function GovernancePolicyForm({
                     disabled={saving}
                   />
                 }
-                label="Exigir guardrails activos"
+                label="Exigir reglas activas"
               />
             )}
           />
@@ -178,12 +178,12 @@ export default function GovernancePolicyForm({
                   field.onChange(raw === '' ? 0 : Number(raw));
                 }}
                 type="number"
-                label="Mínimo de guardrails activos"
+                label="Mínimo de reglas activas"
                 disabled={saving || !requireGuardrails}
                 error={!!fieldState.error}
                 helperText={
                   fieldState.error?.message ??
-                  'Cantidad mínima de guardrails activos requerida para publicar.'
+                  'Cantidad mínima de reglas de comportamiento activas requerida para publicar.'
                 }
                 inputProps={{ min: 0, max: 50, step: 1, inputMode: 'numeric' }}
                 sx={{ mt: 1.5, maxWidth: 320 }}

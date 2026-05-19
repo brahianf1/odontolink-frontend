@@ -19,33 +19,33 @@ import {
   DeleteOutline as DeleteIcon,
   EditOutlined as EditIcon,
 } from '@mui/icons-material';
-import type { GuardrailResponseDTO } from '../../../../../types/aiAgent.types';
+import type { PolicyRuleResponseDTO } from '../../../../../types/aiAgent.types';
 
-interface GuardrailsTableProps {
-  guardrails: GuardrailResponseDTO[];
+interface PolicyRulesTableProps {
+  policyRules: PolicyRuleResponseDTO[];
   mutatingId: number | null;
   recentId?: number | null;
-  onEdit: (g: GuardrailResponseDTO) => void;
-  onDelete: (g: GuardrailResponseDTO) => void;
-  onToggleActive: (g: GuardrailResponseDTO, active: boolean) => void;
+  onEdit: (rule: PolicyRuleResponseDTO) => void;
+  onDelete: (rule: PolicyRuleResponseDTO) => void;
+  onToggleActive: (rule: PolicyRuleResponseDTO, active: boolean) => void;
 }
 
-export default function GuardrailsTable({
-  guardrails,
+export default function PolicyRulesTable({
+  policyRules,
   mutatingId,
   recentId,
   onEdit,
   onDelete,
   onToggleActive,
-}: GuardrailsTableProps) {
+}: PolicyRulesTableProps) {
   const theme = useTheme();
 
-  if (guardrails.length === 0) {
+  if (policyRules.length === 0) {
     return (
       <Box sx={{ py: 6, textAlign: 'center' }}>
         <Typography variant="body2" color="text.secondary">
-          Aún no hay guardrails. Creá el primero para empezar a restringir el comportamiento del
-          agente.
+          Aún no hay reglas configuradas. Creá la primera para empezar a restringir el
+          comportamiento del agente.
         </Typography>
       </Box>
     );
@@ -56,20 +56,20 @@ export default function GuardrailsTable({
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell sx={{ width: 90 }}>Activo</TableCell>
+            <TableCell sx={{ width: 90 }}>Activa</TableCell>
             <TableCell>Nombre</TableCell>
             <TableCell>Texto</TableCell>
             <TableCell sx={{ width: 120, textAlign: 'right' }}>Acciones</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {guardrails.map((g) => {
-            const isBusy = mutatingId === g.id;
-            const isRecent = recentId === g.id;
-            const dimContent = !g.active;
+          {policyRules.map((rule) => {
+            const isBusy = mutatingId === rule.id;
+            const isRecent = recentId === rule.id;
+            const dimContent = !rule.active;
             return (
               <TableRow
-                key={g.id}
+                key={rule.id}
                 hover
                 sx={{
                   backgroundColor: isRecent
@@ -81,16 +81,16 @@ export default function GuardrailsTable({
                 <TableCell>
                   <Stack direction="row" alignItems="center" spacing={0.5}>
                     <Switch
-                      checked={g.active}
+                      checked={rule.active}
                       disabled={isBusy}
-                      onChange={(e) => onToggleActive(g, e.target.checked)}
+                      onChange={(e) => onToggleActive(rule, e.target.checked)}
                       size="small"
                     />
                     {isBusy && <CircularProgress size={14} />}
                   </Stack>
                 </TableCell>
                 <TableCell sx={{ fontWeight: 600, opacity: dimContent ? 0.55 : 1 }}>
-                  {g.label}
+                  {rule.label}
                 </TableCell>
                 <TableCell sx={{ maxWidth: 360, opacity: dimContent ? 0.55 : 1 }}>
                   <Typography
@@ -102,9 +102,9 @@ export default function GuardrailsTable({
                       WebkitBoxOrient: 'vertical',
                       overflow: 'hidden',
                     }}
-                    title={g.text}
+                    title={rule.text}
                   >
-                    {g.text}
+                    {rule.text}
                   </Typography>
                 </TableCell>
                 <TableCell align="right">
@@ -112,7 +112,7 @@ export default function GuardrailsTable({
                     <span>
                       <IconButton
                         size="small"
-                        onClick={() => onEdit(g)}
+                        onClick={() => onEdit(rule)}
                         disabled={isBusy}
                       >
                         <EditIcon fontSize="small" />
@@ -124,7 +124,7 @@ export default function GuardrailsTable({
                       <IconButton
                         size="small"
                         color="error"
-                        onClick={() => onDelete(g)}
+                        onClick={() => onDelete(rule)}
                         disabled={isBusy}
                       >
                         <DeleteIcon fontSize="small" />
