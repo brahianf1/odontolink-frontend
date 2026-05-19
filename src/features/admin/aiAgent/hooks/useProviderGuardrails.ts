@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  getProviderGuardrailsBootstrapInfo,
   listProviderGuardrails,
   refreshProviderGuardrails,
   updateProviderGuardrailAttachment,
 } from '../../../../services/api/aiAgentService';
 import type {
+  ProviderGuardrailBootstrapInfoResponseDTO,
   ProviderGuardrailResponseDTO,
   UpdateProviderGuardrailAttachmentRequestDTO,
 } from '../../../../types/aiAgent.types';
@@ -17,6 +19,8 @@ interface UseProviderGuardrailsResult {
   refreshing: boolean;
   mutatingId: number | null;
   error: string | null;
+  bootstrapInfo: ProviderGuardrailBootstrapInfoResponseDTO | null;
+  bootstrapLoading: boolean;
   refreshFromList: () => Promise<void>;
   refreshFromProvider: () => Promise<void>;
   updateAttachment: (
@@ -44,6 +48,9 @@ export function useProviderGuardrails(): UseProviderGuardrailsResult {
   const [refreshing, setRefreshing] = useState(false);
   const [mutatingId, setMutatingId] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [bootstrapInfo, setBootstrapInfo] =
+    useState<ProviderGuardrailBootstrapInfoResponseDTO | null>(null);
+  const [bootstrapLoading, setBootstrapLoading] = useState(false);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -53,13 +60,42 @@ export function useProviderGuardrails(): UseProviderGuardrailsResult {
     };
   }, []);
 
+  // DO Gradient no expone un catálogo público de guardrails: el admin tiene
+  // que vincular al menos uno desde el dashboard de DO la primera vez. Si la
+  // lista local viene vacía, pedimos bootstrap-info para mostrar un banner
+  // accionable con el deep link al dashboard. Si la lista tiene items,
+  // limpiamos el bootstrapInfo para que el banner desaparezca.
+  const maybeFetchBootstrapInfo = useCallback(
+    async (currentItems: ProviderGuardrailResponseDTO[]) => {
+      if (currentItems.length > 0) {
+        if (mountedRef.current) setBootstrapInfo(null);
+        return;
+      }
+      setBootstrapLoading(true);
+      try {
+        const info = await getProviderGuardrailsBootstrapInfo();
+        if (!mountedRef.current) return;
+        setBootstrapInfo(info);
+      } catch {
+        // Silent fallback: si el endpoint falla, el componente cae al empty
+        // state simple sin romper el módulo.
+        if (mountedRef.current) setBootstrapInfo(null);
+      } finally {
+        if (mountedRef.current) setBootstrapLoading(false);
+      }
+    },
+    []
+  );
+
   const refreshFromList = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const data = await listProviderGuardrails();
       if (!mountedRef.current) return;
-      setItems(sortItems(data));
+      const sorted = sortItems(data);
+      setItems(sorted);
+      await maybeFetchBootstrapInfo(sorted);
     } catch (err) {
       const mapped = mapAiAgentError(err, 'No se pudieron cargar los filtros de plataforma.');
       if (!mountedRef.current) return;
@@ -68,7 +104,7 @@ export function useProviderGuardrails(): UseProviderGuardrailsResult {
     } finally {
       if (mountedRef.current) setLoading(false);
     }
-  }, []);
+  }, [maybeFetchBootstrapInfo]);
 
   useEffect(() => {
     void refreshFromList();
@@ -80,11 +116,13 @@ export function useProviderGuardrails(): UseProviderGuardrailsResult {
     try {
       const data = await refreshProviderGuardrails();
       if (!mountedRef.current) return;
-      setItems(sortItems(data));
+      const sorted = sortItems(data);
+      setItems(sorted);
+      await maybeFetchBootstrapInfo(sorted);
     } finally {
       if (mountedRef.current) setRefreshing(false);
     }
-  }, []);
+  }, [maybeFetchBootstrapInfo]);
 
   const updateAttachment = useCallback(
     async (id: number, payload: UpdateProviderGuardrailAttachmentRequestDTO) => {
@@ -109,6 +147,8 @@ export function useProviderGuardrails(): UseProviderGuardrailsResult {
     refreshing,
     mutatingId,
     error,
+    bootstrapInfo,
+    bootstrapLoading,
     refreshFromList,
     refreshFromProvider,
     updateAttachment,

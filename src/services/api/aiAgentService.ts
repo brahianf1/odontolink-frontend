@@ -13,6 +13,7 @@ import type {
   EmergencyKeywordResponseDTO,
   PolicyRuleRequestDTO,
   PolicyRuleResponseDTO,
+  ProviderGuardrailBootstrapInfoResponseDTO,
   ProviderGuardrailResponseDTO,
   UpdateProviderGuardrailAttachmentRequestDTO,
   IndexingJobStatusResponseDTO,
@@ -188,6 +189,14 @@ export const updateProviderGuardrailAttachment = async (
   );
   return res.data;
 };
+
+export const getProviderGuardrailsBootstrapInfo =
+  async (): Promise<ProviderGuardrailBootstrapInfoResponseDTO> => {
+    const res = await apiClient.get<ProviderGuardrailBootstrapInfoResponseDTO>(
+      `${BASE}/provider-guardrails/bootstrap-info`
+    );
+    return res.data;
+  };
 
 export const getGovernancePolicy = async (): Promise<AiGovernancePolicyResponseDTO> => {
   const res = await apiClient.get<AiGovernancePolicyResponseDTO>(`${BASE}/governance`);

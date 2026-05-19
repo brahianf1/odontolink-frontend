@@ -262,3 +262,10 @@ export interface UpdateProviderGuardrailAttachmentRequestDTO {
   attached: boolean;
   priority: number;
 }
+
+export interface ProviderGuardrailBootstrapInfoResponseDTO {
+  catalogEmpty: boolean;
+  providerName: string;
+  providerDashboardUrl: string | null;
+  instructionsText: string;
+}
