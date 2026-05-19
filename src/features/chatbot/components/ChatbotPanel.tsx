@@ -1,5 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
-import { Box, CircularProgress, Paper, Typography, type AlertColor } from '@mui/material';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Box,
+  CircularProgress,
+  Grow,
+  Paper,
+  Typography,
+  type AlertColor,
+} from '@mui/material';
 import ChatbotHeader from './ChatbotHeader';
 import ChatbotDenyState from './ChatbotDenyState';
 import ChatbotMessageList from './ChatbotMessageList';
@@ -46,6 +53,8 @@ export default function ChatbotPanel({
     message: '',
     severity: 'error',
   });
+  const [focusSignal, setFocusSignal] = useState(0);
+  const bumpFocus = useCallback(() => setFocusSignal((n) => n + 1), []);
 
   const showSnackbar = useCallback((message: string, severity: AlertColor = 'error') => {
     setSnackbar({ open: true, message, severity });
@@ -72,7 +81,15 @@ export default function ChatbotPanel({
     []
   );
 
-  const { messages, sending, rateLimitedUntilMs, sendMessage, reset } = useChatbotMessages({
+  const {
+    messages,
+    sending,
+    rateLimitedUntilMs,
+    sendMessage,
+    retryMessage,
+    regenerateLastResponse,
+    reset,
+  } = useChatbotMessages({
     session,
     onSessionEstablished: handleSessionEstablished,
     onSessionExpired: handleSessionExpired,
@@ -88,6 +105,23 @@ export default function ChatbotPanel({
       setDenyOverride(null);
     }
   }, [info, denyOverride]);
+
+  // (1) Devolver el foco al input cuando se abre el panel.
+  useEffect(() => {
+    if (open) bumpFocus();
+  }, [open, bumpFocus]);
+
+  // (2) Devolver el foco después de cada respuesta del bot.
+  const lastBotMessageId = useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+      if (messages[i].role === 'bot') return messages[i].id;
+    }
+    return null;
+  }, [messages]);
+
+  useEffect(() => {
+    if (lastBotMessageId) bumpFocus();
+  }, [lastBotMessageId, bumpFocus]);
 
   const handleNewConversation = useCallback(() => {
     if (messages.length === 0 && !session) return;
@@ -108,11 +142,13 @@ export default function ChatbotPanel({
       reset();
       setDenyOverride(null);
       setConfirmResetOpen(false);
+      // (3) Devolver el foco al input después de iniciar conversación nueva.
+      bumpFocus();
       showSnackbar('Listo, empezamos una nueva conversación.', 'success');
     } finally {
       setResetting(false);
     }
-  }, [clearSession, reset, session, showSnackbar]);
+  }, [clearSession, reset, session, showSnackbar, bumpFocus]);
 
   const renderBody = () => {
     if (loading && !info) {
@@ -160,13 +196,29 @@ export default function ChatbotPanel({
     }
 
     if (info?.accessGranted) {
+      // Feature temporalmente deshabilitada por decisión de producto.
+      // Para reactivar: poner REGENERATE_ENABLED = true.
+      const REGENERATE_ENABLED = false;
+      const canRegenerate =
+        REGENERATE_ENABLED && !sending && messages.some((m) => m.role === 'bot');
       return (
         <>
-          <ChatbotMessageList messages={messages} welcomeMessage={info.welcomeMessage} />
+          <ChatbotMessageList
+            messages={messages}
+            displayName={info.displayName}
+            welcomeMessage={info.welcomeMessage}
+            canRegenerate={canRegenerate}
+            onRetry={retryMessage}
+            onRegenerate={regenerateLastResponse}
+          />
           {isRateLimited ? (
             <ChatbotRateLimitOverlay secondsLeft={countdownSeconds} />
           ) : (
-            <ChatbotComposer disabled={sending} onSend={sendMessage} />
+            <ChatbotComposer
+              disabled={sending}
+              focusSignal={focusSignal}
+              onSend={sendMessage}
+            />
           )}
         </>
       );
@@ -179,50 +231,53 @@ export default function ChatbotPanel({
     info?.accessGranted && (messages.length > 0 || session !== null);
 
   return (
-    <Paper
-      elevation={open ? 6 : 0}
-      role="dialog"
-      aria-label="Asistente virtual"
-      aria-hidden={!open}
-      sx={{
-        position: 'fixed',
-        display: open ? 'flex' : 'none',
-        flexDirection: 'column',
-        overflow: 'hidden',
-        zIndex: (theme) => theme.zIndex.modal,
-        bottom: { xs: 0, sm: 96 },
-        right: { xs: 0, sm: 24 },
-        left: { xs: 0, sm: 'auto' },
-        top: { xs: 0, sm: 'auto' },
-        width: { xs: '100%', sm: 380 },
-        height: { xs: '100%', sm: 600 },
-        maxHeight: { xs: '100%', sm: '80vh' },
-        borderRadius: { xs: 0, sm: 2 },
-        border: { xs: 0, sm: 1 },
-        borderColor: { sm: 'divider' },
-      }}
-    >
-      <ChatbotHeader
-        displayName={info?.displayName}
-        onClose={onClose}
-        onNewConversation={
-          headerShowsNewConversation ? handleNewConversation : undefined
-        }
-        newConversationDisabled={resetting || sending}
-      />
-      {renderBody()}
-      <ChatbotConfirmResetDialog
-        open={confirmResetOpen}
-        submitting={resetting}
-        onCancel={() => setConfirmResetOpen(false)}
-        onConfirm={handleConfirmReset}
-      />
-      <ChatbotErrorSnackbar
-        open={snackbar.open}
-        message={snackbar.message}
-        severity={snackbar.severity}
-        onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
-      />
-    </Paper>
+    <Grow in={open} timeout={220} style={{ transformOrigin: 'bottom right' }}>
+      <Paper
+        elevation={6}
+        role="dialog"
+        aria-label="Asistente virtual"
+        aria-hidden={!open}
+        sx={{
+          position: 'fixed',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          pointerEvents: open ? 'auto' : 'none',
+          zIndex: (theme) => theme.zIndex.modal,
+          bottom: { xs: 0, sm: 96 },
+          right: { xs: 0, sm: 24 },
+          left: { xs: 0, sm: 'auto' },
+          top: { xs: 0, sm: 'auto' },
+          width: { xs: '100%', sm: 380 },
+          height: { xs: '100%', sm: 600 },
+          maxHeight: { xs: '100%', sm: '80vh' },
+          borderRadius: { xs: 0, sm: 2 },
+          border: { xs: 0, sm: 1 },
+          borderColor: { sm: 'divider' },
+        }}
+      >
+        <ChatbotHeader
+          displayName={info?.displayName}
+          onClose={onClose}
+          onNewConversation={
+            headerShowsNewConversation ? handleNewConversation : undefined
+          }
+          newConversationDisabled={resetting || sending}
+        />
+        {renderBody()}
+        <ChatbotConfirmResetDialog
+          open={confirmResetOpen}
+          submitting={resetting}
+          onCancel={() => setConfirmResetOpen(false)}
+          onConfirm={handleConfirmReset}
+        />
+        <ChatbotErrorSnackbar
+          open={snackbar.open}
+          message={snackbar.message}
+          severity={snackbar.severity}
+          onClose={() => setSnackbar((prev) => ({ ...prev, open: false }))}
+        />
+      </Paper>
+    </Grow>
   );
 }

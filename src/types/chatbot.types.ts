@@ -72,6 +72,8 @@ export interface ChatbotMessage {
   timestamp: string;
   flags?: ChatbotMessageFlags;
   status?: ChatbotMessageStatus;
+  /** Mensaje de error a mostrar inline cuando status === 'failed'. */
+  error?: string;
 }
 
 export type ChatbotSessionMode = 'anonymous' | 'authenticated';
