@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getInfo } from '../../../services/api/chatbotService';
+import { useAuthStore } from '../../../store/authStore';
 import type { ChatbotPublicInfoResponseDTO } from '../../../types/chatbot.types';
 import { mapChatbotError } from '../utils/chatbotApiErrors';
 
@@ -20,6 +21,8 @@ export function useChatbotInfo(): UseChatbotInfoResult {
   const lastFetchedAtRef = useRef<number | null>(null);
   const inFlightRef = useRef(false);
   const mountedRef = useRef(true);
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  const userId = useAuthStore((s) => s.user?.userId ?? null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -57,9 +60,14 @@ export function useChatbotInfo(): UseChatbotInfoResult {
     }
   }, []);
 
+  // Re-fetch al montar y cuando cambia el auth state (login, logout, swap
+  // de usuario). `force: true` invalida el cache de 5 min para que la
+  // transición sea inmediata: el FAB aparece/desaparece apenas el backend
+  // confirma si el visitante actual tiene acceso. Sin esto, el cache haría
+  // que un user privado siga viendo (o no viendo) el chat hasta 5 min.
   useEffect(() => {
-    void refresh();
-  }, [refresh]);
+    void refresh({ force: true });
+  }, [isAuthenticated, userId, refresh]);
 
   return { info, loading, error, refresh, lastFetchedAt: lastFetchedAtRef.current };
 }
