@@ -35,6 +35,7 @@ import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminTreatmentsPage from './pages/admin/AdminTreatmentsPage';
 import AdminAiAgentPage from './pages/admin/AdminAiAgentPage';
+import AdminAppearancePage from './pages/admin/AdminAppearancePage';
 import {
   DashboardTab as AiAgentDashboardTab,
   ConfigurationTab as AiAgentConfigurationTab,
@@ -155,6 +156,7 @@ function AppRoutes() {
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="treatments" element={<AdminTreatmentsPage />} />
         <Route path="settings" element={<AdminSettingsPage />} />
+        <Route path="appearance" element={<AdminAppearancePage />} />
         <Route path="ai-agent" element={<AdminAiAgentPage />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<AiAgentDashboardTab />} />

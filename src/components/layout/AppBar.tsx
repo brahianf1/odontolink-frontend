@@ -22,11 +22,12 @@ import {
   Brightness4 as Brightness4Icon,
   Brightness7 as Brightness7Icon,
 } from '@mui/icons-material';
-import { useState } from 'react';
+import { useState, type MouseEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
 import { useThemeStore } from '../../store/themeStore';
 import { getProfilePathForRole, getRoleLabel } from '../../features/profile';
+import { originFromEvent, withViewTransition } from '../../theme/viewTransition';
 
 interface AppBarProps {
   drawerWidth: number;
@@ -129,7 +130,9 @@ export default function AppBar({ drawerWidth, onMenuClick, title }: AppBarProps)
           {/* Theme Toggle */}
           <Tooltip title={mode === 'dark' ? 'Modo claro' : 'Modo oscuro'}>
             <IconButton
-              onClick={toggleTheme}
+              onClick={(event: MouseEvent<HTMLButtonElement>) => {
+                withViewTransition(toggleTheme, originFromEvent(event));
+              }}
               color="inherit"
               sx={{ color: 'text.primary' }}
             >

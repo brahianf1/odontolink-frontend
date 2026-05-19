@@ -39,6 +39,7 @@ const pageTitles: Record<string, string> = {
   '/admin/users': 'Gestión de Usuarios',
   '/admin/treatments': 'Catálogo de Tratamientos',
   '/admin/settings': 'Configuración Institucional',
+  '/admin/appearance': 'Apariencia',
 
   // Rutas de supervisor (docente)
   '/supervisor/dashboard': 'Dashboard',
