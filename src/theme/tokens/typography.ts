@@ -1,5 +1,7 @@
-import type { TypographyOptions } from '@mui/material/styles/createTypography';
+import type { ThemeOptions } from '@mui/material/styles';
 import type { FontPair } from '../fonts';
+
+type TypographyOptions = NonNullable<ThemeOptions['typography']>;
 
 type Scale = {
   fontSize: string;

@@ -1,8 +1,8 @@
 import { createTheme } from '@mui/material/styles';
 import type { Theme } from '@mui/material/styles';
 import './augmentation';
-import { getVariant } from './variants';
-import type { Mode } from './variants/_types';
+import { resolveVariant } from './variants';
+import type { Mode, ThemeVariant } from './variants/_types';
 import { getFontPair } from './fonts';
 import { buildPaletteFromVariant } from './tokens/palette';
 import { createTypography } from './tokens/typography';
@@ -12,15 +12,17 @@ import { muiShadows } from './tokens/elevation';
 
 /**
  * Build a fully-configured MUI Theme from the variant id, mode, and font
- * pair id. Variants resolve through `getVariant` (falls back to default if
- * the id is unknown); the same for `getFontPair`.
+ * pair id. Variants resolve through `resolveVariant` (checks built-in
+ * registry first, then any runtime custom themes passed in); falls back to
+ * the default variant if the id is unknown.
  */
 export const createAppTheme = (
   variantId: string,
   mode: Mode,
   fontPairId: string,
+  customVariants: readonly ThemeVariant[] = [],
 ): Theme => {
-  const variant = getVariant(variantId);
+  const variant = resolveVariant(variantId, customVariants);
   const fontPair = getFontPair(fontPairId);
   const colors = mode === 'dark' ? variant.dark : variant.light;
   const palette = buildPaletteFromVariant(colors, mode);

@@ -68,6 +68,7 @@ export const buildPaletteFromVariant = (colors: ThemeVariantColors, mode: Mode) 
     disabled: alpha(colors.onSurface, 0.38),
   },
   divider: colors.outlineVariant,
+  outline: colors.outline,
   surfaces: {
     dim: colors.surfaceDim,
     bright: colors.surfaceBright,

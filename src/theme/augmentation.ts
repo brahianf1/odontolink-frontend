@@ -1,5 +1,6 @@
 import '@mui/material/styles';
 import '@mui/material/Typography';
+import type { PaletteColorOptions } from '@mui/material/styles';
 import type { ThemeVariantColors } from './variants/_types';
 import type { Motion } from './tokens/motion';
 
@@ -18,6 +19,7 @@ declare module '@mui/material/styles' {
       variant: string;
       onVariant: string;
     };
+    outline: string;
     outlineVariant: string;
     charts: readonly string[];
     m3: ThemeVariantColors;
@@ -26,6 +28,7 @@ declare module '@mui/material/styles' {
   interface PaletteOptions {
     tertiary?: PaletteColorOptions;
     surfaces?: Partial<Palette['surfaces']>;
+    outline?: string;
     outlineVariant?: string;
     charts?: readonly string[];
     m3?: ThemeVariantColors;

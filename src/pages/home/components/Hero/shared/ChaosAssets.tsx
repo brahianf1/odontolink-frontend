@@ -1,4 +1,5 @@
 import { Box, Stack, Typography, alpha, useTheme } from '@mui/material';
+import type { Theme } from '@mui/material/styles';
 import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import ShareOutlinedIcon from '@mui/icons-material/ShareOutlined';
@@ -11,7 +12,7 @@ type CardProps = {
   width?: number | string;
 };
 
-const baseCardSx = (theme: ReturnType<typeof useTheme>, rotation = 0) => ({
+const baseCardSx = (theme: Theme, rotation = 0) => ({
   border: `1px solid ${theme.palette.outlineVariant}`,
   boxShadow: '0 12px 28px rgba(0,0,0,0.18)',
   transform: `rotate(${rotation}deg)`,

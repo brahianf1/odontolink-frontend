@@ -10,3 +10,7 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+// @fontsource* packages ship pure CSS without TS declarations.
+declare module '@fontsource-variable/*';
+declare module '@fontsource/*';

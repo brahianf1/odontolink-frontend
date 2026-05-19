@@ -1,9 +1,10 @@
-import type { Mode, ThemeVariant, ThemeVariantColors } from './_types';
+import type { ThemeVariant } from './_types';
 import { generatedThemes } from './generated';
 import { themeMetadata } from './metadata';
 import { originalVariant } from './original';
 
 export type { Mode, ThemeVariant, ThemeVariantColors, FitScore, Tier } from './_types';
+export { customThemeDtoToVariant, customThemeListToVariants } from './fromApi';
 
 /** Default theme variant id when there is no env override or stored preference. */
 export const DEFAULT_VARIANT_ID = 'theme-14';
@@ -59,3 +60,21 @@ export const getVariant = (id: string | undefined): ThemeVariant => {
 };
 
 export const isValidVariantId = (id: string): boolean => id in themeVariants;
+
+/**
+ * Resolve a variant id against built-ins first, then a runtime list of
+ * custom themes (typically fetched from the backend). Falls back to the
+ * default variant if nothing matches.
+ */
+export const resolveVariant = (
+  id: string | undefined,
+  customs: readonly ThemeVariant[] = [],
+): ThemeVariant => {
+  if (id) {
+    const builtin = themeVariants[id];
+    if (builtin) return builtin;
+    const custom = customs.find((v) => v.id === id);
+    if (custom) return custom;
+  }
+  return themeVariants[DEFAULT_VARIANT_ID] ?? originalVariant;
+};

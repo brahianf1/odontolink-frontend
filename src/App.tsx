@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { useAppTheme } from './theme/theme';
+import { useSiteAppearance } from './features/admin/appearance/hooks/useSiteAppearance';
 import PublicLayout from './components/PublicLayout';
 import AuthLayout from './components/AuthLayout';
 import HomePage from './pages/HomePage';
@@ -54,6 +55,9 @@ import AttentionAuditPage from './pages/supervisor/AttentionAuditPage';
 import FeedbackDashboardPage from './pages/supervisor/FeedbackDashboardPage';
 
 function App() {
+  // Bootstrap the institutional site appearance config once per session. Any
+  // other consumer of useSiteAppearance shares the same loaded state.
+  useSiteAppearance();
   const theme = useAppTheme();
 
   return (

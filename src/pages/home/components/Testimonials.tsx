@@ -1,10 +1,11 @@
 import { Box, Stack, Typography, useTheme } from '@mui/material';
+import type { Theme } from '@mui/material/styles';
 import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
 import SectionShell from './SectionShell';
 import RevealOnView from '../motion/RevealOnView';
 import { testimonials } from '../data/testimonials';
 
-const colorFromInitials = (initials: string, theme: ReturnType<typeof useTheme>) => {
+const colorFromInitials = (initials: string, theme: Theme) => {
   const charSum = initials.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
   const palette = [
     theme.palette.primary.container,
@@ -14,7 +15,7 @@ const colorFromInitials = (initials: string, theme: ReturnType<typeof useTheme>)
   return palette[charSum % palette.length];
 };
 
-const fgFromInitials = (initials: string, theme: ReturnType<typeof useTheme>) => {
+const fgFromInitials = (initials: string, theme: Theme) => {
   const charSum = initials.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
   const palette = [
     theme.palette.primary.onContainer,
