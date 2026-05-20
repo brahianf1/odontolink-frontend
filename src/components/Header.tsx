@@ -6,6 +6,7 @@ import {
   Button,
   Box,
   IconButton,
+  alpha,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
@@ -176,9 +177,15 @@ const Header = () => {
               onClick={(event: MouseEvent<HTMLButtonElement>) => {
                 withViewTransition(toggleTheme, originFromEvent(event));
               }}
-              color="inherit"
               aria-label="toggle theme"
               size={isMobile ? 'small' : 'medium'}
+              sx={{
+                color: 'text.secondary',
+                '&:hover': {
+                  backgroundColor: alpha(theme.palette.text.primary, 0.06),
+                  color: 'text.primary',
+                },
+              }}
             >
               {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
             </IconButton>
