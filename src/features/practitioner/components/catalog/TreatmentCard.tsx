@@ -286,7 +286,7 @@ export default function TreatmentCard({
 
           {(offerStartDate || offerEndDate) && (
             <Box>
-              <SectionLabel icon={<CalendarMonth />} text="Período" tone="secondary" />
+              <SectionLabel icon={<CalendarMonth />} text="Período" />
               <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.85rem' }}>
                 {formatDate(offerStartDate)} — {formatDate(offerEndDate)}
               </Typography>
@@ -295,7 +295,7 @@ export default function TreatmentCard({
 
           {hasProgressData && (
             <Box>
-              <SectionLabel icon={<Schedule />} text="Cupo" tone="secondary" />
+              <SectionLabel icon={<Schedule />} text="Cupo" />
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
                 <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
                   {attended} de {quota}
@@ -549,14 +549,14 @@ function CardActionsMenu({ actions, busy }: CardActionsMenuProps) {
 interface SectionLabelProps {
   icon: ReactElement;
   text: string;
-  tone?: 'primary' | 'secondary';
 }
 
-function SectionLabel({ icon, text, tone = 'primary' }: SectionLabelProps) {
-  const color = tone === 'primary' ? 'primary.main' : 'secondary.main';
+function SectionLabel({ icon, text }: SectionLabelProps) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
-      <Box sx={{ color, display: 'flex', '& svg': { fontSize: 18 } }}>{icon}</Box>
+      <Box sx={{ color: 'primary.main', display: 'flex', '& svg': { fontSize: 18 } }}>
+        {icon}
+      </Box>
       <Typography
         variant="caption"
         fontWeight={700}
