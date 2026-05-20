@@ -12,6 +12,7 @@ import {
   CircularProgress,
   InputAdornment,
   IconButton,
+  MenuItem,
   useTheme,
   Stack,
 } from '@mui/material';
@@ -29,6 +30,7 @@ import {
 } from '@mui/icons-material';
 import { registerPatient } from '../services/api/authService';
 import type { RegisterPatientRequestDTO } from '../types/auth.types';
+import { BLOOD_TYPES } from '../types/admin.types';
 import {
   getMaxBirthDate,
   validateBirthDateFull,
@@ -309,13 +311,21 @@ const RegisterPatientPage = () => {
                     />
                     <TextField
                       fullWidth
+                      select
                       label="Grupo Sanguíneo"
                       name="bloodType"
                       value={formData.bloodType}
                       onChange={handleChange}
                       disabled={loading}
-                      placeholder="A+, O-, etc."
-                    />
+                      helperText="Opcional"
+                    >
+                      <MenuItem value="">Sin especificar</MenuItem>
+                      {BLOOD_TYPES.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                    </TextField>
                   </Stack>
                 </Box>
 
