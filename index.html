@@ -15,8 +15,8 @@
          the first painted frame match the env-default theme without any
          flash from a generic fallback.
 
-         The inline <script> further down overrides these vars on every
-         boot when a paint cache or cached siteConfig is found in
+         The /boot.js script loaded just below overrides these vars on
+         every boot when a paint cache or cached siteConfig is found in
          localStorage, eliminating the flash entirely for returning users.
 
          Once React mounts, MUI's CssBaseline takes over the body styling
@@ -42,7 +42,7 @@
       }
 
       /* Boot splash — visible only for first-time / cache-cleared sessions
-         (the inline script adds `.odl-needs-splash` to <html> only then). */
+         (boot.js adds `.odl-needs-splash` to <html> only then). */
       #odl-boot-splash {
         display: none;
       }
@@ -94,69 +94,11 @@
         }
       }
     </style>
-    <script>
-      // Synchronous pre-paint theme bootstrap. Two responsibilities:
-      //   1) Apply the cached theme's page colors to CSS variables BEFORE
-      //      the browser paints the first frame (no white flash on
-      //      refresh for returning visitors).
-      //   2) Decide whether the boot splash needs to appear at all —
-      //      only when there is no cached siteConfig to hydrate.
-      (function () {
-        var docEl = document.documentElement;
-
-        function applyColors(bg, fg, accent) {
-          if (bg) docEl.style.setProperty('--odl-page-bg', bg);
-          if (fg) docEl.style.setProperty('--odl-page-fg', fg);
-          if (accent) docEl.style.setProperty('--odl-page-accent', accent);
-        }
-
-        try {
-          var raw = localStorage.getItem('theme-storage');
-          var parsed = raw ? JSON.parse(raw) : null;
-          var state = parsed && parsed.state;
-          var sc = state && state.siteConfig;
-
-          // No cached site config → first visit / cache cleared. Show the
-          // splash as a loader, since we cannot guarantee the correct
-          // theme on the first paint.
-          if (!raw || !state || !sc) {
-            docEl.classList.add('odl-needs-splash');
-            return;
-          }
-
-          var mode = state.mode || 'system';
-          if (mode === 'system') {
-            mode = window.matchMedia('(prefers-color-scheme: dark)').matches
-              ? 'dark'
-              : 'light';
-          }
-
-          // Preferred source: the dedicated paint cache written by
-          // useAppTheme on every theme change. Covers every variant
-          // (built-in and custom alike).
-          var paintRaw = localStorage.getItem('odl-paint-cache');
-          if (paintRaw) {
-            var paint = JSON.parse(paintRaw);
-            var pc = paint && paint[mode];
-            if (pc) {
-              applyColors(pc.background, pc.onBackground, pc.primary);
-              return;
-            }
-          }
-
-          // Fallback: when there's no paint cache yet but the cached
-          // siteConfig embeds a custom theme, use its tokens directly.
-          var active = sc.activeCustomTheme;
-          if (active && active[mode]) {
-            var c = active[mode];
-            applyColors(c.background, c.onBackground, c.primary);
-          }
-        } catch (e) {
-          // Cache unreadable / corrupted — be safe and show the splash.
-          docEl.classList.add('odl-needs-splash');
-        }
-      })();
-    </script>
+    <!-- Pre-paint theme bootstrap. External file (served from same origin),
+         so strict `script-src 'self'` allows it without 'unsafe-inline'.
+         Must stay synchronous — no defer/async — because it sets CSS vars
+         and a class on <html> before the body paints. -->
+    <script src="/boot.js"></script>
   </head>
   <body>
     <div id="odl-boot-splash" aria-hidden="true" aria-busy="true">
