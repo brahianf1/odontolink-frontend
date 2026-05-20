@@ -15,10 +15,7 @@ export { default as OfferStatusFilter } from './components/catalog/OfferStatusFi
 export { default as TreatmentsViewSwitcher } from './components/catalog/TreatmentsViewSwitcher';
 
 export { default as AttentionCard } from './components/attentions/AttentionCard';
-export { default as AttentionStatusChip } from './components/attentions/AttentionStatusChip';
-export { default as ProgressNoteTimeline } from './components/attentions/ProgressNoteTimeline';
 export { default as AddProgressNoteDialog } from './components/attentions/AddProgressNoteDialog';
-export { default as FinalizeAttentionDialog } from './components/attentions/FinalizeAttentionDialog';
 export { default as CancelAttentionDialog } from './components/attentions/CancelAttentionDialog';
 
 export { default as EmptyState } from './components/common/EmptyState';

@@ -35,7 +35,7 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { usePractitionerAttentions } from '../../features/supervisor/hooks/usePractitionerAttentions';
 import { useMyPractitioners } from '../../features/supervisor/hooks/useMyPractitioners';
-import AttentionStatusChip from '../../features/supervisor/components/AttentionStatusChip';
+import { AttentionStatusChip } from '../../features/attentions';
 import type { AttentionStatus } from '../../types/attention.types';
 
 type StatusFilter = 'ALL' | AttentionStatus;
