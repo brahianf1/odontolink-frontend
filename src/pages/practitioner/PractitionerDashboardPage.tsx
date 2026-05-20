@@ -116,21 +116,21 @@ export default function PractitionerDashboardPage() {
           title="Turnos Próximos"
           value={stats.upcomingAppointments}
           icon={<CalendarMonth sx={{ fontSize: 32 }} />}
-          color="primary"
+          color="secondary"
           subtitle="Turnos programados"
         />
         <StatsCard
           title="Atenciones Activas"
           value={stats.activeAttentions}
           icon={<LocalHospital sx={{ fontSize: 32 }} />}
-          color="success"
+          color="secondary"
           subtitle="En progreso"
         />
         <StatsCard
           title="Atenciones Completadas"
           value={stats.completedAttentions}
           icon={<TrendingUp sx={{ fontSize: 32 }} />}
-          color="info"
+          color="secondary"
           subtitle="Finalizadas"
         />
         <StatsCard
