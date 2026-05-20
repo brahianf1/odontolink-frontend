@@ -59,6 +59,7 @@ import {
   validateStudentId,
   validateStudyYear,
 } from '../utils/validation';
+import { getMaxBirthDate } from '../../../utils/birthDateValidation';
 
 export type UserFormMode =
   | 'create-patient'
@@ -383,6 +384,7 @@ export default function UserFormDialog({
                   helperText={errors.birthDate}
                   disabled={submitting}
                   InputLabelProps={{ shrink: true }}
+                  inputProps={{ max: getMaxBirthDate() }}
                   InputProps={{
                     startAdornment: (
                       <InputAdornment position="start">

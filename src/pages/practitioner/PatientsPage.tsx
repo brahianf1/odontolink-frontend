@@ -1,237 +1,217 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  Box,
-  Typography,
-  Card,
-  CardContent,
   Alert,
-  CircularProgress,
-  Avatar,
-  Chip,
-  Paper,
-  Collapse,
-  IconButton,
+  Box,
+  InputAdornment,
+  Skeleton,
   Stack,
-  Divider,
+  TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Tooltip,
+  Typography,
 } from '@mui/material';
-import { ExpandMore as ExpandMoreIcon, AssignmentTurnedIn as AttentionsIcon } from '@mui/icons-material';
+import {
+  GridView as GridViewIcon,
+  People as PeopleIcon,
+  Search as SearchIcon,
+  SearchOff as SearchOffIcon,
+  ViewList as ViewListIcon,
+} from '@mui/icons-material';
 import { getMyAttentions } from '../../services/api/practitionerService';
 import type { AttentionResponseDTO } from '../../types/attention.types';
-import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { Button } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { EmptyState } from '../../features/practitioner';
+import PatientCard, {
+  type PatientSummary,
+} from '../../features/practitioner/components/patients/PatientCard';
+import PatientListTable from '../../features/practitioner/components/patients/PatientListTable';
 
-interface PatientItem {
-  id: number;
-  name: string;
-  attentions: AttentionResponseDTO[];
-  attentionsCount: number;
-  activeCount: number;
-}
+type ViewMode = 'cards' | 'list';
+
+const groupByPatient = (attentions: AttentionResponseDTO[]): PatientSummary[] => {
+  const map = new Map<number, PatientSummary>();
+  attentions.forEach((att) => {
+    const existing = map.get(att.patientId);
+    if (existing) {
+      existing.totalCount += 1;
+      existing.attentions.push(att);
+      if (att.status === 'IN_PROGRESS') existing.activeCount += 1;
+    } else {
+      map.set(att.patientId, {
+        id: att.patientId,
+        name: att.patientName,
+        totalCount: 1,
+        activeCount: att.status === 'IN_PROGRESS' ? 1 : 0,
+        attentions: [att],
+      });
+    }
+  });
+
+  return Array.from(map.values())
+    .map((patient) => ({
+      ...patient,
+      attentions: [...patient.attentions].sort((a, b) => b.id - a.id),
+    }))
+    .sort((a, b) => {
+      if (b.activeCount !== a.activeCount) return b.activeCount - a.activeCount;
+      return a.name.localeCompare(b.name);
+    });
+};
 
 export default function PatientsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [patients, setPatients] = useState<PatientItem[]>([]);
+  const [patients, setPatients] = useState<PatientSummary[]>([]);
   const [expandedPatientId, setExpandedPatientId] = useState<number | null>(null);
-  const navigate = useNavigate();
+  const [view, setView] = useState<ViewMode>('cards');
+  const [search, setSearch] = useState('');
 
   useEffect(() => {
-    loadPatients();
+    const load = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await getMyAttentions();
+        setPatients(groupByPatient(data));
+      } catch (err) {
+        console.error('Error loading patients:', err);
+        setError('Error al cargar los pacientes');
+      } finally {
+        setLoading(false);
+      }
+    };
+    void load();
   }, []);
 
-  const loadPatients = async () => {
-    try {
-      setLoading(true);
-      const attentions = await getMyAttentions();
-      
-      // Group by patient
-      const patientsMap = new Map<number, PatientItem>();
-      
-      attentions.forEach((att: AttentionResponseDTO) => {
-        const existing = patientsMap.get(att.patientId);
-        if (existing) {
-          existing.attentionsCount++;
-          existing.attentions.push(att);
-          if (att.status === 'IN_PROGRESS') existing.activeCount++;
-        } else {
-          patientsMap.set(att.patientId, {
-            id: att.patientId,
-            name: att.patientName,
-            attentionsCount: 1,
-            activeCount: att.status === 'IN_PROGRESS' ? 1 : 0,
-            attentions: [att],
-          });
-        }
-      });
+  const totalActive = useMemo(
+    () => patients.reduce((acc, p) => acc + p.activeCount, 0),
+    [patients]
+  );
 
-      setPatients(
-        Array.from(patientsMap.values()).map((patient) => ({
-          ...patient,
-          attentions: patient.attentions.sort((left, right) => right.id - left.id),
-        }))
-      );
-    } catch (err) {
-      console.error('Error loading patients:', err);
-      setError('Error al cargar los pacientes');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const filtered = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    if (!query) return patients;
+    return patients.filter((p) => p.name.toLowerCase().includes(query));
+  }, [patients, search]);
 
-  if (loading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
-        <CircularProgress size={60} />
-      </Box>
-    );
-  }
+  const isSearching = search.trim().length > 0;
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight={700} sx={{ mb: 1 }}>
-        Mis Pacientes
-      </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        Lista de pacientes asignados
-      </Typography>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'flex-start', sm: 'center' }}
+        spacing={2}
+        sx={{ mb: 3 }}
+      >
+        <Box>
+          <Typography variant="h4" fontWeight={700} sx={{ mb: 1 }}>
+            Mis Pacientes
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            {patients.length} paciente{patients.length === 1 ? '' : 's'} único
+            {patients.length === 1 ? '' : 's'} · {totalActive} atención
+            {totalActive === 1 ? '' : 'es'} en curso
+          </Typography>
+        </Box>
+        <ToggleButtonGroup
+          value={view}
+          exclusive
+          size="small"
+          onChange={(_, next) => {
+            if (next) setView(next as ViewMode);
+          }}
+          sx={{
+            '& .MuiToggleButton-root': {
+              textTransform: 'none',
+              borderColor: 'divider',
+              '&.Mui-selected': {
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+                '&:hover': { bgcolor: 'primary.dark' },
+              },
+            },
+          }}
+        >
+          <Tooltip title="Vista de tarjetas">
+            <ToggleButton value="cards" aria-label="Vista de tarjetas">
+              <GridViewIcon fontSize="small" />
+            </ToggleButton>
+          </Tooltip>
+          <Tooltip title="Vista de lista">
+            <ToggleButton value="list" aria-label="Vista de lista">
+              <ViewListIcon fontSize="small" />
+            </ToggleButton>
+          </Tooltip>
+        </ToggleButtonGroup>
+      </Stack>
 
-      {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+      <TextField
+        fullWidth
+        size="small"
+        placeholder="Buscar por nombre de paciente…"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <SearchIcon fontSize="small" sx={{ color: 'text.secondary' }} />
+            </InputAdornment>
+          ),
+        }}
+        sx={{ mb: 3, maxWidth: { sm: 420 } }}
+      />
 
-      {patients.length === 0 ? (
-        <Card sx={{ textAlign: 'center', py: 8 }}>
-          <CardContent>
-            <Typography variant="h6" color="text.secondary">
-              No tienes pacientes asignados aún
-            </Typography>
-          </CardContent>
-        </Card>
-      ) : (
-        <Stack spacing={2.5}>
-          {patients.map((patient) => (
-            <Card
-              key={patient.id}
-              sx={{
-                borderRadius: 3,
-                border: '1px solid',
-                borderColor: 'divider',
-                overflow: 'hidden',
-              }}
-            >
-              <CardContent
-                sx={{
-                  p: { xs: 2, sm: 2.5 },
-                  cursor: 'pointer',
-                }}
-                onClick={() => setExpandedPatientId((current) => (current === patient.id ? null : patient.id))}
-              >
-                <Box
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 2,
-                  }}
-                >
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <Avatar sx={{ bgcolor: 'primary.50', color: 'primary.main', width: 56, height: 56 }}>
-                      {patient.name.charAt(0)}
-                    </Avatar>
-                    <Box>
-                      <Typography variant="h6" fontWeight={700}>
-                        {patient.name}
-                      </Typography>
-                      <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap' }}>
-                        <Chip label={`${patient.attentionsCount} atenciones`} size="small" variant="outlined" />
-                        {patient.activeCount > 0 && (
-                          <Chip label={`${patient.activeCount} activas`} size="small" color="primary" variant="outlined" />
-                        )}
-                      </Box>
-                    </Box>
-                  </Box>
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
 
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Chip
-                      label={`${patient.attentionsCount} atenciones`}
-                      color="primary"
-                      variant="outlined"
-                      sx={{ fontWeight: 600 }}
-                    />
-                    <IconButton
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        setExpandedPatientId((current) => (current === patient.id ? null : patient.id));
-                      }}
-                      aria-label="expandir paciente"
-                      sx={{
-                        transform: expandedPatientId === patient.id ? 'rotate(180deg)' : 'rotate(0deg)',
-                        transition: 'transform 0.2s ease',
-                      }}
-                    >
-                      <ExpandMoreIcon />
-                    </IconButton>
-                  </Box>
-                </Box>
-
-                <Collapse in={expandedPatientId === patient.id} timeout="auto" unmountOnExit>
-                  <Divider sx={{ my: 2.5 }} />
-                  <Box>
-                    <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 2, display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <AttentionsIcon fontSize="small" />
-                      Atenciones del paciente
-                    </Typography>
-
-                    <Stack spacing={1.5}>
-                      {patient.attentions.map((attention) => (
-                        <Paper
-                          key={attention.id}
-                          elevation={0}
-                          sx={{
-                            p: 2,
-                            borderRadius: 2,
-                            border: '1px solid',
-                            borderColor: 'divider',
-                            bgcolor: 'background.default',
-                          }}
-                        >
-                          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 2 }}>
-                            <Box>
-                              <Typography variant="overline" color="text.secondary" fontWeight={700}>
-                                Atención #{attention.id}
-                              </Typography>
-                              <Typography variant="body1" fontWeight={600} sx={{ mt: 0.25 }}>
-                                {attention.treatmentName}
-                              </Typography>
-                              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                                Inicio: {format(parseISO(attention.startDate), "dd 'de' MMMM 'de' yyyy", { locale: es })}
-                              </Typography>
-                            </Box>
-                            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
-                              <Chip
-                                label={attention.status === 'IN_PROGRESS' ? 'En Progreso' : 'Completada'}
-                                color={attention.status === 'IN_PROGRESS' ? 'warning' : 'success'}
-                                variant="outlined"
-                                size="small"
-                              />
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                onClick={() => navigate(`/practitioner/patients/${patient.id}/attentions/${attention.id}/evolution`)}
-                              >
-                                Ver Evolución Clínica
-                              </Button>
-                            </Box>
-                          </Box>
-                        </Paper>
-                      ))}
-                    </Stack>
-                  </Box>
-                </Collapse>
-              </CardContent>
-            </Card>
+      {loading ? (
+        <Stack spacing={2}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} variant="rounded" height={96} />
           ))}
         </Stack>
+      ) : patients.length === 0 ? (
+        <EmptyState
+          icon={<PeopleIcon />}
+          title="Todavía no tenés pacientes"
+          description="Cuando un paciente reserve un turno con una de tus ofertas y la atención clínica se inicie, va a aparecer acá agrupada por paciente."
+          tone="neutral"
+        />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={<SearchOffIcon />}
+          title="Sin resultados"
+          description={`No encontramos pacientes que coincidan con "${search.trim()}". Probá con otro término.`}
+          tone="neutral"
+        />
+      ) : view === 'cards' ? (
+        <Stack spacing={2}>
+          {filtered.map((patient) => (
+            <PatientCard
+              key={patient.id}
+              patient={patient}
+              expanded={expandedPatientId === patient.id}
+              onToggle={() =>
+                setExpandedPatientId((current) =>
+                  current === patient.id ? null : patient.id
+                )
+              }
+            />
+          ))}
+        </Stack>
+      ) : (
+        <PatientListTable patients={filtered} />
+      )}
+
+      {isSearching && filtered.length > 0 && !loading && (
+        <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
+          Mostrando {filtered.length} de {patients.length} pacientes
+        </Typography>
       )}
     </Box>
   );

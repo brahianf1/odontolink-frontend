@@ -1,11 +1,8 @@
-import { Box, Paper, Typography, Stack, Chip, Avatar } from '@mui/material';
+import { Avatar, Box, Paper, Stack, Typography } from '@mui/material';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { ProgressNoteResponseDTO } from '../../../types/attention.types';
-
-interface ProgressNoteItemProps {
-  note: ProgressNoteResponseDTO;
-}
+import StatusChip, { type StatusTone } from '../../../components/common/StatusChip';
 
 const ROLE_LABELS: Record<string, string> = {
   ROLE_PRACTITIONER: 'Practicante',
@@ -13,11 +10,15 @@ const ROLE_LABELS: Record<string, string> = {
   ROLE_ADMIN: 'Administrador',
 };
 
-const ROLE_COLORS: Record<string, 'primary' | 'secondary' | 'warning' | 'default'> = {
+const ROLE_TONES: Record<string, StatusTone> = {
   ROLE_PRACTITIONER: 'primary',
   ROLE_SUPERVISOR: 'secondary',
   ROLE_ADMIN: 'warning',
 };
+
+interface ProgressNoteItemProps {
+  note: ProgressNoteResponseDTO;
+}
 
 const formatDateTime = (value: string): string => {
   try {
@@ -27,19 +28,38 @@ const formatDateTime = (value: string): string => {
   }
 };
 
-export default function ProgressNoteItem({ note }: ProgressNoteItemProps) {
-  const initials = (note.authorName || '?')
+const initialsOf = (name: string): string =>
+  (name || '?')
     .split(' ')
-    .map((part) => part[0])
+    .map((part) => part[0] ?? '')
     .join('')
     .slice(0, 2)
     .toUpperCase();
 
+/**
+ * One progress note rendered as a paper card. The role of the author is
+ * displayed as a tonal chip (using the shared StatusChip) so it stays
+ * legible across all theme variants without per-author tinting.
+ */
+export default function ProgressNoteItem({ note }: ProgressNoteItemProps) {
+  const roleLabel = ROLE_LABELS[note.authorRole] ?? note.authorRole;
+  const roleTone = ROLE_TONES[note.authorRole] ?? 'neutral';
+
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
       <Stack direction="row" spacing={1.5} alignItems="flex-start">
-        <Avatar sx={{ bgcolor: 'primary.50', color: 'primary.main', width: 36, height: 36 }}>
-          {initials}
+        <Avatar
+          sx={(theme) => ({
+            bgcolor: 'primary.main',
+            color: 'primary.contrastText',
+            width: 40,
+            height: 40,
+            fontSize: '0.875rem',
+            fontWeight: 700,
+            border: `1px solid ${theme.palette.divider}`,
+          })}
+        >
+          {initialsOf(note.authorName)}
         </Avatar>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Stack
@@ -49,18 +69,13 @@ export default function ProgressNoteItem({ note }: ProgressNoteItemProps) {
             justifyContent="space-between"
             flexWrap="wrap"
             useFlexGap
+            sx={{ mb: 0.5 }}
           >
             <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
               <Typography variant="body2" fontWeight={600}>
                 {note.authorName}
               </Typography>
-              <Chip
-                size="small"
-                label={ROLE_LABELS[note.authorRole] ?? note.authorRole}
-                color={ROLE_COLORS[note.authorRole] ?? 'default'}
-                variant="outlined"
-                sx={{ fontWeight: 600 }}
-              />
+              <StatusChip label={roleLabel} tone={roleTone} size="small" />
             </Stack>
             <Typography variant="caption" color="text.secondary">
               {formatDateTime(note.createdAt)}
@@ -68,7 +83,7 @@ export default function ProgressNoteItem({ note }: ProgressNoteItemProps) {
           </Stack>
           <Typography
             variant="body2"
-            sx={{ mt: 1, whiteSpace: 'pre-wrap', color: 'text.primary' }}
+            sx={{ mt: 0.5, whiteSpace: 'pre-wrap', color: 'text.primary', lineHeight: 1.55 }}
           >
             {note.note}
           </Typography>

@@ -12,6 +12,7 @@ import {
   CircularProgress,
   InputAdornment,
   IconButton,
+  MenuItem,
   useTheme,
   Stack,
 } from '@mui/material';
@@ -29,6 +30,11 @@ import {
 } from '@mui/icons-material';
 import { registerPatient } from '../services/api/authService';
 import type { RegisterPatientRequestDTO } from '../types/auth.types';
+import { BLOOD_TYPES } from '../types/admin.types';
+import {
+  getMaxBirthDate,
+  validateBirthDateFull,
+} from '../utils/birthDateValidation';
 
 const RegisterPatientPage = () => {
   const theme = useTheme();
@@ -78,6 +84,12 @@ const RegisterPatientPage = () => {
 
     if (!/^[0-9]{7,8}$/.test(formData.dni)) {
       setError('El DNI debe contener 7 u 8 dígitos');
+      return;
+    }
+
+    const birthDateError = validateBirthDateFull(formData.birthDate ?? '');
+    if (birthDateError) {
+      setError(birthDateError);
       return;
     }
 
@@ -217,6 +229,11 @@ const RegisterPatientPage = () => {
                       onChange={handleChange}
                       disabled={loading}
                       InputLabelProps={{ shrink: true }}
+                      inputProps={{ max: getMaxBirthDate() }}
+                      error={Boolean(validateBirthDateFull(formData.birthDate ?? ''))}
+                      helperText={
+                        validateBirthDateFull(formData.birthDate ?? '') ?? ''
+                      }
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">
@@ -294,13 +311,21 @@ const RegisterPatientPage = () => {
                     />
                     <TextField
                       fullWidth
+                      select
                       label="Grupo Sanguíneo"
                       name="bloodType"
                       value={formData.bloodType}
                       onChange={handleChange}
                       disabled={loading}
-                      placeholder="A+, O-, etc."
-                    />
+                      helperText="Opcional"
+                    >
+                      <MenuItem value="">Sin especificar</MenuItem>
+                      {BLOOD_TYPES.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                    </TextField>
                   </Stack>
                 </Box>
 

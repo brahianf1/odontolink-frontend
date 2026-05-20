@@ -6,7 +6,6 @@ import {
   Alert,
   Box,
   Button,
-  Chip,
   Dialog,
   DialogActions,
   DialogContent,
@@ -33,12 +32,13 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import patientService from '../../services/api/patientService';
 import type { AttentionResponseDTO } from '../../types/attention.types';
+import StatusChip from '../../components/common/StatusChip';
 import {
   EmptyState,
-  getAppointmentStatusColor,
   getAppointmentStatusLabel,
-  getAttentionStatusColor,
+  getAppointmentStatusTone,
   getAttentionStatusLabel,
+  getAttentionStatusTone,
   mapBusinessError,
   useMyAttentions,
   usePatientFeedback,
@@ -186,10 +186,9 @@ export default function MyAttentionsPage() {
                       >
                         {attention.treatmentName}
                       </Typography>
-                      <Chip
+                      <StatusChip
                         label={getAttentionStatusLabel(attention.status)}
-                        color={getAttentionStatusColor(attention.status)}
-                        size="small"
+                        tone={getAttentionStatusTone(attention.status)}
                       />
                     </Stack>
                     <Stack direction="row" spacing={2} flexWrap="wrap">
@@ -284,10 +283,9 @@ export default function MyAttentionsPage() {
                                   </Typography>
                                 )}
                               </Box>
-                              <Chip
+                              <StatusChip
                                 label={getAppointmentStatusLabel(appointment.status)}
-                                color={getAppointmentStatusColor(appointment.status)}
-                                size="small"
+                                tone={getAppointmentStatusTone(appointment.status)}
                               />
                             </Stack>
                           </Paper>

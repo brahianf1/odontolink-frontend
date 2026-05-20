@@ -23,6 +23,7 @@ import {
   personalInfoSchema,
   type PersonalInfoFormValues,
 } from '../schemas/profile.schemas';
+import { getMaxBirthDate } from '../../../utils/birthDateValidation';
 import { updateMyProfile } from '../../../services/api/profileService';
 import { useAuthStore } from '../../../store/authStore';
 import type {
@@ -271,6 +272,7 @@ export function PersonalInfoForm({
                 error={!!fieldState.error}
                 helperText={fieldState.error?.message || 'Opcional'}
                 InputLabelProps={{ shrink: true }}
+                inputProps={{ max: getMaxBirthDate() }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">

@@ -21,12 +21,12 @@ import {
   Delete,
   Edit,
   EventRepeat,
+  InfoOutlined,
   MoreVert,
   PauseCircleOutline,
   PlayCircleOutline,
   RestartAlt,
   Schedule,
-  Warning,
 } from '@mui/icons-material';
 import { useState } from 'react';
 import type { OfferedTreatmentResponseDTO } from '../../../../types/practitioner.types';
@@ -286,7 +286,7 @@ export default function TreatmentCard({
 
           {(offerStartDate || offerEndDate) && (
             <Box>
-              <SectionLabel icon={<CalendarMonth />} text="Período" tone="secondary" />
+              <SectionLabel icon={<CalendarMonth />} text="Período" />
               <Typography variant="body2" fontWeight={500} sx={{ fontSize: '0.85rem' }}>
                 {formatDate(offerStartDate)} — {formatDate(offerEndDate)}
               </Typography>
@@ -295,7 +295,7 @@ export default function TreatmentCard({
 
           {hasProgressData && (
             <Box>
-              <SectionLabel icon={<Schedule />} text="Cupo" tone="secondary" />
+              <SectionLabel icon={<Schedule />} text="Cupo" />
               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mb: 0.75 }}>
                 <Typography variant="body2" fontWeight={600} sx={{ fontSize: '0.85rem' }}>
                   {attended} de {quota}
@@ -325,21 +325,20 @@ export default function TreatmentCard({
             <Divider sx={{ my: 1.5 }} />
             <Paper
               elevation={0}
-              sx={{
+              sx={(t) => ({
                 p: 1.5,
-                bgcolor: (t) => alpha(t.palette.warning.main, 0.06),
-                border: '1px solid',
-                borderColor: (t) => alpha(t.palette.warning.main, 0.2),
-              }}
+                pl: 1.75,
+                bgcolor: alpha(t.palette.text.primary, 0.03),
+                borderLeft: `3px solid ${t.palette.primary.main}`,
+                borderRadius: 1,
+              })}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
-                <Warning sx={{ fontSize: 16, color: 'warning.main' }} />
+                <InfoOutlined sx={{ fontSize: 16, color: 'primary.main' }} />
                 <Typography
                   variant="caption"
-                  fontWeight={700}
-                  color="warning.dark"
-                  textTransform="uppercase"
-                  letterSpacing={0.5}
+                  fontWeight={600}
+                  color="text.primary"
                 >
                   Indicaciones
                 </Typography>
@@ -549,14 +548,14 @@ function CardActionsMenu({ actions, busy }: CardActionsMenuProps) {
 interface SectionLabelProps {
   icon: ReactElement;
   text: string;
-  tone?: 'primary' | 'secondary';
 }
 
-function SectionLabel({ icon, text, tone = 'primary' }: SectionLabelProps) {
-  const color = tone === 'primary' ? 'primary.main' : 'secondary.main';
+function SectionLabel({ icon, text }: SectionLabelProps) {
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
-      <Box sx={{ color, display: 'flex', '& svg': { fontSize: 18 } }}>{icon}</Box>
+      <Box sx={{ color: 'primary.main', display: 'flex', '& svg': { fontSize: 18 } }}>
+        {icon}
+      </Box>
       <Typography
         variant="caption"
         fontWeight={700}

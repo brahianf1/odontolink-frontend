@@ -1,5 +1,5 @@
-import { Chip } from '@mui/material';
-import { getRoleColor, getRoleLabel } from '../utils/roleLabels';
+import StatusChip from '../../../components/common/StatusChip';
+import { getRoleLabel, getRoleTone } from '../utils/roleLabels';
 
 interface UserRoleChipProps {
   role: string;
@@ -7,13 +7,5 @@ interface UserRoleChipProps {
 }
 
 export default function UserRoleChip({ role, size = 'small' }: UserRoleChipProps) {
-  return (
-    <Chip
-      label={getRoleLabel(role)}
-      color={getRoleColor(role)}
-      size={size}
-      variant="outlined"
-      sx={{ fontWeight: 600 }}
-    />
-  );
+  return <StatusChip label={getRoleLabel(role)} tone={getRoleTone(role)} size={size} />;
 }

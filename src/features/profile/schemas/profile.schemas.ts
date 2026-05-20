@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { BLOOD_TYPES } from '../../../types/profile.types';
+import { MIN_AGE_MESSAGE, isAtLeast18 } from '../../../utils/birthDateValidation';
 
 const PHONE_REGEX = /^[0-9 +()-]*$/;
 
@@ -35,7 +36,8 @@ export const personalInfoSchema = z.object({
     .refine(
       (value) => !value || new Date(value).getTime() <= Date.now(),
       'La fecha de nacimiento no puede ser futura.'
-    ),
+    )
+    .refine((value) => isAtLeast18(value), MIN_AGE_MESSAGE),
   address: z.string().max(255, 'La dirección no puede superar los 255 caracteres.'),
 });
 

@@ -71,7 +71,7 @@ export default function DashboardLayout() {
   };
 
   return (
-    <Box sx={{ display: 'flex', minHeight: '100vh', width: '100%' }}>
+    <Box sx={{ display: 'flex', height: '100vh', width: '100%', overflow: 'hidden' }}>
       {/* Sidebar Navigation */}
       <Sidebar
         drawerWidth={DRAWER_WIDTH}
@@ -85,11 +85,11 @@ export default function DashboardLayout() {
         sx={{
           flexGrow: 1,
           width: { xs: '100%', sm: `calc(100% - ${DRAWER_WIDTH}px)` },
-          minHeight: '100vh',
+          height: '100vh',
           display: 'flex',
           flexDirection: 'column',
           backgroundColor: 'background.default',
-          overflow: 'auto',
+          overflow: 'hidden',
         }}
       >
         {/* Top AppBar */}
@@ -106,6 +106,8 @@ export default function DashboardLayout() {
             flexGrow: 1,
             display: 'flex',
             flexDirection: 'column',
+            minHeight: 0,
+            overflow: 'auto',
             pt: { xs: 10, sm: 11 }, // Top padding to account for fixed AppBar
             pb: 4,
             px: { xs: 2, sm: 3, md: 4 },

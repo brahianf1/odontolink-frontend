@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { useAppTheme } from './theme/theme';
 import { useSiteAppearance } from './features/admin/appearance/hooks/useSiteAppearance';
@@ -20,7 +20,12 @@ import TreatmentsPage from './pages/practitioner/TreatmentsPage';
 import AppointmentsPage from './pages/practitioner/AppointmentsPage';
 import AttentionsPage from './pages/practitioner/AttentionsPage';
 import PatientsPage from './pages/practitioner/PatientsPage';
-import PatientEvolutionPage from './pages/practitioner/PatientEvolutionPage';
+import AttentionDetailPage from './pages/practitioner/AttentionDetailPage';
+
+function LegacyEvolutionRedirect() {
+  const { attentionId } = useParams<{ attentionId: string }>();
+  return <Navigate to={`/practitioner/attentions/${attentionId}`} replace />;
+}
 import FeedbackPage from './pages/practitioner/FeedbackPage';
 import ChatPage from './pages/practitioner/ChatPage';
 import PatientDashboardPage from './pages/patient/PatientDashboardPage';
@@ -126,10 +131,14 @@ function AppRoutes() {
         <Route path="treatments" element={<TreatmentsPage />} />
         <Route path="appointments" element={<AppointmentsPage />} />
         <Route path="attentions" element={<AttentionsPage />} />
+        <Route
+          path="attentions/:attentionId"
+          element={<AttentionDetailPage />}
+        />
         <Route path="patients" element={<PatientsPage />} />
         <Route
           path="patients/:patientId/attentions/:attentionId/evolution"
-          element={<PatientEvolutionPage />}
+          element={<LegacyEvolutionRedirect />}
         />
         <Route path="feedback" element={<FeedbackPage />} />
         <Route path="chat" element={<ChatPage />} />

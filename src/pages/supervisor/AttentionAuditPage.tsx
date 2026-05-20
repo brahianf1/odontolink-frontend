@@ -1,38 +1,28 @@
 import { useMemo, useState } from 'react';
 import {
   Box,
-  Typography,
-  Stack,
   Button,
   Alert,
   Snackbar,
-  Card,
-  CardContent,
   Skeleton,
-  Breadcrumbs,
-  Link as MuiLink,
-  Divider,
   Chip,
 } from '@mui/material';
 import {
   ArrowBack as ArrowBackIcon,
   Refresh as RefreshIcon,
   TaskAlt as TaskAltIcon,
-  Person as PersonIcon,
-  MedicalServices as MedicalServicesIcon,
-  EventNote as EventNoteIcon,
-  NoteAlt as NoteAltIcon,
-  NavigateNext as NavigateNextIcon,
-  CalendarToday as CalendarIcon,
 } from '@mui/icons-material';
-import { useNavigate, useParams, Link as RouterLink } from 'react-router-dom';
-import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { useNavigate, useParams } from 'react-router-dom';
 import { useAttentionAudit } from '../../features/supervisor/hooks/useAttentionAudit';
-import AttentionStatusChip from '../../features/supervisor/components/AttentionStatusChip';
-import AppointmentTimelineItem from '../../features/supervisor/components/AppointmentTimelineItem';
-import ProgressNoteItem from '../../features/supervisor/components/ProgressNoteItem';
-import ConfirmActionDialog from '../../features/supervisor/components/ConfirmActionDialog';
+import {
+  AppointmentHistorySection,
+  AttentionBreadcrumbs,
+  AttentionDetailHeader,
+  ConfirmAttentionActionDialog,
+  PatientSummaryCard,
+  ProgressNotesSection,
+  TreatmentSummaryCard,
+} from '../../features/attentions';
 import { mapSupervisorError } from '../../features/supervisor/utils/supervisorApiErrors';
 
 interface FeedbackState {
@@ -42,38 +32,6 @@ interface FeedbackState {
 }
 
 const INITIAL_FEEDBACK: FeedbackState = { open: false, severity: 'success', message: '' };
-
-const formatDate = (value: string): string => {
-  try {
-    return format(parseISO(value), "dd 'de' MMM yyyy", { locale: es });
-  } catch {
-    return value;
-  }
-};
-
-interface SectionHeaderProps {
-  icon: React.ReactNode;
-  title: string;
-  caption?: string;
-}
-
-function SectionHeader({ icon, title, caption }: SectionHeaderProps) {
-  return (
-    <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 2 }}>
-      <Box sx={{ color: 'primary.main', display: 'flex' }}>{icon}</Box>
-      <Box>
-        <Typography variant="h6" fontWeight={700}>
-          {title}
-        </Typography>
-        {caption && (
-          <Typography variant="caption" color="text.secondary">
-            {caption}
-          </Typography>
-        )}
-      </Box>
-    </Stack>
-  );
-}
 
 export default function AttentionAuditPage() {
   const navigate = useNavigate();
@@ -98,24 +56,10 @@ export default function AttentionAuditPage() {
   const [confirmFinalize, setConfirmFinalize] = useState(false);
   const [feedback, setFeedback] = useState<FeedbackState>(INITIAL_FEEDBACK);
 
-  const sortedAppointments = useMemo(() => {
-    if (!attention) return [];
-    return [...attention.appointments].sort(
-      (a, b) =>
-        new Date(a.appointmentTime).getTime() - new Date(b.appointmentTime).getTime()
-    );
+  const pendingAppointments = useMemo(() => {
+    if (!attention) return 0;
+    return attention.appointments.filter((a) => a.status === 'SCHEDULED').length;
   }, [attention]);
-
-  const sortedNotes = useMemo(() => {
-    return [...progressNotes].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-  }, [progressNotes]);
-
-  const pendingAppointments = useMemo(
-    () => sortedAppointments.filter((a) => a.status === 'SCHEDULED').length,
-    [sortedAppointments]
-  );
 
   const canFinalize = attention?.status === 'IN_PROGRESS';
 
@@ -170,75 +114,57 @@ export default function AttentionAuditPage() {
     );
   }
 
+  const pendingMessage =
+    pendingAppointments > 0 && attention.status === 'IN_PROGRESS'
+      ? `Hay ${pendingAppointments} turno${pendingAppointments === 1 ? '' : 's'} programado${pendingAppointments === 1 ? '' : 's'}. La atención no podrá finalizarse hasta cancelarlos o completarlos.`
+      : null;
+
   return (
     <Box>
-      <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} sx={{ mb: 1.5 }}>
-        <MuiLink component={RouterLink} to="/supervisor/practitioners" underline="hover">
-          Practicantes
-        </MuiLink>
-        <MuiLink
-          component={RouterLink}
-          to={`/supervisor/practitioners/${numericPractitionerId}/attentions`}
-          underline="hover"
-        >
-          Atenciones
-        </MuiLink>
-        <Typography color="text.primary">Atención #{attention.id}</Typography>
-      </Breadcrumbs>
+      <AttentionBreadcrumbs
+        crumbs={[
+          { label: 'Practicantes', to: '/supervisor/practitioners' },
+          {
+            label: 'Atenciones',
+            to: `/supervisor/practitioners/${numericPractitionerId}/attentions`,
+          },
+          { label: `Atención #${attention.id}` },
+        ]}
+      />
 
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          gap: 2,
-          justifyContent: 'space-between',
-          alignItems: { xs: 'flex-start', sm: 'center' },
-          mb: 3,
-        }}
-      >
-        <Box>
-          <Typography variant="h4" fontWeight={700} gutterBottom>
-            Atención #{attention.id}
-          </Typography>
-          <Stack direction="row" spacing={1.5} alignItems="center" flexWrap="wrap" useFlexGap>
-            <AttentionStatusChip status={attention.status} />
-            <Stack direction="row" spacing={0.5} alignItems="center">
-              <CalendarIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
-              <Typography variant="body2" color="text.secondary">
-                Inicio: {formatDate(attention.startDate)}
-              </Typography>
-            </Stack>
-          </Stack>
-        </Box>
-        <Stack direction="row" spacing={1.5}>
-          <Button
-            variant="outlined"
-            startIcon={<ArrowBackIcon />}
-            onClick={() =>
-              navigate(`/supervisor/practitioners/${numericPractitionerId}/attentions`)
-            }
-          >
-            Volver
-          </Button>
-          <Button
-            variant="outlined"
-            startIcon={<RefreshIcon />}
-            onClick={() => void refresh()}
-          >
-            Refrescar
-          </Button>
-          {canFinalize && (
+      <AttentionDetailHeader
+        attention={attention}
+        actions={
+          <>
             <Button
-              variant="contained"
-              color="warning"
-              startIcon={<TaskAltIcon />}
-              onClick={() => setConfirmFinalize(true)}
+              variant="outlined"
+              startIcon={<ArrowBackIcon />}
+              onClick={() =>
+                navigate(`/supervisor/practitioners/${numericPractitionerId}/attentions`)
+              }
             >
-              Finalizar atención
+              Volver
             </Button>
-          )}
-        </Stack>
-      </Box>
+            <Button
+              variant="outlined"
+              startIcon={<RefreshIcon />}
+              onClick={() => void refresh()}
+            >
+              Refrescar
+            </Button>
+            {canFinalize && (
+              <Button
+                variant="contained"
+                color="warning"
+                startIcon={<TaskAltIcon />}
+                onClick={() => setConfirmFinalize(true)}
+              >
+                Finalizar atención
+              </Button>
+            )}
+          </>
+        }
+      />
 
       <Box
         sx={{
@@ -248,111 +174,21 @@ export default function AttentionAuditPage() {
           mb: 3,
         }}
       >
-        <Card variant="outlined">
-          <CardContent>
-            <SectionHeader
-              icon={<PersonIcon />}
-              title="Paciente"
-              caption="Datos identificatorios del paciente atendido"
-            />
-            <Divider sx={{ mb: 2 }} />
-            <Stack spacing={1}>
-              <Box>
-                <Typography variant="caption" color="text.secondary">
-                  Nombre
-                </Typography>
-                <Typography variant="body1" fontWeight={600}>
-                  {attention.patientName}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" color="text.secondary">
-                  ID interno
-                </Typography>
-                <Typography variant="body2">#{attention.patientId}</Typography>
-              </Box>
-            </Stack>
-          </CardContent>
-        </Card>
-
-        <Card variant="outlined">
-          <CardContent>
-            <SectionHeader
-              icon={<MedicalServicesIcon />}
-              title="Tratamiento"
-              caption="Servicio clínico asignado a esta atención"
-            />
-            <Divider sx={{ mb: 2 }} />
-            <Stack spacing={1}>
-              <Box>
-                <Typography variant="caption" color="text.secondary">
-                  Tratamiento
-                </Typography>
-                <Typography variant="body1" fontWeight={600}>
-                  {attention.treatmentName}
-                </Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" color="text.secondary">
-                  Practicante a cargo
-                </Typography>
-                <Typography variant="body2">{attention.practitionerName}</Typography>
-              </Box>
-            </Stack>
-          </CardContent>
-        </Card>
+        <PatientSummaryCard attention={attention} />
+        <TreatmentSummaryCard attention={attention} />
       </Box>
 
-      <Card variant="outlined" sx={{ mb: 3 }}>
-        <CardContent>
-          <SectionHeader
-            icon={<EventNoteIcon />}
-            title="Historial de turnos"
-            caption={`${sortedAppointments.length} turno${sortedAppointments.length === 1 ? '' : 's'} registrados`}
-          />
-          {pendingAppointments > 0 && attention.status === 'IN_PROGRESS' && (
-            <Alert severity="info" sx={{ mb: 2 }}>
-              Hay {pendingAppointments} turno{pendingAppointments === 1 ? '' : 's'} programado
-              {pendingAppointments === 1 ? '' : 's'}. La atención no podrá finalizarse hasta
-              cancelarlos o completarlos.
-            </Alert>
-          )}
-          {sortedAppointments.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
-              No se han registrado turnos para esta atención.
-            </Typography>
-          ) : (
-            <Stack spacing={1.5}>
-              {sortedAppointments.map((a) => (
-                <AppointmentTimelineItem key={a.id} appointment={a} />
-              ))}
-            </Stack>
-          )}
-        </CardContent>
-      </Card>
+      <AppointmentHistorySection
+        appointments={attention.appointments}
+        pendingMessage={pendingMessage}
+      />
 
-      <Card variant="outlined">
-        <CardContent>
-          <SectionHeader
-            icon={<NoteAltIcon />}
-            title="Notas de evolución"
-            caption="Solo lectura · Visualización para auditoría académica"
-          />
-          {sortedNotes.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">
-              Aún no se han registrado notas de evolución para esta atención.
-            </Typography>
-          ) : (
-            <Stack spacing={1.5}>
-              {sortedNotes.map((note) => (
-                <ProgressNoteItem key={note.id} note={note} />
-              ))}
-            </Stack>
-          )}
-        </CardContent>
-      </Card>
+      <ProgressNotesSection
+        notes={progressNotes}
+        caption="Solo lectura · Visualización para auditoría académica"
+      />
 
-      <ConfirmActionDialog
+      <ConfirmAttentionActionDialog
         open={confirmFinalize}
         title="Finalizar atención por autoridad académica"
         message={

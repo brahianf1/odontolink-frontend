@@ -244,18 +244,18 @@ export default function AppointmentDetailsDialog({
               startIcon={<PersonOffIcon />}
               onClick={() => onNoShow(appointment.id)}
             >
-              Inasistencia
+              No asistió
             </Button>
             <Button
               variant="contained"
-              color="success"
+              color="primary"
               disabled={busy}
               startIcon={
                 busy ? <CircularProgress size={16} color="inherit" /> : <CheckCircleIcon />
               }
               onClick={() => onComplete(appointment.id)}
             >
-              Completar
+              Asistió
             </Button>
           </DialogActions>
         </>

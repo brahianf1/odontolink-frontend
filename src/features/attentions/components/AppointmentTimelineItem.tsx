@@ -1,12 +1,23 @@
-import { Box, Paper, Typography, Stack } from '@mui/material';
-import { AccessTime as TimeIcon, EventBusy as CancelIcon } from '@mui/icons-material';
+import type { ReactNode } from 'react';
+import { Box, Paper, Stack, Typography } from '@mui/material';
+import {
+  AccessTime as TimeIcon,
+  EventBusy as CancelIcon,
+} from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import AppointmentStatusChip from './AppointmentStatusChip';
 import type { AppointmentResponseDTO } from '../../../types/appointment.types';
+import AppointmentStatusChip from './AppointmentStatusChip';
 
 interface AppointmentTimelineItemProps {
   appointment: AppointmentResponseDTO;
+  /**
+   * Optional action slot rendered below the appointment metadata. The
+   * practitioner page fills this with Asistió / No asistió / Cancelar
+   * buttons when the status is SCHEDULED; the supervisor audit page
+   * leaves it undefined (read-only).
+   */
+  actions?: ReactNode;
 }
 
 const formatDateTime = (value: string): string => {
@@ -17,7 +28,10 @@ const formatDateTime = (value: string): string => {
   }
 };
 
-export default function AppointmentTimelineItem({ appointment }: AppointmentTimelineItemProps) {
+export default function AppointmentTimelineItem({
+  appointment,
+  actions,
+}: AppointmentTimelineItemProps) {
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
       <Stack
@@ -26,7 +40,7 @@ export default function AppointmentTimelineItem({ appointment }: AppointmentTime
         justifyContent="space-between"
         alignItems={{ xs: 'flex-start', sm: 'center' }}
       >
-        <Box sx={{ minWidth: 0 }}>
+        <Box sx={{ minWidth: 0, flex: 1 }}>
           <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
             <TimeIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
             <Typography variant="body2" fontWeight={600}>
@@ -50,8 +64,26 @@ export default function AppointmentTimelineItem({ appointment }: AppointmentTime
             </Stack>
           )}
         </Box>
-        <AppointmentStatusChip status={appointment.status} />
+        <Stack
+          direction={{ xs: 'row', sm: 'column' }}
+          spacing={1}
+          alignItems={{ xs: 'center', sm: 'flex-end' }}
+        >
+          <AppointmentStatusChip status={appointment.status} />
+        </Stack>
       </Stack>
+      {actions && (
+        <Box
+          sx={{
+            mt: 1.5,
+            pt: 1.5,
+            borderTop: '1px solid',
+            borderColor: 'divider',
+          }}
+        >
+          {actions}
+        </Box>
+      )}
     </Paper>
   );
 }

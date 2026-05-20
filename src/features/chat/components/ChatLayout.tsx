@@ -386,8 +386,8 @@ export default function ChatLayout({ viewerRole, basePath }: ChatLayoutProps) {
         elevation={0}
         sx={{
           display: 'flex',
-          height: { xs: 'calc(100vh - 120px)', sm: 'calc(100vh - 140px)' },
-          minHeight: 480,
+          flex: 1,
+          minHeight: 0,
           border: `1px solid ${theme.palette.divider}`,
           overflow: 'hidden',
         }}

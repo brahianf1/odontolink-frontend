@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   Badge,
@@ -20,29 +21,29 @@ import {
   Tab,
   Tabs,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
+  Tooltip,
   Typography,
   alpha,
 } from '@mui/material';
-import { Assignment, Close, RateReview, Star } from '@mui/icons-material';
+import {
+  Assignment,
+  Close,
+  GridView as GridViewIcon,
+  RateReview,
+  Star,
+  ViewList as ViewListIcon,
+} from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import {
-  AddProgressNoteDialog,
   AttentionCard,
-  CancelAttentionDialog,
   EmptyState,
-  FinalizeAttentionDialog,
-  ProgressNoteTimeline,
-  mapPractitionerError,
-  useAttentionDetail,
   useMyAttentions,
   useOfferedTreatments,
 } from '../../features/practitioner';
-import {
-  addProgressNote,
-  cancelAttention,
-  finalizeAttention,
-} from '../../services/api/practitionerService';
+import AttentionListTable from '../../features/practitioner/components/attentions/AttentionListTable';
 import { createFeedback, getFeedbackForAttention } from '../../services/api/feedbackService';
 import type { AttentionResponseDTO } from '../../types/attention.types';
 import type {
@@ -56,33 +57,32 @@ const isPractitionerRole = (role?: string | null) => {
   return String(role).toUpperCase().includes('PRACT');
 };
 
+type ViewMode = 'cards' | 'list';
+
 interface AttentionWithFeedback extends AttentionResponseDTO {
   feedbackCount?: number;
   hasMyFeedback?: boolean;
 }
 
 export default function AttentionsPage() {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
-  const { attentions, loading, reload } = useMyAttentions();
+  const { attentions, loading } = useMyAttentions();
   const { offers } = useOfferedTreatments();
 
   const offersByTreatmentId = useMemo(() => {
-    const map = new Map<number, typeof offers[number]>();
+    const map = new Map<number, (typeof offers)[number]>();
     offers.forEach((o) => map.set(o.treatment.id, o));
     return map;
   }, [offers]);
 
   const [tabValue, setTabValue] = useState(0);
+  const [view, setView] = useState<ViewMode>('cards');
   const [enrichedAttentions, setEnrichedAttentions] = useState<AttentionWithFeedback[]>([]);
   const [enrichLoading, setEnrichLoading] = useState(false);
 
-  // Practitioner-driven dialogs
-  const [evolutionTarget, setEvolutionTarget] = useState<AttentionResponseDTO | null>(null);
-  const [addNoteTarget, setAddNoteTarget] = useState<AttentionResponseDTO | null>(null);
-  const [finalizeTarget, setFinalizeTarget] = useState<AttentionResponseDTO | null>(null);
-  const [cancelTarget, setCancelTarget] = useState<AttentionResponseDTO | null>(null);
-
-  // Academic feedback dialogs (orthogonal concern, kept inline)
+  // Academic feedback dialogs (orthogonal concern, kept inline because they
+  // do not need the full detail page context).
   const [feedbackViewTarget, setFeedbackViewTarget] = useState<AttentionResponseDTO | null>(null);
   const [feedbackCreateTarget, setFeedbackCreateTarget] = useState<AttentionResponseDTO | null>(null);
   const [feedbackList, setFeedbackList] = useState<FeedbackResponseDTO[]>([]);
@@ -91,14 +91,8 @@ export default function AttentionsPage() {
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
 
-  const detail = useAttentionDetail(evolutionTarget?.id ?? null);
-
-  // Standalone mutation state for the actions that don't need detail loaded.
-  const [mutating, setMutating] = useState(false);
-  const [mutationError, setMutationError] = useState<string | null>(null);
-  const [mutationSuccess, setMutationSuccess] = useState<string | null>(null);
-
-  // Enrich completed attentions with feedback metadata
+  // Enrich completed attentions with feedback metadata so the cards/rows can
+  // show whether the practitioner already left a rating.
   useEffect(() => {
     let cancelled = false;
     const enrich = async () => {
@@ -143,57 +137,8 @@ export default function AttentionsPage() {
 
   const displayed = tabValue === 0 ? inProgress : completed;
 
-  const handleAddNote = async (content: string): Promise<boolean> => {
-    if (!addNoteTarget) return false;
-    setMutating(true);
-    setMutationError(null);
-    try {
-      await addProgressNote(addNoteTarget.id, { content });
-      setMutationSuccess('Nota de evolución agregada.');
-      setAddNoteTarget(null);
-      await reload();
-      return true;
-    } catch (err) {
-      const mapped = mapPractitionerError(err, 'No se pudo agregar la nota.');
-      setMutationError(mapped.message);
-      return false;
-    } finally {
-      setMutating(false);
-    }
-  };
-
-  const handleFinalizeConfirm = async () => {
-    if (!finalizeTarget) return;
-    setMutating(true);
-    setMutationError(null);
-    try {
-      await finalizeAttention(finalizeTarget.id);
-      setMutationSuccess('Atención finalizada.');
-      setFinalizeTarget(null);
-      await reload();
-    } catch (err) {
-      const mapped = mapPractitionerError(err, 'No se pudo finalizar la atención.');
-      setMutationError(mapped.message);
-    } finally {
-      setMutating(false);
-    }
-  };
-
-  const handleCancelConfirm = async (reason: string) => {
-    if (!cancelTarget) return;
-    setMutating(true);
-    setMutationError(null);
-    try {
-      await cancelAttention(cancelTarget.id, { reason });
-      setMutationSuccess('Caso clínico cancelado.');
-      setCancelTarget(null);
-      await reload();
-    } catch (err) {
-      const mapped = mapPractitionerError(err, 'No se pudo cancelar el caso.');
-      setMutationError(mapped.message);
-    } finally {
-      setMutating(false);
-    }
+  const handleOpenDetail = (attention: AttentionResponseDTO) => {
+    navigate(`/practitioner/attentions/${attention.id}`);
   };
 
   const handleOpenFeedbackView = async (attention: AttentionResponseDTO) => {
@@ -231,7 +176,6 @@ export default function AttentionsPage() {
       await createFeedback(payload);
       setFeedbackSuccess('Feedback enviado.');
       setFeedbackCreateTarget(null);
-      await reload();
     } catch (err: unknown) {
       const status = (err as { status?: number })?.status;
       setFeedbackError(
@@ -244,7 +188,14 @@ export default function AttentionsPage() {
 
   if (loading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: '60vh',
+        }}
+      >
         <CircularProgress size={60} />
       </Box>
     );
@@ -252,12 +203,52 @@ export default function AttentionsPage() {
 
   return (
     <Box>
-      <Typography variant="h4" fontWeight={700} sx={{ mb: 1 }}>
-        Atenciones
-      </Typography>
-      <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-        Gestiona los casos clínicos de tus pacientes
-      </Typography>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'flex-start', sm: 'center' }}
+        spacing={2}
+        sx={{ mb: 3 }}
+      >
+        <Box>
+          <Typography variant="h4" fontWeight={700} sx={{ mb: 1 }}>
+            Atenciones
+          </Typography>
+          <Typography variant="body1" color="text.secondary">
+            Gestioná los casos clínicos de tus pacientes
+          </Typography>
+        </Box>
+        <ToggleButtonGroup
+          value={view}
+          exclusive
+          size="small"
+          onChange={(_, next) => {
+            if (next) setView(next as ViewMode);
+          }}
+          sx={{
+            '& .MuiToggleButton-root': {
+              textTransform: 'none',
+              borderColor: 'divider',
+              '&.Mui-selected': {
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+                '&:hover': { bgcolor: 'primary.dark' },
+              },
+            },
+          }}
+        >
+          <Tooltip title="Vista de tarjetas">
+            <ToggleButton value="cards" aria-label="Vista de tarjetas">
+              <GridViewIcon fontSize="small" />
+            </ToggleButton>
+          </Tooltip>
+          <Tooltip title="Vista de lista">
+            <ToggleButton value="list" aria-label="Vista de lista">
+              <ViewListIcon fontSize="small" />
+            </ToggleButton>
+          </Tooltip>
+        </ToggleButtonGroup>
+      </Stack>
 
       <Paper
         elevation={0}
@@ -284,58 +275,51 @@ export default function AttentionsPage() {
           }
           tone="neutral"
         />
-      ) : (
+      ) : view === 'cards' ? (
         <Grid container spacing={3}>
           {displayed.map((attention) => (
             <Grid size={{ xs: 12, md: 6 }} key={attention.id}>
-              <Box sx={{ position: 'relative' }}>
-                <AttentionCard
-                  attention={attention}
-                  treatmentOffer={offersByTreatmentId.get(attention.treatmentId)}
-                  onOpenEvolution={setEvolutionTarget}
-                  onAddNote={setAddNoteTarget}
-                  onFinalize={setFinalizeTarget}
-                  onCancel={setCancelTarget}
-                />
-                {attention.status === 'COMPLETED' && (
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      gap: 1,
-                      flexWrap: 'wrap',
-                      px: 2,
-                      pb: 2,
-                      mt: -1,
-                    }}
-                  >
-                    {attention.feedbackCount !== undefined && (
-                      <Badge badgeContent={attention.feedbackCount} color="primary">
+              <AttentionCard
+                attention={attention}
+                treatmentOffer={offersByTreatmentId.get(attention.treatmentId)}
+                onOpenDetail={handleOpenDetail}
+                secondaryActions={
+                  attention.status === 'COMPLETED' ? (
+                    <>
+                      {attention.feedbackCount !== undefined && (
+                        <Badge badgeContent={attention.feedbackCount} color="primary">
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<RateReview />}
+                            onClick={() => handleOpenFeedbackView(attention)}
+                          >
+                            Ver feedback
+                          </Button>
+                        </Badge>
+                      )}
+                      {!attention.hasMyFeedback && (
                         <Button
-                          variant="outlined"
+                          variant="contained"
                           size="small"
                           startIcon={<RateReview />}
-                          onClick={() => handleOpenFeedbackView(attention)}
+                          onClick={() => handleOpenFeedbackCreate(attention)}
                         >
-                          Ver feedback
+                          Calificar paciente
                         </Button>
-                      </Badge>
-                    )}
-                    {!attention.hasMyFeedback && (
-                      <Button
-                        variant="contained"
-                        size="small"
-                        startIcon={<RateReview />}
-                        onClick={() => handleOpenFeedbackCreate(attention)}
-                      >
-                        Calificar paciente
-                      </Button>
-                    )}
-                  </Box>
-                )}
-              </Box>
+                      )}
+                    </>
+                  ) : null
+                }
+              />
             </Grid>
           ))}
         </Grid>
+      ) : (
+        <AttentionListTable
+          attentions={displayed}
+          onOpenDetail={handleOpenDetail}
+        />
       )}
 
       {enrichLoading && (
@@ -343,86 +327,6 @@ export default function AttentionsPage() {
           <CircularProgress size={24} />
         </Box>
       )}
-
-      {/* Evolution dialog (history view) */}
-      <Dialog
-        open={evolutionTarget != null}
-        onClose={() => setEvolutionTarget(null)}
-        maxWidth="md"
-        fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}
-      >
-        <DialogTitle
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            pr: 2,
-          }}
-        >
-          <Box>
-            <Typography variant="h6" fontWeight={700}>
-              Historial de evoluciones
-            </Typography>
-            {evolutionTarget && (
-              <Typography variant="caption" color="text.secondary">
-                {evolutionTarget.patientName} · {evolutionTarget.treatmentName}
-              </Typography>
-            )}
-          </Box>
-          <IconButton onClick={() => setEvolutionTarget(null)} size="small">
-            <Close />
-          </IconButton>
-        </DialogTitle>
-        <DialogContent>
-          {detail.loading ? (
-            <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : (
-            <ProgressNoteTimeline notes={detail.notes} />
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setEvolutionTarget(null)} variant="contained">
-            Cerrar
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <AddProgressNoteDialog
-        open={addNoteTarget != null}
-        attentionLabel={
-          addNoteTarget ? `${addNoteTarget.patientName} · ${addNoteTarget.treatmentName}` : undefined
-        }
-        submitting={mutating}
-        onClose={() => setAddNoteTarget(null)}
-        onSubmit={handleAddNote}
-      />
-
-      <FinalizeAttentionDialog
-        open={finalizeTarget != null}
-        attention={finalizeTarget}
-        submitting={mutating}
-        errorMessage={finalizeTarget ? mutationError : null}
-        onClose={() => {
-          setFinalizeTarget(null);
-          setMutationError(null);
-        }}
-        onConfirm={handleFinalizeConfirm}
-      />
-
-      <CancelAttentionDialog
-        open={cancelTarget != null}
-        attention={cancelTarget}
-        submitting={mutating}
-        errorMessage={cancelTarget ? mutationError : null}
-        onClose={() => {
-          setCancelTarget(null);
-          setMutationError(null);
-        }}
-        onConfirm={handleCancelConfirm}
-      />
 
       {/* Academic feedback — view */}
       <Dialog
@@ -475,7 +379,14 @@ export default function AttentionsPage() {
                     borderColor: 'divider',
                   }}
                 >
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1 }}>
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'start',
+                      mb: 1,
+                    }}
+                  >
                     <Box>
                       <Chip
                         label={
@@ -503,13 +414,23 @@ export default function AttentionsPage() {
                   {feedback.comment && (
                     <>
                       <Divider sx={{ my: 1.5 }} />
-                      <Typography variant="body2" color="text.secondary" sx={{ fontStyle: 'italic' }}>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ fontStyle: 'italic' }}
+                      >
                         "{feedback.comment}"
                       </Typography>
                     </>
                   )}
-                  <Typography variant="caption" color="text.secondary" sx={{ mt: 1.5, display: 'block' }}>
-                    {format(parseISO(feedback.createdAt), "dd 'de' MMMM 'de' yyyy · HH:mm", { locale: es })}
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ mt: 1.5, display: 'block' }}
+                  >
+                    {format(parseISO(feedback.createdAt), "dd 'de' MMMM 'de' yyyy · HH:mm", {
+                      locale: es,
+                    })}
                   </Typography>
                 </Paper>
               ))}
@@ -612,28 +533,6 @@ export default function AttentionsPage() {
       >
         <Alert severity="success" variant="filled" onClose={() => setFeedbackSuccess(null)}>
           {feedbackSuccess}
-        </Alert>
-      </Snackbar>
-
-      <Snackbar
-        open={Boolean(mutationSuccess)}
-        autoHideDuration={3500}
-        onClose={() => setMutationSuccess(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert severity="success" variant="filled" onClose={() => setMutationSuccess(null)}>
-          {mutationSuccess}
-        </Alert>
-      </Snackbar>
-
-      <Snackbar
-        open={Boolean(mutationError) && finalizeTarget == null && cancelTarget == null}
-        autoHideDuration={5000}
-        onClose={() => setMutationError(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert severity="error" variant="filled" onClose={() => setMutationError(null)}>
-          {mutationError}
         </Alert>
       </Snackbar>
     </Box>

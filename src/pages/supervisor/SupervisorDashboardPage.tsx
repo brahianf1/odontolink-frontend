@@ -70,27 +70,39 @@ export default function SupervisorDashboardPage() {
           caption="Universo bajo tu supervisión"
         />
         <FeedbackMetricCard
-          title="Promedio de calificación"
+          title="Calificación recibida del paciente"
           icon={<StarIcon />}
           loading={feedbackLoading}
           value={
             data ? (
-              <Stack direction="row" spacing={1} alignItems="center">
-                <span>{data.averageRating.toFixed(2)}</span>
-                <RatingDisplay value={data.averageRating} showValue={false} size="medium" />
-              </Stack>
+              data.totalPatientToPractitioner === 0 ? (
+                'Sin datos'
+              ) : (
+                <Stack direction="row" spacing={1} alignItems="center">
+                  <span>{data.averageRatingPatientToPractitioner.toFixed(2)}</span>
+                  <RatingDisplay
+                    value={data.averageRatingPatientToPractitioner}
+                    showValue={false}
+                    size="medium"
+                  />
+                </Stack>
+              )
             ) : (
               '—'
             )
           }
-          caption="Considerando todos los feedbacks recibidos"
+          caption="Promedio de calificaciones que dieron los pacientes"
         />
         <FeedbackMetricCard
-          title="Feedbacks totales"
+          title="Feedbacks recibidos"
           icon={<ForumIcon />}
           loading={feedbackLoading}
-          value={data ? data.totalFeedbacksCount.toLocaleString('es-AR') : '—'}
-          caption="Sobre las atenciones de tus practicantes"
+          value={
+            data
+              ? data.totalPatientToPractitioner.toLocaleString('es-AR')
+              : '—'
+          }
+          caption="De pacientes a tus practicantes"
         />
       </Box>
 

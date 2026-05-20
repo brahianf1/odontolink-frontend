@@ -1,43 +1,48 @@
+import type { ReactNode } from 'react';
 import {
   Box,
   Button,
   Card,
   CardContent,
+  Divider,
   LinearProgress,
   Stack,
-  Tooltip,
   Typography,
   alpha,
 } from '@mui/material';
-import { Add, Block, CheckCircle, History } from '@mui/icons-material';
+import { ChevronRight } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { AttentionResponseDTO } from '../../../../types/attention.types';
 import type { OfferedTreatmentResponseDTO } from '../../../../types/practitioner.types';
-import {
-  checkAttentionTermination,
-  terminationBlockerMessage,
-} from '../../utils/attentionPredicates';
-import AttentionStatusChip from './AttentionStatusChip';
+import { AttentionStatusChip } from '../../../attentions';
 
 interface AttentionCardProps {
   attention: AttentionResponseDTO;
   treatmentOffer?: OfferedTreatmentResponseDTO;
-  onOpenEvolution: (attention: AttentionResponseDTO) => void;
-  onAddNote: (attention: AttentionResponseDTO) => void;
-  onFinalize: (attention: AttentionResponseDTO) => void;
-  onCancel: (attention: AttentionResponseDTO) => void;
+  onOpenDetail: (attention: AttentionResponseDTO) => void;
+  /**
+   * Optional secondary actions rendered inside the card footer below the
+   * primary "Ver detalle" CTA. Used by the attention list to surface the
+   * feedback CTAs (Ver feedback / Calificar paciente) when the attention
+   * is completed, without breaking the card boundary.
+   */
+  secondaryActions?: ReactNode;
 }
 
+/**
+ * Summary card rendered in the attention list. All write operations live
+ * on the dedicated detail page (`/practitioner/attentions/:id`), so this
+ * card only surfaces metadata and a single CTA that navigates there. The
+ * quota progress bar still lives here because it is a list-level concern
+ * (the practitioner compares cases against the same offer's quota).
+ */
 export default function AttentionCard({
   attention,
   treatmentOffer,
-  onOpenEvolution,
-  onAddNote,
-  onFinalize,
-  onCancel,
+  onOpenDetail,
+  secondaryActions,
 }: AttentionCardProps) {
-  const isActive = attention.status === 'IN_PROGRESS';
   const pendingAppointments =
     attention.appointments?.filter((a) => a.status === 'SCHEDULED').length ?? 0;
 
@@ -47,14 +52,19 @@ export default function AttentionCard({
   const quotaPct = showQuota ? Math.min((completed / max) * 100, 100) : 0;
   const quotaFull = showQuota && completed >= max;
 
-  const termination = checkAttentionTermination(attention);
-  const blockerMessage = terminationBlockerMessage(termination);
-
   return (
-    <Card sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider' }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2, gap: 2 }}>
-          <Box>
+    <Card sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', height: '100%' }}>
+      <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            mb: 2,
+            gap: 2,
+          }}
+        >
+          <Box sx={{ minWidth: 0 }}>
             <Typography variant="overline" color="text.secondary" fontWeight={700}>
               Atención #{attention.id}
             </Typography>
@@ -88,9 +98,7 @@ export default function AttentionCard({
             <Typography variant="caption" color="text.secondary" fontWeight={600}>
               TURNOS
             </Typography>
-            <Typography variant="body2">
-              {attention.appointments?.length ?? 0}
-            </Typography>
+            <Typography variant="body2">{attention.appointments?.length ?? 0}</Typography>
           </Box>
           <Box>
             <Typography variant="caption" color="text.secondary" fontWeight={600}>
@@ -140,64 +148,27 @@ export default function AttentionCard({
           </Box>
         )}
 
-        <Stack
-          direction={{ xs: 'column', sm: 'row' }}
-          spacing={1}
-          sx={{ '& > *': { flex: 1 } }}
-        >
+        <Stack direction="row" spacing={1} sx={{ mt: 'auto' }}>
           <Button
-            variant="outlined"
+            variant="contained"
+            color="primary"
             size="small"
-            startIcon={<History />}
-            onClick={() => onOpenEvolution(attention)}
+            endIcon={<ChevronRight />}
+            onClick={() => onOpenDetail(attention)}
+            fullWidth
           >
-            Ver evolución
+            Ver detalle
           </Button>
-          {isActive && (
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<Add />}
-              onClick={() => onAddNote(attention)}
-            >
-              Agregar nota
-            </Button>
-          )}
-          {isActive && (
-            <Tooltip title={blockerMessage ?? ''} disableHoverListener={!blockerMessage}>
-              <span style={{ flex: 1, display: 'flex' }}>
-                <Button
-                  variant="contained"
-                  color="success"
-                  size="small"
-                  startIcon={<CheckCircle />}
-                  onClick={() => onFinalize(attention)}
-                  disabled={!termination.canTerminate}
-                  fullWidth
-                >
-                  Finalizar
-                </Button>
-              </span>
-            </Tooltip>
-          )}
-          {isActive && (
-            <Tooltip title={blockerMessage ?? ''} disableHoverListener={!blockerMessage}>
-              <span style={{ flex: 1, display: 'flex' }}>
-                <Button
-                  variant="outlined"
-                  color="error"
-                  size="small"
-                  startIcon={<Block />}
-                  onClick={() => onCancel(attention)}
-                  disabled={!termination.canTerminate}
-                  fullWidth
-                >
-                  Cancelar caso
-                </Button>
-              </span>
-            </Tooltip>
-          )}
         </Stack>
+
+        {secondaryActions && (
+          <>
+            <Divider sx={{ mt: 2, mb: 1.5 }} />
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {secondaryActions}
+            </Box>
+          </>
+        )}
       </CardContent>
     </Card>
   );

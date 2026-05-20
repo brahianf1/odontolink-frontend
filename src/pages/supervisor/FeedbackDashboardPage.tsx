@@ -1,5 +1,15 @@
 import { useCallback } from 'react';
-import { Box, Typography, Stack, Button, Alert, Card, CardContent } from '@mui/material';
+import {
+  Box,
+  Typography,
+  Stack,
+  Button,
+  Alert,
+  Card,
+  CardContent,
+  Tabs,
+  Tab,
+} from '@mui/material';
 import {
   Refresh as RefreshIcon,
   StarRate as StarIcon,
@@ -12,13 +22,33 @@ import FeedbackMetricCard from '../../features/supervisor/components/FeedbackMet
 import FeedbackFiltersBar from '../../features/supervisor/components/FeedbackFiltersBar';
 import FeedbackTable from '../../features/supervisor/components/FeedbackTable';
 import RatingDisplay from '../../features/supervisor/components/RatingDisplay';
-import type { FeedbackDashboardQuery } from '../../types/supervisor.types';
+import type {
+  FeedbackDashboardQuery,
+  FeedbackDirection,
+} from '../../types/supervisor.types';
 
 const DEFAULT_RESET_QUERY: FeedbackDashboardQuery = {
   page: 0,
   size: 10,
   sortBy: 'createdAt',
   sortDirection: 'DESC',
+};
+
+type DirectionTab = 'ALL' | FeedbackDirection;
+
+const renderAverage = (
+  total: number,
+  average: number,
+  loading: boolean
+) => {
+  if (loading) return '—';
+  if (!total) return 'Sin datos';
+  return (
+    <Stack direction="row" spacing={1} alignItems="center">
+      <span>{average.toFixed(2)}</span>
+      <RatingDisplay value={average} showValue={false} size="medium" />
+    </Stack>
+  );
 };
 
 export default function FeedbackDashboardPage() {
@@ -46,6 +76,19 @@ export default function FeedbackDashboardPage() {
   const handlePageSizeChange = useCallback(
     (newSize: number) => {
       setQuery((prev) => ({ ...prev, size: newSize, page: 0 }));
+    },
+    [setQuery]
+  );
+
+  const directionTab: DirectionTab = query.direction ?? 'ALL';
+
+  const handleDirectionChange = useCallback(
+    (_event: React.SyntheticEvent, value: DirectionTab) => {
+      setQuery((prev) => ({
+        ...prev,
+        direction: value === 'ALL' ? undefined : value,
+        page: 0,
+      }));
     },
     [setQuery]
   );
@@ -84,32 +127,61 @@ export default function FeedbackDashboardPage() {
         sx={{
           display: 'grid',
           gap: 2,
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, 1fr)' },
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
           mb: 3,
         }}
       >
         <FeedbackMetricCard
-          title="Promedio general"
+          title="Calificación recibida del paciente"
           icon={<StarIcon />}
           loading={loading}
           value={
-            data ? (
-              <Stack direction="row" spacing={1} alignItems="center">
-                <span>{data.averageRating.toFixed(2)}</span>
-                <RatingDisplay value={data.averageRating} showValue={false} size="medium" />
-              </Stack>
-            ) : (
-              '—'
-            )
+            data
+              ? renderAverage(
+                  data.totalPatientToPractitioner,
+                  data.averageRatingPatientToPractitioner,
+                  loading
+                )
+              : '—'
           }
-          caption="Promedio sobre los feedbacks filtrados"
+          caption={
+            data
+              ? `${data.totalPatientToPractitioner.toLocaleString('es-AR')} feedbacks de pacientes`
+              : 'Métrica clave para evaluación docente'
+          }
         />
         <FeedbackMetricCard
-          title="Total de feedbacks"
+          title="Calificación dada al paciente"
           icon={<ForumIcon />}
           loading={loading}
-          value={data ? data.totalFeedbacksCount.toLocaleString('es-AR') : '—'}
-          caption="Coincidencias con los filtros aplicados"
+          value={
+            data
+              ? renderAverage(
+                  data.totalPractitionerToPatient,
+                  data.averageRatingPractitionerToPatient,
+                  loading
+                )
+              : '—'
+          }
+          caption={
+            data
+              ? `${data.totalPractitionerToPatient.toLocaleString('es-AR')} feedbacks del practicante`
+              : 'Calificación complementaria'
+          }
+        />
+        <FeedbackMetricCard
+          title="Total bidireccional"
+          icon={<ForumIcon />}
+          loading={loading}
+          value={
+            data
+              ? (
+                  data.totalPatientToPractitioner +
+                  data.totalPractitionerToPatient
+                ).toLocaleString('es-AR')
+              : '—'
+          }
+          caption="Suma de ambas direcciones según filtros"
         />
         <FeedbackMetricCard
           title="Practicantes a cargo"
@@ -137,6 +209,18 @@ export default function FeedbackDashboardPage() {
           {error}
         </Alert>
       )}
+
+      <Tabs
+        value={directionTab}
+        onChange={handleDirectionChange}
+        sx={{ mb: 2 }}
+        variant="scrollable"
+        allowScrollButtonsMobile
+      >
+        <Tab value="ALL" label="Todos los feedbacks" />
+        <Tab value="PATIENT_TO_PRACTITIONER" label="Recibidos del paciente" />
+        <Tab value="PRACTITIONER_TO_PATIENT" label="Dados al paciente" />
+      </Tabs>
 
       <FeedbackTable
         page={data?.feedbacks ?? null}

@@ -20,10 +20,10 @@ export {
 } from './context/PatientFeedbackProvider';
 
 export {
-  getAppointmentStatusColor,
   getAppointmentStatusLabel,
-  getAttentionStatusColor,
+  getAppointmentStatusTone,
   getAttentionStatusLabel,
+  getAttentionStatusTone,
 } from './utils/appointmentStatus';
 
 export { mapBusinessError } from './utils/apiErrors';

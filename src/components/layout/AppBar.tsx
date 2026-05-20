@@ -1,17 +1,18 @@
-import { 
-  AppBar as MuiAppBar, 
-  Toolbar, 
-  IconButton, 
-  Typography, 
-  Box, 
-  Avatar, 
-  Menu, 
-  MenuItem, 
+import {
+  AppBar as MuiAppBar,
+  Toolbar,
+  IconButton,
+  Typography,
+  Box,
+  Avatar,
+  Menu,
+  MenuItem,
   Divider,
   ListItemIcon,
   ListItemText,
   Badge,
   Tooltip,
+  alpha,
 } from '@mui/material';
 import {
   Menu as MenuIcon,
@@ -97,15 +98,18 @@ export default function AppBar({ drawerWidth, onMenuClick, title }: AppBarProps)
       >
         {/* Mobile Menu Button */}
         <IconButton
-          color="inherit"
           aria-label="open drawer"
           edge="start"
           onClick={onMenuClick}
-          sx={{
+          sx={(theme) => ({
             mr: 2,
             display: { sm: 'none' },
-            color: 'text.primary',
-          }}
+            color: 'text.secondary',
+            '&:hover': {
+              backgroundColor: alpha(theme.palette.text.primary, 0.06),
+              color: 'text.primary',
+            },
+          })}
         >
           <MenuIcon />
         </IconButton>
@@ -133,8 +137,13 @@ export default function AppBar({ drawerWidth, onMenuClick, title }: AppBarProps)
               onClick={(event: MouseEvent<HTMLButtonElement>) => {
                 withViewTransition(toggleTheme, originFromEvent(event));
               }}
-              color="inherit"
-              sx={{ color: 'text.primary' }}
+              sx={(theme) => ({
+                color: 'text.secondary',
+                '&:hover': {
+                  backgroundColor: alpha(theme.palette.text.primary, 0.06),
+                  color: 'text.primary',
+                },
+              })}
             >
               {mode === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
             </IconButton>
@@ -143,10 +152,24 @@ export default function AppBar({ drawerWidth, onMenuClick, title }: AppBarProps)
           {/* Notifications */}
           <Tooltip title="Notificaciones">
             <IconButton
-              color="inherit"
-              sx={{ color: 'text.primary' }}
+              sx={(theme) => ({
+                color: 'text.secondary',
+                '&:hover': {
+                  backgroundColor: alpha(theme.palette.text.primary, 0.06),
+                  color: 'text.primary',
+                },
+              })}
             >
-              <Badge badgeContent={0} color="error">
+              <Badge
+                variant="dot"
+                invisible
+                color="primary"
+                sx={{
+                  '& .MuiBadge-dot': {
+                    boxShadow: (theme) => `0 0 0 2px ${theme.palette.background.paper}`,
+                  },
+                }}
+              >
                 <NotificationsIcon />
               </Badge>
             </IconButton>

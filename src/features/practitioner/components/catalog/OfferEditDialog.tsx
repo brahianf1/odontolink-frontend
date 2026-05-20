@@ -16,6 +16,8 @@ import {
 } from '@mui/material';
 import { Close, MedicalServices } from '@mui/icons-material';
 import { Controller, useForm } from 'react-hook-form';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 import type {
   AvailabilitySlotDTO,
   OfferedTreatmentResponseDTO,
@@ -23,6 +25,9 @@ import type {
 } from '../../../../types/practitioner.types';
 import { findSlotConflicts } from '../../utils/slotValidation';
 import AvailabilitySlotsField from './AvailabilitySlotsField';
+
+const todayLocal = (): string => format(new Date(), 'yyyy-MM-dd');
+const maxDate = (a: string, b: string): string => (a > b ? a : b);
 
 interface OfferEditDialogProps {
   open: boolean;
@@ -80,6 +85,26 @@ export default function OfferEditDialog({
   const submit = async (values: FormValues) => {
     if (!offer) return;
 
+    const originalStart = offer.offerStartDate ?? '';
+    const today = todayLocal();
+    if (
+      values.offerStartDate &&
+      values.offerStartDate !== originalStart &&
+      values.offerStartDate < today
+    ) {
+      setError('offerStartDate', {
+        message: 'La fecha de inicio no puede moverse al pasado.',
+      });
+      return;
+    }
+
+    if (values.offerEndDate && values.offerEndDate < today) {
+      setError('offerEndDate', {
+        message: 'La fecha de fin no puede ser anterior a hoy.',
+      });
+      return;
+    }
+
     if (values.offerStartDate && values.offerEndDate &&
         new Date(values.offerStartDate) > new Date(values.offerEndDate)) {
       setError('offerEndDate', { message: 'La fecha de fin debe ser posterior al inicio' });
@@ -115,6 +140,12 @@ export default function OfferEditDialog({
   };
 
   const startDate = watch('offerStartDate');
+  const today = todayLocal();
+  const originalStart = offer?.offerStartDate ?? '';
+  const originalStartIsPast = Boolean(originalStart) && originalStart < today;
+  const startHelperText = originalStartIsPast
+    ? `Oferta vigente desde el ${format(parseISO(originalStart), "d 'de' MMM yyyy", { locale: es })}. Solo podés adelantar la fecha.`
+    : undefined;
 
   return (
     <Dialog
@@ -133,7 +164,6 @@ export default function OfferEditDialog({
           pt: 2.5,
           px: { xs: 2, sm: 3 },
           bgcolor: (t) => alpha(t.palette.primary.main, 0.02),
-          borderBottom: (t) => `1px solid ${t.palette.divider}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -157,7 +187,7 @@ export default function OfferEditDialog({
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ px: { xs: 2, sm: 3 }, pt: 3 }}>
+      <DialogContent dividers sx={{ px: { xs: 2, sm: 3 }, py: 3 }}>
         <Stack spacing={3}>
           <Box
             sx={{
@@ -225,8 +255,9 @@ export default function OfferEditDialog({
                     fullWidth
                     required
                     InputLabelProps={{ shrink: true }}
+                    inputProps={{ min: today }}
                     error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
+                    helperText={fieldState.error?.message ?? startHelperText}
                   />
                 )}
               />
@@ -242,7 +273,7 @@ export default function OfferEditDialog({
                     fullWidth
                     required
                     InputLabelProps={{ shrink: true }}
-                    inputProps={{ min: startDate }}
+                    inputProps={{ min: maxDate(today, startDate || today) }}
                     error={!!fieldState.error}
                     helperText={fieldState.error?.message}
                   />
@@ -275,7 +306,6 @@ export default function OfferEditDialog({
           px: { xs: 2, sm: 3 },
           py: 2,
           bgcolor: (t) => alpha(t.palette.background.default, 0.5),
-          borderTop: (t) => `1px solid ${t.palette.divider}`,
           gap: 1.5,
           flexDirection: { xs: 'column-reverse', sm: 'row' },
         }}
