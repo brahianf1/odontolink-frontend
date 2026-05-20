@@ -1,8 +1,10 @@
+import type { ReactNode } from 'react';
 import {
   Box,
   Button,
   Card,
   CardContent,
+  Divider,
   LinearProgress,
   Stack,
   Typography,
@@ -19,6 +21,13 @@ interface AttentionCardProps {
   attention: AttentionResponseDTO;
   treatmentOffer?: OfferedTreatmentResponseDTO;
   onOpenDetail: (attention: AttentionResponseDTO) => void;
+  /**
+   * Optional secondary actions rendered inside the card footer below the
+   * primary "Ver detalle" CTA. Used by the attention list to surface the
+   * feedback CTAs (Ver feedback / Calificar paciente) when the attention
+   * is completed, without breaking the card boundary.
+   */
+  secondaryActions?: ReactNode;
 }
 
 /**
@@ -32,6 +41,7 @@ export default function AttentionCard({
   attention,
   treatmentOffer,
   onOpenDetail,
+  secondaryActions,
 }: AttentionCardProps) {
   const pendingAppointments =
     attention.appointments?.filter((a) => a.status === 'SCHEDULED').length ?? 0;
@@ -150,6 +160,15 @@ export default function AttentionCard({
             Ver detalle
           </Button>
         </Stack>
+
+        {secondaryActions && (
+          <>
+            <Divider sx={{ mt: 2, mb: 1.5 }} />
+            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+              {secondaryActions}
+            </Box>
+          </>
+        )}
       </CardContent>
     </Card>
   );

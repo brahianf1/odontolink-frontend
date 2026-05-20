@@ -279,48 +279,39 @@ export default function AttentionsPage() {
         <Grid container spacing={3}>
           {displayed.map((attention) => (
             <Grid size={{ xs: 12, md: 6 }} key={attention.id}>
-              <Box sx={{ position: 'relative' }}>
-                <AttentionCard
-                  attention={attention}
-                  treatmentOffer={offersByTreatmentId.get(attention.treatmentId)}
-                  onOpenDetail={handleOpenDetail}
-                />
-                {attention.status === 'COMPLETED' && (
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      gap: 1,
-                      flexWrap: 'wrap',
-                      px: 2,
-                      pb: 2,
-                      mt: -1,
-                    }}
-                  >
-                    {attention.feedbackCount !== undefined && (
-                      <Badge badgeContent={attention.feedbackCount} color="primary">
+              <AttentionCard
+                attention={attention}
+                treatmentOffer={offersByTreatmentId.get(attention.treatmentId)}
+                onOpenDetail={handleOpenDetail}
+                secondaryActions={
+                  attention.status === 'COMPLETED' ? (
+                    <>
+                      {attention.feedbackCount !== undefined && (
+                        <Badge badgeContent={attention.feedbackCount} color="primary">
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<RateReview />}
+                            onClick={() => handleOpenFeedbackView(attention)}
+                          >
+                            Ver feedback
+                          </Button>
+                        </Badge>
+                      )}
+                      {!attention.hasMyFeedback && (
                         <Button
-                          variant="outlined"
+                          variant="contained"
                           size="small"
                           startIcon={<RateReview />}
-                          onClick={() => handleOpenFeedbackView(attention)}
+                          onClick={() => handleOpenFeedbackCreate(attention)}
                         >
-                          Ver feedback
+                          Calificar paciente
                         </Button>
-                      </Badge>
-                    )}
-                    {!attention.hasMyFeedback && (
-                      <Button
-                        variant="contained"
-                        size="small"
-                        startIcon={<RateReview />}
-                        onClick={() => handleOpenFeedbackCreate(attention)}
-                      >
-                        Calificar paciente
-                      </Button>
-                    )}
-                  </Box>
-                )}
-              </Box>
+                      )}
+                    </>
+                  ) : null
+                }
+              />
             </Grid>
           ))}
         </Grid>

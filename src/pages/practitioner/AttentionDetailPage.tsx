@@ -72,6 +72,21 @@ export default function AttentionDetailPage() {
   const [cancelAppointmentTarget, setCancelAppointmentTarget] =
     useState<AppointmentResponseDTO | null>(null);
 
+  // The schedule hook keeps its own appointments copy and updates it in
+  // place after a mutation, but this page renders `attention.appointments`
+  // which is owned by useAttentionDetail. Reload the attention after every
+  // appointment mutation so the timeline reflects the new status and the
+  // termination predicate re-evaluates correctly.
+  const handleComplete = async (id: number) => {
+    await complete(id);
+    await reload();
+  };
+
+  const handleNoShow = async (id: number) => {
+    await markNoShow(id);
+    await reload();
+  };
+
   // Close the modal once the mutation succeeds — the hook already refreshed
   // the local attention state.
   useEffect(() => {
@@ -139,7 +154,7 @@ export default function AttentionDetailPage() {
                 size="small"
                 startIcon={<CheckCircleIcon />}
                 disabled={isBusy}
-                onClick={() => void complete(appt.id)}
+                onClick={() => void handleComplete(appt.id)}
               >
                 Asistió
               </Button>
@@ -148,7 +163,7 @@ export default function AttentionDetailPage() {
                 color="warning"
                 size="small"
                 disabled={isBusy}
-                onClick={() => void markNoShow(appt.id)}
+                onClick={() => void handleNoShow(appt.id)}
               >
                 No asistió
               </Button>
