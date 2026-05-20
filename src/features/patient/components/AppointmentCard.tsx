@@ -1,11 +1,12 @@
-import { Box, Button, Chip, Paper, Typography } from '@mui/material';
+import { Box, Button, Paper, Typography } from '@mui/material';
 import { Cancel as CancelIcon } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { AppointmentResponseDTO } from '../../../types/appointment.types';
+import StatusChip from '../../../components/common/StatusChip';
 import {
-  getAppointmentStatusColor,
   getAppointmentStatusLabel,
+  getAppointmentStatusTone,
 } from '../utils/appointmentStatus';
 
 interface AppointmentCardProps {
@@ -84,10 +85,9 @@ export default function AppointmentCard({
           >
             {appointment.treatmentName}
           </Typography>
-          <Chip
+          <StatusChip
             label={getAppointmentStatusLabel(appointment.status)}
-            color={getAppointmentStatusColor(appointment.status)}
-            size="small"
+            tone={getAppointmentStatusTone(appointment.status)}
           />
         </Box>
 

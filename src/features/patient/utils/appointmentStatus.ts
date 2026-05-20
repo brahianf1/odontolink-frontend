@@ -1,7 +1,6 @@
 import type { AppointmentStatus } from '../../../types/appointment.types';
 import type { AttentionStatus } from '../../../types/attention.types';
-
-type MuiStatusColor = 'default' | 'primary' | 'secondary' | 'error' | 'info' | 'success' | 'warning';
+import type { StatusTone } from '../../../components/common/StatusChip';
 
 const APPOINTMENT_LABELS: Record<AppointmentStatus, string> = {
   SCHEDULED: 'Programado',
@@ -10,7 +9,7 @@ const APPOINTMENT_LABELS: Record<AppointmentStatus, string> = {
   NO_SHOW: 'No asistió',
 };
 
-const APPOINTMENT_COLORS: Record<AppointmentStatus, MuiStatusColor> = {
+const APPOINTMENT_TONES: Record<AppointmentStatus, StatusTone> = {
   SCHEDULED: 'info',
   COMPLETED: 'success',
   CANCELLED: 'error',
@@ -23,7 +22,7 @@ const ATTENTION_LABELS: Record<AttentionStatus, string> = {
   CANCELLED: 'Cancelada',
 };
 
-const ATTENTION_COLORS: Record<AttentionStatus, MuiStatusColor> = {
+const ATTENTION_TONES: Record<AttentionStatus, StatusTone> = {
   IN_PROGRESS: 'info',
   COMPLETED: 'success',
   CANCELLED: 'error',
@@ -32,11 +31,11 @@ const ATTENTION_COLORS: Record<AttentionStatus, MuiStatusColor> = {
 export const getAppointmentStatusLabel = (status: AppointmentStatus): string =>
   APPOINTMENT_LABELS[status] ?? status;
 
-export const getAppointmentStatusColor = (status: AppointmentStatus): MuiStatusColor =>
-  APPOINTMENT_COLORS[status] ?? 'default';
+export const getAppointmentStatusTone = (status: AppointmentStatus): StatusTone =>
+  APPOINTMENT_TONES[status] ?? 'neutral';
 
 export const getAttentionStatusLabel = (status: AttentionStatus): string =>
   ATTENTION_LABELS[status] ?? status;
 
-export const getAttentionStatusColor = (status: AttentionStatus): MuiStatusColor =>
-  ATTENTION_COLORS[status] ?? 'default';
+export const getAttentionStatusTone = (status: AttentionStatus): StatusTone =>
+  ATTENTION_TONES[status] ?? 'neutral';
