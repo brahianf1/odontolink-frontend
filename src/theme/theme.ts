@@ -6,10 +6,44 @@ import type { Mode, ThemeVariant } from './variants/_types';
 import {
   customThemeDtoToVariant,
   customThemeListToVariants,
+  resolveVariant,
 } from './variants';
 import { modeFromApi } from '../services/api/appearanceApi';
 import { isValidFontPairId } from './fonts';
 import { isValidVariantId } from './variants';
+
+const PAINT_CACHE_KEY = 'odl-paint-cache';
+
+/**
+ * Persist a slim "paint cache" with the active variant's bg/fg/primary for
+ * both light and dark modes. The inline script in index.html reads it on
+ * the next page boot and applies the colours to CSS variables before the
+ * first frame paints — eliminating any flash between the browser's white
+ * default and the React-applied theme. Survives independently of the main
+ * theme-storage so it doesn't bloat the Zustand persisted slice.
+ */
+const persistPaintCache = (variant: ThemeVariant): void => {
+  try {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(
+      PAINT_CACHE_KEY,
+      JSON.stringify({
+        light: {
+          background: variant.light.background,
+          onBackground: variant.light.onBackground,
+          primary: variant.light.primary,
+        },
+        dark: {
+          background: variant.dark.background,
+          onBackground: variant.dark.onBackground,
+          primary: variant.dark.primary,
+        },
+      }),
+    );
+  } catch {
+    // localStorage unavailable (private mode quota, etc.) — silently skip.
+  }
+};
 
 export type { ThemeVariant, ThemeVariantColors, FitScore, Tier } from './variants/_types';
 export {
@@ -114,6 +148,13 @@ export const useAppTheme = () => {
     }
     return Array.from(map.values());
   }, [siteConfig?.activeCustomTheme, customThemes]);
+
+  // Persist the resolved variant's bg/fg/primary so the next page load can
+  // paint the body with the correct colours before React mounts.
+  useEffect(() => {
+    const resolved = resolveVariant(effectiveVariantId, runtimeCustomVariants);
+    persistPaintCache(resolved);
+  }, [effectiveVariantId, runtimeCustomVariants]);
 
   return useMemo(
     () => createAppTheme(effectiveVariantId, effectiveMode, effectiveFontPairId, runtimeCustomVariants),

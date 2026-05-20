@@ -7,7 +7,7 @@ export type { Mode, ThemeVariant, ThemeVariantColors, FitScore, Tier } from './_
 export { customThemeDtoToVariant, customThemeListToVariants } from './fromApi';
 
 /** Default theme variant id when there is no env override or stored preference. */
-export const DEFAULT_VARIANT_ID = 'theme-14';
+export const DEFAULT_VARIANT_ID = 'theme-26';
 
 /**
  * Assemble each generated variant (color tokens) with its hand-written

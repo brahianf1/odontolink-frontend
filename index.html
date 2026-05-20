@@ -1,12 +1,168 @@
 <!doctype html>
-<html lang="en">
+<html lang="es">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>odontolink-front</title>
+    <title>OdontoLink</title>
+    <style id="odl-boot-styles">
+      /* Pre-paint theme bootstrap.
+         The CSS variables below hold the page background/foreground/accent
+         used by the browser BEFORE React mounts. The `%ODL_*%` placeholders
+         are substituted at build time by the `odl-boot-colors` Vite plugin
+         with the resolved tokens of the variant declared in
+         VITE_THEME_VARIANT (falls back to theme-26 if unset). That makes
+         the first painted frame match the env-default theme without any
+         flash from a generic fallback.
+
+         The inline <script> further down overrides these vars on every
+         boot when a paint cache or cached siteConfig is found in
+         localStorage, eliminating the flash entirely for returning users.
+
+         Once React mounts, MUI's CssBaseline takes over the body styling
+         from the active theme; these inline rules only matter for the
+         first ~50–200 ms before that happens. */
+      :root {
+        --odl-page-bg: %ODL_BG_LIGHT%;
+        --odl-page-fg: %ODL_FG_LIGHT%;
+        --odl-page-accent: %ODL_ACCENT_LIGHT%;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --odl-page-bg: %ODL_BG_DARK%;
+          --odl-page-fg: %ODL_FG_DARK%;
+          --odl-page-accent: %ODL_ACCENT_DARK%;
+        }
+      }
+      html,
+      body {
+        margin: 0;
+        background-color: var(--odl-page-bg);
+        color: var(--odl-page-fg);
+      }
+
+      /* Boot splash — visible only for first-time / cache-cleared sessions
+         (the inline script adds `.odl-needs-splash` to <html> only then). */
+      #odl-boot-splash {
+        display: none;
+      }
+      html.odl-needs-splash #odl-boot-splash {
+        position: fixed;
+        inset: 0;
+        background: var(--odl-page-bg);
+        color: var(--odl-page-fg);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 16px;
+        z-index: 99999;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+          sans-serif;
+        transition: opacity 240ms ease-out;
+      }
+      html.odl-needs-splash #odl-boot-splash.is-hidden {
+        opacity: 0;
+        pointer-events: none;
+      }
+      html.odl-needs-splash #odl-boot-splash > .odl-splash-dot {
+        width: 36px;
+        height: 36px;
+        background: var(--odl-page-accent);
+        border-radius: 0;
+      }
+      html.odl-needs-splash #odl-boot-splash > .odl-splash-label {
+        font-size: 18px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        opacity: 0.85;
+      }
+      @media (prefers-reduced-motion: no-preference) {
+        html.odl-needs-splash #odl-boot-splash > .odl-splash-dot {
+          animation: odl-boot-pulse 1.4s ease-in-out infinite;
+        }
+      }
+      @keyframes odl-boot-pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(0.78);
+          opacity: 0.5;
+        }
+      }
+    </style>
+    <script>
+      // Synchronous pre-paint theme bootstrap. Two responsibilities:
+      //   1) Apply the cached theme's page colors to CSS variables BEFORE
+      //      the browser paints the first frame (no white flash on
+      //      refresh for returning visitors).
+      //   2) Decide whether the boot splash needs to appear at all —
+      //      only when there is no cached siteConfig to hydrate.
+      (function () {
+        var docEl = document.documentElement;
+
+        function applyColors(bg, fg, accent) {
+          if (bg) docEl.style.setProperty('--odl-page-bg', bg);
+          if (fg) docEl.style.setProperty('--odl-page-fg', fg);
+          if (accent) docEl.style.setProperty('--odl-page-accent', accent);
+        }
+
+        try {
+          var raw = localStorage.getItem('theme-storage');
+          var parsed = raw ? JSON.parse(raw) : null;
+          var state = parsed && parsed.state;
+          var sc = state && state.siteConfig;
+
+          // No cached site config → first visit / cache cleared. Show the
+          // splash as a loader, since we cannot guarantee the correct
+          // theme on the first paint.
+          if (!raw || !state || !sc) {
+            docEl.classList.add('odl-needs-splash');
+            return;
+          }
+
+          var mode = state.mode || 'system';
+          if (mode === 'system') {
+            mode = window.matchMedia('(prefers-color-scheme: dark)').matches
+              ? 'dark'
+              : 'light';
+          }
+
+          // Preferred source: the dedicated paint cache written by
+          // useAppTheme on every theme change. Covers every variant
+          // (built-in and custom alike).
+          var paintRaw = localStorage.getItem('odl-paint-cache');
+          if (paintRaw) {
+            var paint = JSON.parse(paintRaw);
+            var pc = paint && paint[mode];
+            if (pc) {
+              applyColors(pc.background, pc.onBackground, pc.primary);
+              return;
+            }
+          }
+
+          // Fallback: when there's no paint cache yet but the cached
+          // siteConfig embeds a custom theme, use its tokens directly.
+          var active = sc.activeCustomTheme;
+          if (active && active[mode]) {
+            var c = active[mode];
+            applyColors(c.background, c.onBackground, c.primary);
+          }
+        } catch (e) {
+          // Cache unreadable / corrupted — be safe and show the splash.
+          docEl.classList.add('odl-needs-splash');
+        }
+      })();
+    </script>
   </head>
   <body>
+    <div id="odl-boot-splash" aria-hidden="true" aria-busy="true">
+      <div class="odl-splash-dot"></div>
+      <div class="odl-splash-label">OdontoLink</div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

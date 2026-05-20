@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
 import { useAppTheme } from './theme/theme';
 import { useSiteAppearance } from './features/admin/appearance/hooks/useSiteAppearance';
+import { useThemeStore } from './store/themeStore';
 import PublicLayout from './components/PublicLayout';
 import AuthLayout from './components/AuthLayout';
 import HomePage from './pages/HomePage';
@@ -59,6 +61,26 @@ function App() {
   // other consumer of useSiteAppearance shares the same loaded state.
   useSiteAppearance();
   const theme = useAppTheme();
+  const siteConfig = useThemeStore((s) => s.siteConfig);
+
+  // Hide the inline boot splash (declared in index.html) once we have a
+  // siteConfig — either freshly fetched or hydrated from the localStorage
+  // cache. A 2s timeout fallback ensures the app reveals even if the
+  // backend is unreachable, so users never get stuck on the splash.
+  useEffect(() => {
+    const splash = document.getElementById('odl-boot-splash');
+    if (!splash) return;
+    const hide = () => {
+      splash.classList.add('is-hidden');
+      window.setTimeout(() => splash.remove(), 280);
+    };
+    if (siteConfig) {
+      hide();
+      return;
+    }
+    const timer = window.setTimeout(hide, 2000);
+    return () => window.clearTimeout(timer);
+  }, [siteConfig]);
 
   return (
     <ThemeProvider theme={theme}>
