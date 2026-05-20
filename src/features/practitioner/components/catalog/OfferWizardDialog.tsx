@@ -220,7 +220,6 @@ export default function OfferWizardDialog({
           pt: 2.5,
           px: { xs: 2, sm: 3 },
           bgcolor: (t) => alpha(t.palette.primary.main, 0.02),
-          borderBottom: (t) => `1px solid ${t.palette.divider}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -242,29 +241,28 @@ export default function OfferWizardDialog({
         </IconButton>
       </DialogTitle>
 
-      <Box sx={{ px: { xs: 2, sm: 3 }, pt: 2.5 }}>
-        <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
-          <Stepper activeStep={currentStep} alternativeLabel>
-            {STEPS.map((s) => (
-              <Step key={s.id}>
-                <StepLabel>{s.title}</StepLabel>
-              </Step>
-            ))}
-          </Stepper>
+      <DialogContent dividers sx={{ px: { xs: 2, sm: 3 }, py: 2.5 }}>
+        <Box sx={{ mb: 2.5 }}>
+          <Box sx={{ display: { xs: 'none', sm: 'block' } }}>
+            <Stepper activeStep={currentStep} alternativeLabel>
+              {STEPS.map((s) => (
+                <Step key={s.id}>
+                  <StepLabel>{s.title}</StepLabel>
+                </Step>
+              ))}
+            </Stepper>
+          </Box>
+          <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+            <Typography variant="body2" fontWeight={600} color="text.secondary">
+              Paso {currentStep + 1} de {STEPS.length}: {STEPS[currentStep].title}
+            </Typography>
+            <LinearProgress
+              variant="determinate"
+              value={((currentStep + 1) / STEPS.length) * 100}
+              sx={{ mt: 1, height: 6, borderRadius: 3 }}
+            />
+          </Box>
         </Box>
-        <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
-          <Typography variant="body2" fontWeight={600} color="text.secondary">
-            Paso {currentStep + 1} de {STEPS.length}: {STEPS[currentStep].title}
-          </Typography>
-          <LinearProgress
-            variant="determinate"
-            value={((currentStep + 1) / STEPS.length) * 100}
-            sx={{ mt: 1, height: 6, borderRadius: 3 }}
-          />
-        </Box>
-      </Box>
-
-      <DialogContent sx={{ px: { xs: 2, sm: 3 }, pt: 2 }}>
         {/* STEP 0 — TREATMENT */}
         {currentStep === 0 && (
           isCatalogEmpty ? (
@@ -473,7 +471,6 @@ export default function OfferWizardDialog({
           px: { xs: 2, sm: 3 },
           py: 2,
           bgcolor: (t) => alpha(t.palette.background.default, 0.5),
-          borderTop: (t) => `1px solid ${t.palette.divider}`,
           gap: 1.5,
           flexDirection: { xs: 'column-reverse', sm: 'row' },
           justifyContent: 'space-between',

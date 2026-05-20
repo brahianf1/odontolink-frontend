@@ -164,7 +164,6 @@ export default function OfferEditDialog({
           pt: 2.5,
           px: { xs: 2, sm: 3 },
           bgcolor: (t) => alpha(t.palette.primary.main, 0.02),
-          borderBottom: (t) => `1px solid ${t.palette.divider}`,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -188,7 +187,7 @@ export default function OfferEditDialog({
         </IconButton>
       </DialogTitle>
 
-      <DialogContent sx={{ px: { xs: 2, sm: 3 }, pt: 3 }}>
+      <DialogContent dividers sx={{ px: { xs: 2, sm: 3 }, py: 3 }}>
         <Stack spacing={3}>
           <Box
             sx={{
@@ -307,7 +306,6 @@ export default function OfferEditDialog({
           px: { xs: 2, sm: 3 },
           py: 2,
           bgcolor: (t) => alpha(t.palette.background.default, 0.5),
-          borderTop: (t) => `1px solid ${t.palette.divider}`,
           gap: 1.5,
           flexDirection: { xs: 'column-reverse', sm: 'row' },
         }}
