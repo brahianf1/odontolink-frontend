@@ -25,7 +25,7 @@ body {
   min-width: 320px;
   min-height: 100vh;
   width: 100%;
-  overflow-x: hidden;
+  overflow-x: clip;
 }
 
 #root {
@@ -33,4 +33,21 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+}
+
+/* View Transitions API — smooth circular reveal for the dark/light toggle.
+   The animation itself is run via Element.animate() from withViewTransition;
+   these rules just make sure the default fade does not fight the clip-path. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+::view-transition-new(root) {
+  z-index: 2;
 }

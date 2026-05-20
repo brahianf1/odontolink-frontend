@@ -29,6 +29,7 @@ import {
   ManageAccounts as ManageAccountsIcon,
   Category as CategoryIcon,
   SmartToy as SmartToyIcon,
+  Palette as PaletteIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/authStore';
@@ -311,6 +312,12 @@ export default function Sidebar({ drawerWidth, mobileOpen, onMobileClose }: Side
               icon: <SettingsIcon />,
               path: '/admin/settings',
               description: 'Parámetros del sistema'
+            },
+            {
+              text: 'Apariencia',
+              icon: <PaletteIcon />,
+              path: '/admin/appearance',
+              description: 'Tema, tipografía y modo'
             },
           ],
         },

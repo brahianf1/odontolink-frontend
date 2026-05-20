@@ -1,7 +1,9 @@
+import { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { ThemeProvider, CssBaseline } from '@mui/material';
+import { useAppTheme } from './theme/theme';
+import { useSiteAppearance } from './features/admin/appearance/hooks/useSiteAppearance';
 import { useThemeStore } from './store/themeStore';
-import { lightTheme, darkTheme } from './theme/theme';
 import PublicLayout from './components/PublicLayout';
 import AuthLayout from './components/AuthLayout';
 import HomePage from './pages/HomePage';
@@ -36,6 +38,7 @@ import AdminUsersPage from './pages/admin/AdminUsersPage';
 import AdminSettingsPage from './pages/admin/AdminSettingsPage';
 import AdminTreatmentsPage from './pages/admin/AdminTreatmentsPage';
 import AdminAiAgentPage from './pages/admin/AdminAiAgentPage';
+import AdminAppearancePage from './pages/admin/AdminAppearancePage';
 import {
   DashboardTab as AiAgentDashboardTab,
   ConfigurationTab as AiAgentConfigurationTab,
@@ -54,8 +57,30 @@ import AttentionAuditPage from './pages/supervisor/AttentionAuditPage';
 import FeedbackDashboardPage from './pages/supervisor/FeedbackDashboardPage';
 
 function App() {
-  const { mode } = useThemeStore();
-  const theme = mode === 'dark' ? darkTheme : lightTheme;
+  // Bootstrap the institutional site appearance config once per session. Any
+  // other consumer of useSiteAppearance shares the same loaded state.
+  useSiteAppearance();
+  const theme = useAppTheme();
+  const siteConfig = useThemeStore((s) => s.siteConfig);
+
+  // Hide the inline boot splash (declared in index.html) once we have a
+  // siteConfig — either freshly fetched or hydrated from the localStorage
+  // cache. A 2s timeout fallback ensures the app reveals even if the
+  // backend is unreachable, so users never get stuck on the splash.
+  useEffect(() => {
+    const splash = document.getElementById('odl-boot-splash');
+    if (!splash) return;
+    const hide = () => {
+      splash.classList.add('is-hidden');
+      window.setTimeout(() => splash.remove(), 280);
+    };
+    if (siteConfig) {
+      hide();
+      return;
+    }
+    const timer = window.setTimeout(hide, 2000);
+    return () => window.clearTimeout(timer);
+  }, [siteConfig]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -157,6 +182,7 @@ function AppRoutes() {
         <Route path="users" element={<AdminUsersPage />} />
         <Route path="treatments" element={<AdminTreatmentsPage />} />
         <Route path="settings" element={<AdminSettingsPage />} />
+        <Route path="appearance" element={<AdminAppearancePage />} />
         <Route path="ai-agent" element={<AdminAiAgentPage />}>
           <Route index element={<Navigate to="dashboard" replace />} />
           <Route path="dashboard" element={<AiAgentDashboardTab />} />

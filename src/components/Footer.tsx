@@ -2,9 +2,10 @@ import { Box, Container, Typography, Link, useTheme, IconButton, Divider, Stack 
 import { Link as RouterLink } from 'react-router-dom';
 import LocalHospitalIcon from '@mui/icons-material/LocalHospital';
 import FacebookIcon from '@mui/icons-material/Facebook';
-import TwitterIcon from '@mui/icons-material/Twitter';
 import InstagramIcon from '@mui/icons-material/Instagram';
 import LinkedInIcon from '@mui/icons-material/LinkedIn';
+import EmailIcon from '@mui/icons-material/Email';
+import PlaceIcon from '@mui/icons-material/Place';
 
 const Footer = () => {
   const theme = useTheme();
@@ -14,9 +15,10 @@ const Footer = () => {
     <Box
       component="footer"
       sx={{
-        backgroundColor: theme.palette.mode === 'dark' ? theme.palette.background.paper : '#0D7C66',
-        color: theme.palette.mode === 'dark' ? theme.palette.text.primary : '#FFFFFF',
-        py: 6,
+        backgroundColor: theme.palette.surfaces.container,
+        color: theme.palette.text.primary,
+        borderTop: `1px solid ${theme.palette.outlineVariant}`,
+        py: { xs: 6, md: 8 },
         mt: 'auto',
         width: '100%',
       }}
@@ -34,101 +36,162 @@ const Footer = () => {
             width: '100%',
           }}
         >
-          {/* Brand Section */}
+          {/* Brand */}
           <Box>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <LocalHospitalIcon sx={{ fontSize: 32, mr: 1 }} />
-              <Typography variant="h6" fontWeight={700}>
+              <LocalHospitalIcon sx={{ fontSize: 32, mr: 1, color: 'primary.main' }} />
+              <Typography variant="titleLarge" fontWeight={600}>
                 OdontoLink
               </Typography>
             </Box>
-            <Typography variant="body2" sx={{ mb: 2, opacity: 0.9 }}>
-              Sistema integral de gestión para clínicas odontológicas universitarias.
-              Conectando pacientes, practicantes y supervisores.
+            <Typography
+              variant="bodyMedium"
+              sx={{ mb: 2, color: 'text.secondary', maxWidth: 360 }}
+            >
+              Plataforma académica de la Facultad de Odontología de la Universidad Nacional de
+              Tucumán. Atención supervisada que conecta pacientes, practicantes y docentes.
             </Typography>
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <IconButton size="small" sx={{ color: 'inherit' }} aria-label="Facebook">
-                <FacebookIcon />
+            <Stack direction="row" spacing={0.5}>
+              <IconButton
+                size="small"
+                sx={{ color: 'text.secondary' }}
+                aria-label="Facebook"
+                component="a"
+                href="#"
+              >
+                <FacebookIcon fontSize="small" />
               </IconButton>
-              <IconButton size="small" sx={{ color: 'inherit' }} aria-label="Twitter">
-                <TwitterIcon />
+              <IconButton
+                size="small"
+                sx={{ color: 'text.secondary' }}
+                aria-label="Instagram"
+                component="a"
+                href="#"
+              >
+                <InstagramIcon fontSize="small" />
               </IconButton>
-              <IconButton size="small" sx={{ color: 'inherit' }} aria-label="Instagram">
-                <InstagramIcon />
+              <IconButton
+                size="small"
+                sx={{ color: 'text.secondary' }}
+                aria-label="LinkedIn"
+                component="a"
+                href="#"
+              >
+                <LinkedInIcon fontSize="small" />
               </IconButton>
-              <IconButton size="small" sx={{ color: 'inherit' }} aria-label="LinkedIn">
-                <LinkedInIcon />
-              </IconButton>
-            </Box>
+            </Stack>
           </Box>
 
-          {/* Quick Links */}
+          {/* Enlaces */}
           <Box>
-            <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
-              Enlaces Rápidos
+            <Typography variant="labelLarge" sx={{ mb: 2, display: 'block', fontWeight: 600 }}>
+              Enlaces
             </Typography>
-            <Stack spacing={1}>
-              <Link component={RouterLink} to="/" color="inherit" underline="hover" sx={{ opacity: 0.9 }}>
+            <Stack spacing={1.25}>
+              <Link
+                component={RouterLink}
+                to="/"
+                color="text.secondary"
+                underline="hover"
+                variant="bodyMedium"
+              >
                 Inicio
               </Link>
-              <Link component={RouterLink} to="/register" color="inherit" underline="hover" sx={{ opacity: 0.9 }}>
-                Registrarse
+              <Link
+                component={RouterLink}
+                to="/register/patient"
+                color="text.secondary"
+                underline="hover"
+                variant="bodyMedium"
+              >
+                Registrarse como Paciente
               </Link>
-              <Link component={RouterLink} to="/login" color="inherit" underline="hover" sx={{ opacity: 0.9 }}>
-                Iniciar Sesión
+              <Link
+                component={RouterLink}
+                to="/register/practitioner"
+                color="text.secondary"
+                underline="hover"
+                variant="bodyMedium"
+              >
+                Registrarse como Estudiante
+              </Link>
+              <Link
+                component={RouterLink}
+                to="/login"
+                color="text.secondary"
+                underline="hover"
+                variant="bodyMedium"
+              >
+                Iniciar sesión
               </Link>
             </Stack>
           </Box>
 
-          {/* For Patients */}
+          {/* Para Pacientes */}
           <Box>
-            <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
-              Para Pacientes
+            <Typography variant="labelLarge" sx={{ mb: 2, display: 'block', fontWeight: 600 }}>
+              Para pacientes
             </Typography>
-            <Stack spacing={1}>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                • Consulta tratamientos disponibles
+            <Stack spacing={1.25}>
+              <Typography variant="bodyMedium" color="text.secondary">
+                Atención gratuita y supervisada
               </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                • Reserva tu turno online
+              <Typography variant="bodyMedium" color="text.secondary">
+                Reserva turnos sin WhatsApp
               </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                • Seguimiento de tu historial
+              <Typography variant="bodyMedium" color="text.secondary">
+                Comunicación segura por chat
               </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                • Comunicación directa
+              <Typography variant="bodyMedium" color="text.secondary">
+                Historial de atenciones privadas
               </Typography>
             </Stack>
           </Box>
 
-          {/* Contact */}
+          {/* Contacto */}
           <Box>
-            <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+            <Typography variant="labelLarge" sx={{ mb: 2, display: 'block', fontWeight: 600 }}>
               Contacto
             </Typography>
-            <Stack spacing={1}>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Email: soporte@odontolink.com
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Universidad Tecnológica Nacional
-              </Typography>
-              <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                Facultad Regional Tucumán
+            <Stack spacing={1.25}>
+              <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                <PlaceIcon sx={{ fontSize: 18, color: 'text.secondary', mt: 0.25 }} />
+                <Typography variant="bodyMedium" color="text.secondary">
+                  Av. Benjamín Aráoz 800
+                  <br />
+                  San Miguel de Tucumán
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <EmailIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                <Typography variant="bodyMedium" color="text.secondary">
+                  contacto@odontolink.unt.edu.ar
+                </Typography>
+              </Box>
+              <Typography variant="bodyMedium" color="text.secondary">
+                Facultad de Odontología — UNT
               </Typography>
             </Stack>
           </Box>
         </Box>
 
-        <Divider sx={{ my: 3, borderColor: 'rgba(255, 255, 255, 0.2)' }} />
+        <Divider sx={{ my: 4, borderColor: theme.palette.outlineVariant }} />
 
-        {/* Copyright */}
-        <Box sx={{ textAlign: 'center' }}>
-          <Typography variant="body2" sx={{ opacity: 0.8 }}>
-            © {currentYear} OdontoLink. Todos los derechos reservados.
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: { xs: 'column', md: 'row' },
+            justifyContent: 'space-between',
+            alignItems: { xs: 'center', md: 'center' },
+            gap: 1,
+            textAlign: { xs: 'center', md: 'left' },
+          }}
+        >
+          <Typography variant="bodySmall" color="text.secondary">
+            © {currentYear} OdontoLink — Proyecto institucional FOUNT-UNT.
           </Typography>
-          <Typography variant="body2" sx={{ opacity: 0.8, mt: 0.5 }}>
-            Desarrollado por Grupo 6 - Proyecto Final ISI
+          <Typography variant="bodySmall" color="text.secondary">
+            Universidad Nacional de Tucumán · Facultad de Odontología
           </Typography>
         </Box>
       </Container>

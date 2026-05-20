@@ -1,213 +1,177 @@
-import { createTheme } from '@mui/material/styles';
-import type { ThemeOptions } from '@mui/material/styles';
+import { useEffect, useMemo, useState } from 'react';
+import { useThemeStore } from '../store/themeStore';
+import { useAuthStore } from '../store/authStore';
+import { createAppTheme } from './createAppTheme';
+import type { Mode, ThemeVariant } from './variants/_types';
+import {
+  customThemeDtoToVariant,
+  customThemeListToVariants,
+  resolveVariant,
+} from './variants';
+import { modeFromApi } from '../services/api/appearanceApi';
+import { isValidFontPairId } from './fonts';
+import { isValidVariantId } from './variants';
 
-// Color palette for Odontolink - Professional dental clinic theme
-const primaryColor = {
-  main: '#0D7C66', // Teal green - represents health, cleanliness
-  light: '#3D9A87',
-  dark: '#065D4E',
-  contrastText: '#FFFFFF',
+const PAINT_CACHE_KEY = 'odl-paint-cache';
+
+/**
+ * Persist a slim "paint cache" with the active variant's bg/fg/primary for
+ * both light and dark modes. The inline script in index.html reads it on
+ * the next page boot and applies the colours to CSS variables before the
+ * first frame paints — eliminating any flash between the browser's white
+ * default and the React-applied theme. Survives independently of the main
+ * theme-storage so it doesn't bloat the Zustand persisted slice.
+ */
+const persistPaintCache = (variant: ThemeVariant): void => {
+  try {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(
+      PAINT_CACHE_KEY,
+      JSON.stringify({
+        light: {
+          background: variant.light.background,
+          onBackground: variant.light.onBackground,
+          primary: variant.light.primary,
+        },
+        dark: {
+          background: variant.dark.background,
+          onBackground: variant.dark.onBackground,
+          primary: variant.dark.primary,
+        },
+      }),
+    );
+  } catch {
+    // localStorage unavailable (private mode quota, etc.) — silently skip.
+  }
 };
 
-const secondaryColor = {
-  main: '#41B3A2', // Light teal - fresh, modern
-  light: '#6BC4B5',
-  dark: '#2E8577',
-  contrastText: '#FFFFFF',
+export type { ThemeVariant, ThemeVariantColors, FitScore, Tier } from './variants/_types';
+export {
+  themeVariants,
+  themeVariantList,
+  officialVariants,
+  experimentalVariants,
+  recommendedVariants,
+  getVariant,
+  resolveVariant,
+  isValidVariantId,
+  DEFAULT_VARIANT_ID,
+} from './variants';
+export type { FontPair } from './fonts';
+export {
+  fontPairs,
+  fontPairList,
+  getFontPair,
+  isValidFontPairId,
+  DEFAULT_FONT_PAIR_ID,
+} from './fonts';
+
+const prefersDark = () =>
+  typeof window !== 'undefined' &&
+  window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+/**
+ * Hook that builds the active MUI Theme from the themeStore (variant + mode +
+ * fontPair) and the site appearance config fetched from the backend.
+ *
+ * Resolution policy:
+ *
+ * - The user is admin → the local LS values (themeVariant, fontPair) win.
+ *   That's how the admin previews themes without affecting other users.
+ * - The user is not admin → ignore LS variant/fontPair entirely and use the
+ *   site config from the backend (lock-institutional model). This honours
+ *   the "Lock institucional" decision from the appearance planning.
+ * - In both cases, `mode` (light/dark/system) is per-user via LS.
+ *
+ * Custom themes are resolved through a runtime list that merges the active
+ * custom theme embedded in `siteConfig.activeCustomTheme` (always present
+ * for any user when the institutional theme is custom) with the admin-only
+ * full custom themes catalog.
+ */
+export const useAppTheme = () => {
+  const mode = useThemeStore((s) => s.mode);
+  const themeVariant = useThemeStore((s) => s.themeVariant);
+  const fontPair = useThemeStore((s) => s.fontPair);
+  const siteConfig = useThemeStore((s) => s.siteConfig);
+  const customThemes = useThemeStore((s) => s.customThemes);
+  // Backend stores roles with the Spring Security `ROLE_` prefix (matches
+  // the pattern used by ProtectedRoute and Sidebar). Strip before comparing.
+  const isAdmin = useAuthStore(
+    (s) => s.user?.role?.replace('ROLE_', '') === 'ADMIN',
+  );
+
+  const [systemDark, setSystemDark] = useState<boolean>(prefersDark);
+  useEffect(() => {
+    if (mode !== 'system') return;
+    const mq = window.matchMedia('(prefers-color-scheme: dark)');
+    const onChange = (e: MediaQueryListEvent) => setSystemDark(e.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, [mode]);
+
+  // Effective mode: 'system' falls back to OS preference.
+  const effectiveMode: Mode =
+    mode === 'system'
+      ? systemDark
+        ? 'dark'
+        : 'light'
+      : mode;
+
+  // Effective variant and font pair — admins can preview locally, everyone
+  // else gets what the site config says.
+  const siteVariantId = siteConfig?.themeVariantId;
+  const siteFontPairId = siteConfig?.fontPairId;
+
+  const effectiveVariantId = isAdmin
+    ? themeVariant
+    : siteVariantId && (siteVariantId.startsWith('custom-') || isValidVariantId(siteVariantId))
+      ? siteVariantId
+      : themeVariant;
+
+  const effectiveFontPairId = isAdmin
+    ? fontPair
+    : siteFontPairId && isValidFontPairId(siteFontPairId)
+      ? siteFontPairId
+      : fontPair;
+
+  // Build the runtime list of custom variants for createAppTheme to resolve
+  // against. Dedupe by id (slug) — activeCustomTheme is often also in the
+  // admin's customThemes list.
+  const runtimeCustomVariants = useMemo<ThemeVariant[]>(() => {
+    const map = new Map<string, ThemeVariant>();
+    if (siteConfig?.activeCustomTheme) {
+      const v = customThemeDtoToVariant(siteConfig.activeCustomTheme);
+      map.set(v.id, v);
+    }
+    for (const v of customThemeListToVariants(customThemes)) {
+      if (!map.has(v.id)) map.set(v.id, v);
+    }
+    return Array.from(map.values());
+  }, [siteConfig?.activeCustomTheme, customThemes]);
+
+  // Persist the resolved variant's bg/fg/primary so the next page load can
+  // paint the body with the correct colours before React mounts.
+  useEffect(() => {
+    const resolved = resolveVariant(effectiveVariantId, runtimeCustomVariants);
+    persistPaintCache(resolved);
+  }, [effectiveVariantId, runtimeCustomVariants]);
+
+  return useMemo(
+    () => createAppTheme(effectiveVariantId, effectiveMode, effectiveFontPairId, runtimeCustomVariants),
+    [effectiveVariantId, effectiveMode, effectiveFontPairId, runtimeCustomVariants],
+  );
 };
 
-const errorColor = {
-  main: '#D32F2F',
-  light: '#E57373',
-  dark: '#C62828',
+/**
+ * Helper: returns the *default* mode for first-time visitors based on the
+ * site config (`SYSTEM` from the server resolves to OS preference). Used at
+ * bootstrap if the user has not stored a `mode` preference yet.
+ */
+export const resolveDefaultMode = (apiMode: string | undefined): Mode => {
+  if (!apiMode) return 'light';
+  const lower = modeFromApi(apiMode as 'LIGHT' | 'DARK' | 'SYSTEM');
+  if (lower === 'system') {
+    return prefersDark() ? 'dark' : 'light';
+  }
+  return lower;
 };
-
-const warningColor = {
-  main: '#ED6C02',
-  light: '#FF9800',
-  dark: '#E65100',
-};
-
-const infoColor = {
-  main: '#0288D1',
-  light: '#03A9F4',
-  dark: '#01579B',
-};
-
-const successColor = {
-  main: '#2E7D32',
-  light: '#4CAF50',
-  dark: '#1B5E20',
-};
-
-// Light theme configuration
-const lightThemeOptions: ThemeOptions = {
-  palette: {
-    mode: 'light',
-    primary: primaryColor,
-    secondary: secondaryColor,
-    error: errorColor,
-    warning: warningColor,
-    info: infoColor,
-    success: successColor,
-    background: {
-      default: '#F5F7FA',
-      paper: '#FFFFFF',
-    },
-    text: {
-      primary: '#1A202C',
-      secondary: '#4A5568',
-    },
-  },
-  typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
-    h1: {
-      fontSize: '2.5rem',
-      fontWeight: 700,
-      lineHeight: 1.2,
-    },
-    h2: {
-      fontSize: '2rem',
-      fontWeight: 700,
-      lineHeight: 1.3,
-    },
-    h3: {
-      fontSize: '1.75rem',
-      fontWeight: 600,
-      lineHeight: 1.3,
-    },
-    h4: {
-      fontSize: '1.5rem',
-      fontWeight: 600,
-      lineHeight: 1.4,
-    },
-    h5: {
-      fontSize: '1.25rem',
-      fontWeight: 600,
-      lineHeight: 1.4,
-    },
-    h6: {
-      fontSize: '1rem',
-      fontWeight: 600,
-      lineHeight: 1.5,
-    },
-    body1: {
-      fontSize: '1rem',
-      lineHeight: 1.6,
-    },
-    body2: {
-      fontSize: '0.875rem',
-      lineHeight: 1.6,
-    },
-    button: {
-      textTransform: 'none',
-      fontWeight: 600,
-    },
-  },
-  shape: {
-    borderRadius: 0,
-  },
-  components: {
-    MuiButton: {
-      styleOverrides: {
-        root: {
-          borderRadius: 0,
-          padding: '10px 24px',
-          fontSize: '1rem',
-          boxShadow: 'none',
-          '&:hover': {
-            boxShadow: '0 2px 8px rgba(13, 124, 102, 0.15)',
-          },
-        },
-        contained: {
-          '&:hover': {
-            boxShadow: '0 4px 12px rgba(13, 124, 102, 0.25)',
-          },
-        },
-      },
-    },
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          borderRadius: 0,
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
-          border: '1px solid rgba(0, 0, 0, 0.08)',
-          '&:hover': {
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-          },
-        },
-      },
-    },
-    MuiTextField: {
-      styleOverrides: {
-        root: {
-          '& .MuiOutlinedInput-root': {
-            borderRadius: 0,
-          },
-        },
-      },
-    },
-    MuiPaper: {
-      styleOverrides: {
-        root: {
-          borderRadius: 0,
-        },
-        elevation1: {
-          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.12)',
-        },
-        elevation2: {
-          boxShadow: '0 2px 6px rgba(0, 0, 0, 0.12)',
-        },
-        elevation3: {
-          boxShadow: '0 3px 10px rgba(0, 0, 0, 0.15)',
-        },
-      },
-    },
-    MuiDrawer: {
-      styleOverrides: {
-        paper: {
-          borderRadius: 0,
-        },
-      },
-    },
-    MuiAppBar: {
-      styleOverrides: {
-        root: {
-          borderRadius: 0,
-        },
-      },
-    },
-  },
-};
-
-// Dark theme configuration
-const darkThemeOptions: ThemeOptions = {
-  palette: {
-    mode: 'dark',
-    primary: {
-      main: '#3D9A87',
-      light: '#5FB3A1',
-      dark: '#2E7D6C',
-      contrastText: '#FFFFFF',
-    },
-    secondary: secondaryColor,
-    error: errorColor,
-    warning: warningColor,
-    info: infoColor,
-    success: successColor,
-    background: {
-      default: '#0F172A',
-      paper: '#1E293B',
-    },
-    text: {
-      primary: '#F1F5F9',
-      secondary: '#CBD5E1',
-    },
-  },
-  typography: lightThemeOptions.typography,
-  shape: lightThemeOptions.shape,
-  components: lightThemeOptions.components,
-};
-
-export const lightTheme = createTheme(lightThemeOptions);
-export const darkTheme = createTheme(darkThemeOptions);

@@ -1,0 +1,235 @@
+import type { FitScore, Tier } from './_types';
+
+export interface ThemeMetadata {
+  name: string;
+  description: string;
+  mood: string;
+  fitScore: FitScore;
+  tier: Tier;
+  defaultFontPair: string;
+}
+
+/**
+ * Curated metadata for every variant. Hand-written based on visual review;
+ * fitScore reflects suitability for an institutional healthcare/academic
+ * platform (FOUNT-UNT). `tier: experimental` themes work but are off-brand
+ * and the admin panel hides them behind a toggle.
+ */
+export const themeMetadata: Record<string, ThemeMetadata> = {
+  'odontolink-original': {
+    name: 'OdontoLink Original',
+    description: 'M3 Expressive teal — the original institutional palette.',
+    mood: 'Healthcare teal, algorithmic M3',
+    fitScore: 5,
+    tier: 'official',
+    defaultFontPair: 'inter-source-jetbrains',
+  },
+  'theme-1': {
+    name: 'Warm Amber',
+    description: 'Golden amber with neutral grays. Warm and grounded.',
+    mood: 'Warm amber, traditional',
+    fitScore: 4,
+    tier: 'official',
+    defaultFontPair: 'inter-source-jetbrains',
+  },
+  'theme-2': {
+    name: 'Purple Muse',
+    description: 'Soft elegant purple with subtle gradients.',
+    mood: 'Elegant purple, editorial',
+    fitScore: 3,
+    tier: 'official',
+    defaultFontPair: 'manrope-inter-jetbrains',
+  },
+  'theme-3': {
+    name: 'Violet Focus',
+    description: 'Deep violet with high-contrast dark mode.',
+    mood: 'Deep violet, technical',
+    fitScore: 4,
+    tier: 'official',
+    defaultFontPair: 'inter-source-jetbrains',
+  },
+  'theme-4': {
+    name: 'Candy Sunset',
+    description: 'Vibrant pink/cream — playful but low contrast in dark.',
+    mood: 'Vibrant pink-to-cream',
+    fitScore: 1,
+    tier: 'experimental',
+    defaultFontPair: 'outfit-inter-jetbrains',
+  },
+  'theme-5': {
+    name: 'Warm Toast',
+    description: 'Muted beige and brown for a grounded, cozy look.',
+    mood: 'Warm beige-brown, cozy',
+    fitScore: 4,
+    tier: 'official',
+    defaultFontPair: 'inter-source-jetbrains',
+  },
+  'theme-6': {
+    name: 'Tech Purple',
+    description: 'Vibrant violet with technical typeface choices.',
+    mood: 'Vibrant purple, modern',
+    fitScore: 3,
+    tier: 'official',
+    defaultFontPair: 'outfit-inter-jetbrains',
+  },
+  'theme-7': {
+    name: 'Soft Indigo',
+    description: 'Accessible indigo with generous radius and warm grays.',
+    mood: 'Warm indigo, accessible',
+    fitScore: 4,
+    tier: 'official',
+    defaultFontPair: 'plus-jakarta-inter-jetbrains',
+  },
+  'theme-8': {
+    name: 'Blue Slate',
+    description: 'Classic indigo-blue, professional and high-contrast.',
+    mood: 'Cool blue, institutional',
+    fitScore: 5,
+    tier: 'official',
+    defaultFontPair: 'inter-source-jetbrains',
+  },
+  'theme-9': {
+    name: 'Purple Lavender',
+    description: 'Clean minimal lavender with strong type hierarchy.',
+    mood: 'Soft lavender, minimal',
+    fitScore: 4,
+    tier: 'official',
+    defaultFontPair: 'inter-source-jetbrains',
+  },
+  'theme-10': {
+    name: 'Black Minimal',
+    description: 'Ultra-high contrast monochrome. Editorial / brutalist.',
+    mood: 'High-contrast minimal',
+    fitScore: 2,
+    tier: 'experimental',
+    defaultFontPair: 'geist-geist',
+  },
+  'theme-11': {
+    name: 'Military Rust',
+    description: 'Harsh red and green with Oxanium display — gaming-adjacent.',
+    mood: 'Harsh red-green, gaming vibe',
+    fitScore: 1,
+    tier: 'experimental',
+    defaultFontPair: 'outfit-inter-jetbrains',
+  },
+  'theme-12': {
+    name: 'Neutral Gray',
+    description: 'Muted grayscale with subtle accent.',
+    mood: 'Muted gray, accessible',
+    fitScore: 3,
+    tier: 'official',
+    defaultFontPair: 'inter-source-jetbrains',
+  },
+  'theme-13': {
+    name: 'Purple Royal',
+    description: 'Rich royal purple with literary serif.',
+    mood: 'Rich purple, literary',
+    fitScore: 3,
+    tier: 'official',
+    defaultFontPair: 'manrope-inter-jetbrains',
+  },
+  'theme-14': {
+    name: 'Sky Blue',
+    description: 'Universally trusted clinical blue with crisp whites and deep blacks.',
+    mood: 'Classic sky blue, trustworthy',
+    fitScore: 5,
+    tier: 'official',
+    defaultFontPair: 'inter-source-jetbrains',
+  },
+  'theme-15': {
+    name: 'Grayscale Mono',
+    description: 'All-monospace grayscale — feels like a developer tool.',
+    mood: 'Monospace-only minimal',
+    fitScore: 2,
+    tier: 'experimental',
+    defaultFontPair: 'geist-geist',
+  },
+  'theme-16': {
+    name: 'Neon Pop',
+    description: 'Bright neon red on black. Unreadable at scale.',
+    mood: 'Neon bright, chaotic',
+    fitScore: 1,
+    tier: 'experimental',
+    defaultFontPair: 'dm-sans-dm-mono',
+  },
+  'theme-17': {
+    name: 'Green Woodland',
+    description: 'Fresh nature-inspired green with playful serifs.',
+    mood: 'Fresh green, nature-inspired',
+    fitScore: 3,
+    tier: 'official',
+    defaultFontPair: 'inter-source-jetbrains',
+  },
+  'theme-18': {
+    name: 'Emerald Fresh',
+    description: 'Vibrant emerald, signals health and vitality.',
+    mood: 'Vibrant emerald, organic',
+    fitScore: 4,
+    tier: 'official',
+    defaultFontPair: 'plus-jakarta-inter-jetbrains',
+  },
+  'theme-19': {
+    name: 'Neutral Charcoal',
+    description: 'Ultra-neutral near-black on pure white. Maximum credibility.',
+    mood: 'Ultra-neutral, elegant',
+    fitScore: 5,
+    tier: 'official',
+    defaultFontPair: 'geist-geist',
+  },
+  'theme-20': {
+    name: 'Soft Lavender Rounded',
+    description: 'Dreamy purple with oversized radius. Light and feminine.',
+    mood: 'Dreamy purple',
+    fitScore: 2,
+    tier: 'experimental',
+    defaultFontPair: 'manrope-inter-jetbrains',
+  },
+  'theme-21': {
+    name: 'Indie Art',
+    description: 'All-black background with high-saturation accents.',
+    mood: 'Indie bold, artistic',
+    fitScore: 2,
+    tier: 'experimental',
+    defaultFontPair: 'outfit-inter-jetbrains',
+  },
+  'theme-22': {
+    name: 'Minty Fresh',
+    description: 'Fresh mint accent with clean modern type.',
+    mood: 'Fresh mint, modern',
+    fitScore: 3,
+    tier: 'official',
+    defaultFontPair: 'outfit-inter-jetbrains',
+  },
+  'theme-23': {
+    name: 'Twitter Blue',
+    description: 'Social-media blue. Trendy but will date quickly.',
+    mood: 'Social media blue',
+    fitScore: 2,
+    tier: 'experimental',
+    defaultFontPair: 'inter-source-jetbrains',
+  },
+  'theme-24': {
+    name: 'Vivid Purple',
+    description: 'Vibrant modern purple with extra-large radius.',
+    mood: 'Vibrant modern purple',
+    fitScore: 3,
+    tier: 'official',
+    defaultFontPair: 'plus-jakarta-inter-jetbrains',
+  },
+  'theme-25': {
+    name: 'Teal Tech',
+    description: 'Professional teal-blue, healthcare-adjacent color language.',
+    mood: 'Professional teal-blue',
+    fitScore: 5,
+    tier: 'official',
+    defaultFontPair: 'inter-source-jetbrains',
+  },
+  'theme-26': {
+    name: 'Mint Green',
+    description: 'Healthcare-standard green, fresh and clean.',
+    mood: 'Healthcare green, clean',
+    fitScore: 5,
+    tier: 'official',
+    defaultFontPair: 'outfit-inter-jetbrains',
+  },
+};
