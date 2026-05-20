@@ -30,6 +30,10 @@ import {
 } from '@mui/icons-material';
 import { registerPractitioner } from '../services/api/authService';
 import type { RegisterPractitionerRequestDTO } from '../types/auth.types';
+import {
+  getMaxBirthDate,
+  validateBirthDateFull,
+} from '../utils/birthDateValidation';
 
 const RegisterPractitionerPage = () => {
   const theme = useTheme();
@@ -79,6 +83,12 @@ const RegisterPractitionerPage = () => {
 
     if (!/^[0-9]{7,8}$/.test(formData.dni)) {
       setError('El DNI debe contener 7 u 8 dígitos');
+      return;
+    }
+
+    const birthDateError = validateBirthDateFull(formData.birthDate ?? '');
+    if (birthDateError) {
+      setError(birthDateError);
       return;
     }
 
@@ -224,6 +234,11 @@ const RegisterPractitionerPage = () => {
                       onChange={handleChange}
                       disabled={loading}
                       InputLabelProps={{ shrink: true }}
+                      inputProps={{ max: getMaxBirthDate() }}
+                      error={Boolean(validateBirthDateFull(formData.birthDate ?? ''))}
+                      helperText={
+                        validateBirthDateFull(formData.birthDate ?? '') ?? ''
+                      }
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">

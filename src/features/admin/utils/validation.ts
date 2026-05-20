@@ -45,13 +45,10 @@ export const validatePhone = (value: string): string | null => {
   return null;
 };
 
-export const validateBirthDate = (value: string): string | null => {
-  if (!value) return null;
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return 'Fecha inválida';
-  if (parsed.getTime() > Date.now()) return 'La fecha no puede ser futura';
-  return null;
-};
+import { validateBirthDateFull } from '../../../utils/birthDateValidation';
+
+export const validateBirthDate = (value: string): string | null =>
+  validateBirthDateFull(value);
 
 export const validateStudentId = (value: string): string | null => {
   if (!isNonEmpty(value)) return 'El legajo es obligatorio';

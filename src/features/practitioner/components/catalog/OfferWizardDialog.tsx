@@ -378,6 +378,7 @@ export default function OfferWizardDialog({
                       fullWidth
                       required
                       InputLabelProps={{ shrink: true }}
+                      inputProps={{ min: TODAY() }}
                       error={!!fieldState.error}
                       helperText={fieldState.error?.message}
                     />

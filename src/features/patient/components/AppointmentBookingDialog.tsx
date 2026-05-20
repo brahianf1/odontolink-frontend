@@ -85,10 +85,16 @@ export default function AppointmentBookingDialog({
   const offerEnd = treatment.offerEndDate ? parseISO(treatment.offerEndDate) : null;
 
   const dateString = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
-  const { slots, loading: slotsLoading, error: slotsError } = useAvailableSlots(
+  const { slots: rawSlots, loading: slotsLoading, error: slotsError } = useAvailableSlots(
     open && step === 'time' ? treatment.id : null,
     dateString
   );
+
+  const slots = useMemo(() => {
+    if (!selectedDate || !isSameDay(selectedDate, new Date())) return rawSlots;
+    const now = Date.now();
+    return rawSlots.filter((slot) => parseISO(slot).getTime() > now);
+  }, [rawSlots, selectedDate]);
 
   const availableDaysOfWeek = useMemo(
     () => new Set(treatment.availabilitySlots.map((slot) => DAY_MAP[slot.dayOfWeek])),

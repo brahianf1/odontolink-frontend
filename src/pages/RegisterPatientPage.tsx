@@ -29,6 +29,10 @@ import {
 } from '@mui/icons-material';
 import { registerPatient } from '../services/api/authService';
 import type { RegisterPatientRequestDTO } from '../types/auth.types';
+import {
+  getMaxBirthDate,
+  validateBirthDateFull,
+} from '../utils/birthDateValidation';
 
 const RegisterPatientPage = () => {
   const theme = useTheme();
@@ -78,6 +82,12 @@ const RegisterPatientPage = () => {
 
     if (!/^[0-9]{7,8}$/.test(formData.dni)) {
       setError('El DNI debe contener 7 u 8 dígitos');
+      return;
+    }
+
+    const birthDateError = validateBirthDateFull(formData.birthDate ?? '');
+    if (birthDateError) {
+      setError(birthDateError);
       return;
     }
 
@@ -217,6 +227,11 @@ const RegisterPatientPage = () => {
                       onChange={handleChange}
                       disabled={loading}
                       InputLabelProps={{ shrink: true }}
+                      inputProps={{ max: getMaxBirthDate() }}
+                      error={Boolean(validateBirthDateFull(formData.birthDate ?? ''))}
+                      helperText={
+                        validateBirthDateFull(formData.birthDate ?? '') ?? ''
+                      }
                       InputProps={{
                         startAdornment: (
                           <InputAdornment position="start">

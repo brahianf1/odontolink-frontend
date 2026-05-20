@@ -80,6 +80,19 @@ export default function OfferEditDialog({
   const submit = async (values: FormValues) => {
     if (!offer) return;
 
+    const originalStart = offer.offerStartDate ?? '';
+    const today = new Date().toISOString().split('T')[0];
+    if (
+      values.offerStartDate &&
+      values.offerStartDate !== originalStart &&
+      values.offerStartDate < today
+    ) {
+      setError('offerStartDate', {
+        message: 'La fecha de inicio no puede moverse al pasado.',
+      });
+      return;
+    }
+
     if (values.offerStartDate && values.offerEndDate &&
         new Date(values.offerStartDate) > new Date(values.offerEndDate)) {
       setError('offerEndDate', { message: 'La fecha de fin debe ser posterior al inicio' });

@@ -22,20 +22,33 @@ export interface BatchLinkPractitionersRequestDTO {
   practitionerIds: number[];
 }
 
+export type FeedbackDirection =
+  | 'PATIENT_TO_PRACTITIONER'
+  | 'PRACTITIONER_TO_PATIENT';
+
 export interface FeedbackDashboardQuery {
   practitionerId?: number;
   patientId?: number;
   treatmentId?: number;
   startDate?: string;
   endDate?: string;
+  direction?: FeedbackDirection;
   page?: number;
   size?: number;
-  sortBy?: string;
+  sortBy?:
+    | 'createdAt'
+    | 'rating'
+    | 'practitionerId'
+    | 'patientId'
+    | 'treatmentId'
+    | 'id';
   sortDirection?: 'ASC' | 'DESC';
 }
 
 export interface FeedbackDashboardResponseDTO {
   feedbacks: PageResponse<FeedbackResponseDTO>;
-  averageRating: number;
-  totalFeedbacksCount: number;
+  averageRatingPatientToPractitioner: number;
+  totalPatientToPractitioner: number;
+  averageRatingPractitionerToPatient: number;
+  totalPractitionerToPatient: number;
 }

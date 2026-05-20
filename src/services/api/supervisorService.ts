@@ -92,6 +92,7 @@ export const getFeedbackDashboard = async (
         treatmentId: query.treatmentId,
         startDate: query.startDate || undefined,
         endDate: query.endDate || undefined,
+        direction: query.direction || undefined,
         page: query.page,
         size: query.size,
         sortBy: query.sortBy || undefined,

@@ -53,14 +53,22 @@ import {
   reactivateUser,
 } from '../../services/api/adminService';
 import type { AdminUserDTO } from '../../types/admin.types';
+import { useAuthStore } from '../../store/authStore';
+import { mapAdminError } from '../../features/admin/utils/adminApiErrors';
 
 interface FeedbackState {
   open: boolean;
   severity: 'success' | 'error' | 'info';
   message: string;
+  autoHideDuration?: number | null;
 }
 
-const INITIAL_FEEDBACK: FeedbackState = { open: false, severity: 'success', message: '' };
+const INITIAL_FEEDBACK: FeedbackState = {
+  open: false,
+  severity: 'success',
+  message: '',
+  autoHideDuration: 4500,
+};
 
 const formatDate = (value?: string | null): string => {
   if (!value) return '—';
@@ -102,6 +110,7 @@ export default function AdminUsersPage() {
   const [feedback, setFeedback] = useState<FeedbackState>(INITIAL_FEEDBACK);
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
+  const currentUserId = useAuthStore((state) => state.user?.userId);
 
   const paginated = useMemo(() => {
     const start = page * rowsPerPage;
@@ -167,12 +176,17 @@ export default function AdminUsersPage() {
           confirm.action === 'deactivate'
             ? 'Usuario dado de baja correctamente.'
             : 'Usuario reactivado correctamente.',
+        autoHideDuration: 4500,
       });
       setConfirm({ open: false, user: null, action: 'deactivate' });
     } catch (err) {
-      const message =
-        (err as { message?: string })?.message || 'No se pudo completar la operación.';
-      setFeedback({ open: true, severity: 'error', message });
+      const mapped = mapAdminError(err, 'No se pudo completar la operación.');
+      setFeedback({
+        open: true,
+        severity: 'error',
+        message: mapped.message,
+        autoHideDuration: mapped.isLastAdminGuard ? 10000 : 4500,
+      });
     } finally {
       setConfirmLoading(false);
     }
@@ -277,11 +291,29 @@ export default function AdminUsersPage() {
                     </IconButton>
                   </Tooltip>
                   {user.active ? (
-                    <Tooltip title="Dar de baja">
-                      <IconButton size="small" color="error" onClick={() => openDeactivate(user)}>
-                        <PersonOffIcon fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
+                    (() => {
+                      const isSelf = user.id === currentUserId;
+                      return (
+                        <Tooltip
+                          title={
+                            isSelf
+                              ? 'No puedes desactivarte a ti mismo'
+                              : 'Dar de baja'
+                          }
+                        >
+                          <span>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => openDeactivate(user)}
+                              disabled={isSelf}
+                            >
+                              <PersonOffIcon fontSize="small" />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      );
+                    })()
                   ) : (
                     <Tooltip title="Reactivar">
                       <IconButton size="small" color="success" onClick={() => openReactivate(user)}>
@@ -341,16 +373,30 @@ export default function AdminUsersPage() {
                 Editar
               </Button>
               {user.active ? (
-                <Button
-                  size="small"
-                  variant="outlined"
-                  color="error"
-                  startIcon={<PersonOffIcon fontSize="small" />}
-                  onClick={() => openDeactivate(user)}
-                  fullWidth
-                >
-                  Baja
-                </Button>
+                (() => {
+                  const isSelf = user.id === currentUserId;
+                  return (
+                    <Tooltip
+                      title={isSelf ? 'No puedes desactivarte a ti mismo' : ''}
+                      disableHoverListener={!isSelf}
+                      disableFocusListener={!isSelf}
+                    >
+                      <span style={{ flex: 1, display: 'flex' }}>
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          color="error"
+                          startIcon={<PersonOffIcon fontSize="small" />}
+                          onClick={() => openDeactivate(user)}
+                          disabled={isSelf}
+                          fullWidth
+                        >
+                          Baja
+                        </Button>
+                      </span>
+                    </Tooltip>
+                  );
+                })()
               ) : (
                 <Button
                   size="small"
@@ -506,7 +552,7 @@ export default function AdminUsersPage() {
 
       <Snackbar
         open={feedback.open}
-        autoHideDuration={4500}
+        autoHideDuration={feedback.autoHideDuration ?? 4500}
         onClose={handleCloseFeedback}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
       >
