@@ -32,7 +32,14 @@ export function useMyAttentions(): UseMyAttentionsResult {
         completed.map(async (attention) => {
           try {
             const list = await patientService.getFeedbackForAttention(attention.id);
-            return [attention.id, list?.[0] ?? null] as const;
+            // The endpoint returns feedback in both directions for the same
+            // attention (patient -> practitioner and practitioner -> patient).
+            // We only want the one the patient submitted; otherwise the UI
+            // mistakes the practitioner's rating for the patient's own and
+            // hides the "Calificar" CTA.
+            const own =
+              list?.find((f) => String(f.submittedByRole).toUpperCase() === 'PATIENT') ?? null;
+            return [attention.id, own] as const;
           } catch {
             return [attention.id, null] as const;
           }
