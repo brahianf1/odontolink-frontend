@@ -21,12 +21,12 @@ import {
   Delete,
   Edit,
   EventRepeat,
+  InfoOutlined,
   MoreVert,
   PauseCircleOutline,
   PlayCircleOutline,
   RestartAlt,
   Schedule,
-  Warning,
 } from '@mui/icons-material';
 import { useState } from 'react';
 import type { OfferedTreatmentResponseDTO } from '../../../../types/practitioner.types';
@@ -325,21 +325,20 @@ export default function TreatmentCard({
             <Divider sx={{ my: 1.5 }} />
             <Paper
               elevation={0}
-              sx={{
+              sx={(t) => ({
                 p: 1.5,
-                bgcolor: (t) => alpha(t.palette.warning.main, 0.06),
-                border: '1px solid',
-                borderColor: (t) => alpha(t.palette.warning.main, 0.2),
-              }}
+                pl: 1.75,
+                bgcolor: alpha(t.palette.text.primary, 0.03),
+                borderLeft: `3px solid ${t.palette.primary.main}`,
+                borderRadius: 1,
+              })}
             >
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5 }}>
-                <Warning sx={{ fontSize: 16, color: 'warning.main' }} />
+                <InfoOutlined sx={{ fontSize: 16, color: 'primary.main' }} />
                 <Typography
                   variant="caption"
-                  fontWeight={700}
-                  color="warning.dark"
-                  textTransform="uppercase"
-                  letterSpacing={0.5}
+                  fontWeight={600}
+                  color="text.primary"
                 >
                   Indicaciones
                 </Typography>
