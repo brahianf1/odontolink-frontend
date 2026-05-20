@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import patientService from '../../../services/api/patientService';
 
-export interface WeekAvailabilityResult {
+export interface AvailabilityCountsResult {
   counts: Map<string, number>;
   loading: boolean;
 }
@@ -15,11 +15,11 @@ const countValidSlots = (slots: string[], dateKey: string): number => {
   return slots.filter((slot) => parseISO(slot).getTime() > now).length;
 };
 
-export function useWeekAvailabilityCounts(
+export function useAvailabilityCounts(
   treatmentId: number | null,
   dateStrings: string[],
   enabled: boolean = true
-): WeekAvailabilityResult {
+): AvailabilityCountsResult {
   const [counts, setCounts] = useState<Map<string, number>>(new Map());
   const [loading, setLoading] = useState(false);
   const cacheRef = useRef<Map<number, Map<string, number>>>(new Map());
