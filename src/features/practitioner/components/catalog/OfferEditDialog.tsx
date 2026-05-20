@@ -16,6 +16,8 @@ import {
 } from '@mui/material';
 import { Close, MedicalServices } from '@mui/icons-material';
 import { Controller, useForm } from 'react-hook-form';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 import type {
   AvailabilitySlotDTO,
   OfferedTreatmentResponseDTO,
@@ -23,6 +25,9 @@ import type {
 } from '../../../../types/practitioner.types';
 import { findSlotConflicts } from '../../utils/slotValidation';
 import AvailabilitySlotsField from './AvailabilitySlotsField';
+
+const todayLocal = (): string => format(new Date(), 'yyyy-MM-dd');
+const maxDate = (a: string, b: string): string => (a > b ? a : b);
 
 interface OfferEditDialogProps {
   open: boolean;
@@ -81,7 +86,7 @@ export default function OfferEditDialog({
     if (!offer) return;
 
     const originalStart = offer.offerStartDate ?? '';
-    const today = new Date().toISOString().split('T')[0];
+    const today = todayLocal();
     if (
       values.offerStartDate &&
       values.offerStartDate !== originalStart &&
@@ -89,6 +94,13 @@ export default function OfferEditDialog({
     ) {
       setError('offerStartDate', {
         message: 'La fecha de inicio no puede moverse al pasado.',
+      });
+      return;
+    }
+
+    if (values.offerEndDate && values.offerEndDate < today) {
+      setError('offerEndDate', {
+        message: 'La fecha de fin no puede ser anterior a hoy.',
       });
       return;
     }
@@ -128,6 +140,12 @@ export default function OfferEditDialog({
   };
 
   const startDate = watch('offerStartDate');
+  const today = todayLocal();
+  const originalStart = offer?.offerStartDate ?? '';
+  const originalStartIsPast = Boolean(originalStart) && originalStart < today;
+  const startHelperText = originalStartIsPast
+    ? `Oferta vigente desde el ${format(parseISO(originalStart), "d 'de' MMM yyyy", { locale: es })}. Solo podés adelantar la fecha.`
+    : undefined;
 
   return (
     <Dialog
@@ -238,8 +256,9 @@ export default function OfferEditDialog({
                     fullWidth
                     required
                     InputLabelProps={{ shrink: true }}
+                    inputProps={{ min: today }}
                     error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
+                    helperText={fieldState.error?.message ?? startHelperText}
                   />
                 )}
               />
@@ -255,7 +274,7 @@ export default function OfferEditDialog({
                     fullWidth
                     required
                     InputLabelProps={{ shrink: true }}
-                    inputProps={{ min: startDate }}
+                    inputProps={{ min: maxDate(today, startDate || today) }}
                     error={!!fieldState.error}
                     helperText={fieldState.error?.message}
                   />

@@ -32,6 +32,7 @@ import {
   Schedule,
 } from '@mui/icons-material';
 import { Controller, useForm } from 'react-hook-form';
+import { format } from 'date-fns';
 import type {
   AddOfferedTreatmentRequestDTO,
   AvailabilitySlotDTO,
@@ -67,7 +68,8 @@ const STEPS = [
   { id: 3, title: 'Resumen', icon: <Description /> },
 ];
 
-const TODAY = () => new Date().toISOString().split('T')[0];
+const TODAY = (): string => format(new Date(), 'yyyy-MM-dd');
+const maxDate = (a: string, b: string): string => (a > b ? a : b);
 
 const DEFAULT_VALUES: FormValues = {
   treatmentId: '',
@@ -396,7 +398,9 @@ export default function OfferWizardDialog({
                       fullWidth
                       required
                       InputLabelProps={{ shrink: true }}
-                      inputProps={{ min: formValues.offerStartDate }}
+                      inputProps={{
+                        min: maxDate(TODAY(), formValues.offerStartDate || TODAY()),
+                      }}
                       error={!!fieldState.error}
                       helperText={fieldState.error?.message}
                     />
