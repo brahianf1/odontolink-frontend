@@ -151,13 +151,13 @@ export default function AppointmentCard({
             >
               <Button
                 variant="contained"
-                color="success"
+                color="primary"
                 size="small"
                 disabled={busy}
                 startIcon={<CheckCircleIcon />}
                 onClick={() => onComplete(appointment.id)}
               >
-                Completar
+                Asistió
               </Button>
               <Button
                 variant="outlined"
@@ -167,7 +167,7 @@ export default function AppointmentCard({
                 startIcon={<PersonOffIcon />}
                 onClick={() => onNoShow(appointment.id)}
               >
-                Inasistencia
+                No asistió
               </Button>
               <Button
                 variant="outlined"

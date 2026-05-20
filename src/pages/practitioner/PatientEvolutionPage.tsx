@@ -166,12 +166,12 @@ export default function PatientEvolutionPage() {
               >
                 <Button
                   variant="contained"
-                  color="success"
+                  color="primary"
                   size="small"
                   disabled={mutatingId === nextAppointment.id}
                   onClick={() => void complete(nextAppointment.id)}
                 >
-                  Completar
+                  Asistió
                 </Button>
                 <Button
                   variant="outlined"
@@ -180,7 +180,7 @@ export default function PatientEvolutionPage() {
                   disabled={mutatingId === nextAppointment.id}
                   onClick={() => void markNoShow(nextAppointment.id)}
                 >
-                  Inasistencia
+                  No asistió
                 </Button>
                 <Button
                   variant="outlined"
