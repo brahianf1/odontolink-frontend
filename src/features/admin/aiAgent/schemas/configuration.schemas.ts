@@ -69,6 +69,7 @@ export const configurationFormSchema = z
       .min(1, 'El texto de emergencia es obligatorio.')
       .max(500, 'No puede superar los 500 caracteres.'),
     provideCitations: z.boolean(),
+    showConfidenceIndicator: z.boolean(),
   })
   .superRefine((values, ctx) => {
     if (values.accessMode === 'PRIVATE' && values.allowedRoles.length === 0) {
@@ -102,4 +103,5 @@ export const DEFAULT_CONFIG_VALUES: ConfigurationFormValues = {
   rateLimitAuthenticatedPerHour: 60,
   emergencyBannerText: DEFAULT_EMERGENCY_BANNER_TEXT,
   provideCitations: false,
+  showConfidenceIndicator: true,
 };

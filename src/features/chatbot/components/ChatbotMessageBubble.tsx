@@ -9,7 +9,6 @@ import {
   useTheme,
 } from '@mui/material';
 import {
-  CheckCircleOutline as KbIcon,
   CloudOff as DegradedIcon,
   ContentCopy as CopyIcon,
   Check as CheckIcon,
@@ -17,9 +16,9 @@ import {
   ErrorOutline as ErrorIcon,
 } from '@mui/icons-material';
 import type { ChatbotMessage } from '../../../types/chatbot.types';
-import { confidenceMeta } from '../utils/confidenceLabel';
 import ChatbotEmergencyBanner from './ChatbotEmergencyBanner';
 import ChatbotPiiBanner from './ChatbotPiiBanner';
+import ChatbotConfidenceBlock from './ChatbotConfidenceBlock';
 import ChatbotMarkdownContent from './ChatbotMarkdownContent';
 
 interface ChatbotMessageBubbleProps {
@@ -57,12 +56,14 @@ export default function ChatbotMessageBubble({
   const isEmergency = flags?.emergencyDetected === true;
   const isPiiBlocked = flags?.piiBlocked === true;
   const isFallback = flags?.fallbackTriggered === true;
-  const showConfidence =
+  const showConfidenceBlock =
     !isMine &&
     !isEmergency &&
     !isPiiBlocked &&
-    typeof flags?.confidence === 'number';
-  const showKbChip = !isMine && flags?.basedOnKnowledgeBase === true && !isFallback;
+    !isFallback &&
+    flags?.confidenceCategory != null &&
+    !!flags?.confidenceCategoryLabel &&
+    !!flags?.confidenceCategoryMessage;
   const showRegenerate =
     !isMine && isLastBotMessage && !isFallback && canRegenerate && onRegenerate;
 
@@ -225,7 +226,7 @@ export default function ChatbotMessageBubble({
           </Stack>
         )}
 
-        {!isMine && (showConfidence || showKbChip || isFallback) && (
+        {!isMine && isFallback && (
           <Stack
             direction="row"
             spacing={0.5}
@@ -236,35 +237,24 @@ export default function ChatbotMessageBubble({
               maxWidth: { xs: '85%', sm: '80%' },
             }}
           >
-            {showConfidence && (
+            <Tooltip title="Servicio temporalmente degradado" arrow>
               <Chip
                 size="small"
                 variant="outlined"
-                color={confidenceMeta(flags!.confidence as number).color}
-                label={`Confianza ${flags!.confidence}%`}
+                color="warning"
+                icon={<DegradedIcon sx={{ fontSize: 14 }} />}
+                label="Modo degradado"
               />
-            )}
-            {showKbChip && (
-              <Chip
-                size="small"
-                variant="outlined"
-                color="success"
-                icon={<KbIcon sx={{ fontSize: 14 }} />}
-                label="Información oficial"
-              />
-            )}
-            {isFallback && (
-              <Tooltip title="Servicio temporalmente degradado" arrow>
-                <Chip
-                  size="small"
-                  variant="outlined"
-                  color="warning"
-                  icon={<DegradedIcon sx={{ fontSize: 14 }} />}
-                  label="Modo degradado"
-                />
-              </Tooltip>
-            )}
+            </Tooltip>
           </Stack>
+        )}
+
+        {showConfidenceBlock && (
+          <ChatbotConfidenceBlock
+            category={flags!.confidenceCategory!}
+            label={flags!.confidenceCategoryLabel!}
+            message={flags!.confidenceCategoryMessage!}
+          />
         )}
       </Box>
   );

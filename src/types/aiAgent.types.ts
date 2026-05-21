@@ -65,6 +65,7 @@ export interface AiAgentConfigurationResponseDTO {
   agentInvocationUrl?: string | null;
   emergencyBannerText: string;
   provideCitations?: boolean | null;
+  showConfidenceIndicator?: boolean | null;
 }
 
 export interface UpdateAiAgentConfigurationRequestDTO {
@@ -84,6 +85,7 @@ export interface UpdateAiAgentConfigurationRequestDTO {
   rateLimitAuthenticatedPerHour: number;
   emergencyBannerText: string;
   provideCitations: boolean;
+  showConfidenceIndicator: boolean;
 }
 
 export interface AiAgentHealthResponseDTO {

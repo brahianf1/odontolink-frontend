@@ -55,7 +55,15 @@ const STEPS = [
 
 const STEP_FIELDS: Array<Array<keyof ConfigurationFormValues>> = [
   ['displayName', 'systemPromptCore', 'welcomeMessage', 'emergencyBannerText'],
-  ['temperature', 'topP', 'maxTokens', 'k', 'retrievalMethod', 'provideCitations'],
+  [
+    'temperature',
+    'topP',
+    'maxTokens',
+    'k',
+    'retrievalMethod',
+    'provideCitations',
+    'showConfidenceIndicator',
+  ],
   [
     'accessMode',
     'allowedRoles',
@@ -119,6 +127,7 @@ export default function InitialSetupWizard({ onSubmit, submitting }: InitialSetu
         rateLimitAuthenticatedPerHour: values.rateLimitAuthenticatedPerHour,
         emergencyBannerText: values.emergencyBannerText.trim(),
         provideCitations: values.provideCitations,
+        showConfidenceIndicator: values.showConfidenceIndicator,
       });
     } catch (err) {
       const mapped = mapAiAgentError(err, 'No se pudo crear la configuración inicial.');
@@ -252,6 +261,10 @@ function ReviewStep({ values }: { values: ConfigurationFormValues }) {
           <SummaryRow
             label="Citas en respuestas"
             value={values.provideCitations ? 'Activadas' : 'Desactivadas'}
+          />
+          <SummaryRow
+            label="Indicador de confianza"
+            value={values.showConfidenceIndicator ? 'Visible' : 'Oculto'}
           />
         </Grid>
         <Grid size={{ xs: 12, md: 4 }}>

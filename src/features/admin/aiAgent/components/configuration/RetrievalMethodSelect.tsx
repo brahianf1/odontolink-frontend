@@ -99,6 +99,42 @@ export default function RetrievalMethodSelect({
           </Box>
         )}
       />
+
+      <Divider sx={{ my: 2 }} />
+
+      <Controller
+        name="showConfidenceIndicator"
+        control={control}
+        render={({ field }) => (
+          <Box>
+            <FormControlLabel
+              control={
+                <Switch
+                  checked={field.value}
+                  onChange={(e) => field.onChange(e.target.checked)}
+                  disabled={disabled}
+                />
+              }
+              label={
+                <Stack direction="row" alignItems="center" spacing={0.5}>
+                  <Typography variant="body2" fontWeight={600}>
+                    Mostrar indicador de confianza al paciente
+                  </Typography>
+                  <Tooltip
+                    arrow
+                    title="Cuando está activado, cada respuesta del chatbot incluye un bloque con la categoría de confianza (oficial / parcial / general / fuera de alcance). Desactivalo para A/B testing o demos donde no quieras mostrarlo."
+                  >
+                    <HelpIcon fontSize="small" color="action" />
+                  </Tooltip>
+                </Stack>
+              }
+            />
+            <Typography variant="caption" color="text.secondary" display="block">
+              Por defecto: activado.
+            </Typography>
+          </Box>
+        )}
+      />
     </Box>
   );
 }
