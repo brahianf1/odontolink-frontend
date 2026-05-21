@@ -78,6 +78,10 @@ const buildInitialValues = (
     config.emergencyBannerText ?? DEFAULT_CONFIG_VALUES.emergencyBannerText,
   provideCitations:
     typeof config.provideCitations === 'boolean' ? config.provideCitations : false,
+  showConfidenceIndicator:
+    typeof config.showConfidenceIndicator === 'boolean'
+      ? config.showConfidenceIndicator
+      : DEFAULT_CONFIG_VALUES.showConfidenceIndicator,
 });
 
 export default function ConfigurationForm({
@@ -132,6 +136,7 @@ export default function ConfigurationForm({
       rateLimitAuthenticatedPerHour: values.rateLimitAuthenticatedPerHour,
       emergencyBannerText: values.emergencyBannerText.trim(),
       provideCitations: values.provideCitations,
+      showConfidenceIndicator: values.showConfidenceIndicator,
     };
     try {
       const wasPublished = configuration.lifecycle === 'PUBLISHED';

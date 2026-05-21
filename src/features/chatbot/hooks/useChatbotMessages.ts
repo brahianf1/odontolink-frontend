@@ -39,8 +39,10 @@ const createId = (): string => {
 const TYPING_PLACEHOLDER_ID_PREFIX = 'typing-';
 
 const flagsFromResponse = (res: ChatbotMessageResponseDTO): ChatbotMessageFlags => ({
-  confidence: res.confidence ?? null,
-  basedOnKnowledgeBase: res.basedOnKnowledgeBase,
+  confidenceCategory: res.confidenceCategory,
+  confidenceCategoryLabel: res.confidenceCategoryLabel,
+  confidenceCategoryMessage: res.confidenceCategoryMessage,
+  confidenceScore: res.confidenceScore,
   emergencyDetected: res.emergencyDetected,
   piiBlocked: res.piiBlocked,
   detectedPiiTypes: res.detectedPiiTypes,

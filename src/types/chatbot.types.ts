@@ -14,6 +14,12 @@ export type DetectedPiiType =
   | 'EMAIL'
   | 'PHONE_AR';
 
+export type ConfidenceCategory =
+  | 'OFFICIAL'
+  | 'PARTIAL'
+  | 'GENERAL'
+  | 'OUT_OF_SCOPE';
+
 export type ChatbotErrorCode =
   | 'AI_AGENT_DISABLED'
   | 'AI_AGENT_ACCESS_DENIED'
@@ -42,14 +48,16 @@ export interface ChatbotMessageResponseDTO {
   sessionId: string;
   anonymousToken?: string | null;
   reply: string;
-  confidence?: number | null;
-  basedOnKnowledgeBase: boolean;
+  confidenceCategory: ConfidenceCategory | null;
+  confidenceCategoryLabel: string | null;
+  confidenceCategoryMessage: string | null;
+  /** Score interno (0-100). NO mostrar al paciente; reservado para admin/QA. */
+  confidenceScore: number | null;
   emergencyDetected: boolean;
   piiBlocked: boolean;
   detectedPiiTypes: DetectedPiiType[];
   fallbackTriggered: boolean;
   latencyMs?: number;
-  retrievedDocumentIds?: string[];
 }
 
 export type ChatbotMessageRole = 'user' | 'bot' | 'system';
@@ -57,8 +65,10 @@ export type ChatbotMessageRole = 'user' | 'bot' | 'system';
 export type ChatbotMessageStatus = 'sending' | 'sent' | 'failed';
 
 export interface ChatbotMessageFlags {
-  confidence?: number | null;
-  basedOnKnowledgeBase?: boolean;
+  confidenceCategory?: ConfidenceCategory | null;
+  confidenceCategoryLabel?: string | null;
+  confidenceCategoryMessage?: string | null;
+  confidenceScore?: number | null;
   emergencyDetected?: boolean;
   piiBlocked?: boolean;
   detectedPiiTypes?: DetectedPiiType[];
