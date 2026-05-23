@@ -3,8 +3,6 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
   CircularProgress,
   Dialog,
@@ -14,7 +12,6 @@ import {
   Divider,
   IconButton,
   InputAdornment,
-  LinearProgress,
   MenuItem,
   Paper,
   Rating,
@@ -28,6 +25,7 @@ import {
   TablePagination,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
   useMediaQuery,
   useTheme,
@@ -35,13 +33,13 @@ import {
 import {
   Close as CloseIcon,
   FilterAltOff as ClearFiltersIcon,
+  FormatQuote as QuoteIcon,
   MedicalServices as TreatmentIcon,
   Person as PersonIcon,
   Refresh as RefreshIcon,
   Search as SearchIcon,
   Sort as SortIcon,
   Star as StarIcon,
-  TrendingUp as TrendingUpIcon,
 } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -174,8 +172,8 @@ export default function FeedbackPage() {
     ? allFeedbacks.reduce((s, f) => s + f.avg, 0) / totalFeedbacks
     : 0;
 
-  const uniqueTreatments = useMemo(
-    () => new Set(allFeedbacks.map((f) => f.treatmentNameLocal)).size,
+  const uniquePatients = useMemo(
+    () => new Set(allFeedbacks.map((f) => f.patientNameLocal)).size,
     [allFeedbacks]
   );
 
@@ -257,215 +255,322 @@ export default function FeedbackPage() {
 
       {/* Empty state */}
       {totalFeedbacks === 0 ? (
-        <Card variant="outlined" sx={{ textAlign: 'center', py: 8 }}>
-          <CardContent>
-            <StarIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
-            <Typography variant="h6" color="text.secondary" gutterBottom>
-              No has recibido feedback de pacientes aún
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 420, mx: 'auto' }}>
-              Las calificaciones de tus pacientes aparecerán aquí una vez que completen
-              la encuesta de evaluación al finalizar sus atenciones.
-            </Typography>
-          </CardContent>
-        </Card>
+        <Paper
+          sx={{
+            textAlign: 'center',
+            py: 8,
+            px: 3,
+            backgroundColor: theme.palette.surfaces.containerLow,
+            border: `1px solid ${theme.palette.outlineVariant}`,
+          }}
+        >
+          <Box
+            sx={{
+              width: 72,
+              height: 72,
+              mx: 'auto',
+              mb: 2,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: theme.palette.surfaces.container,
+              border: `1px solid ${theme.palette.outlineVariant}`,
+            }}
+          >
+            <StarIcon sx={{ fontSize: 36, color: 'text.disabled' }} />
+          </Box>
+          <Typography variant="titleLarge" fontWeight={600} gutterBottom>
+            Sin feedback recibido
+          </Typography>
+          <Typography variant="bodyMedium" color="text.secondary" sx={{ maxWidth: 440, mx: 'auto' }}>
+            Las calificaciones de tus pacientes aparecerán aquí una vez que completen
+            la encuesta de evaluación al finalizar sus atenciones.
+          </Typography>
+        </Paper>
       ) : (
         <>
-          {/* KPI cards */}
+          {/* ── Summary section ── */}
           <Box
             sx={{
               display: 'grid',
               gap: 2,
-              gridTemplateColumns: {
-                xs: '1fr',
-                sm: 'repeat(2, 1fr)',
-                lg: `repeat(${3 + criterionAverages.length}, 1fr)`,
-              },
+              gridTemplateColumns: { xs: '1fr', md: '1fr 2fr' },
               mb: 3,
             }}
           >
-            <Card variant="outlined">
-              <CardContent sx={{ textAlign: 'center' }}>
-                <StarIcon sx={{ color: 'warning.main', fontSize: 32, mb: 0.5 }} />
-                <Typography variant="h3" fontWeight={700}>
-                  {overallAvg.toFixed(1)}
-                </Typography>
-                <Rating value={overallAvg} readOnly precision={0.1} size="small" sx={{ mb: 0.5 }} />
-                <Typography variant="caption" color="text.secondary" display="block">
-                  Promedio general
-                </Typography>
-              </CardContent>
-            </Card>
-
-            <Card variant="outlined">
-              <CardContent sx={{ textAlign: 'center' }}>
-                <PersonIcon sx={{ color: 'info.main', fontSize: 32, mb: 0.5 }} />
-                <Typography variant="h3" fontWeight={700}>
-                  {totalFeedbacks}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" display="block">
-                  {totalFeedbacks === 1 ? 'Calificación recibida' : 'Calificaciones recibidas'}
-                </Typography>
-              </CardContent>
-            </Card>
-
-            <Card variant="outlined">
-              <CardContent sx={{ textAlign: 'center' }}>
-                <TreatmentIcon sx={{ color: 'success.main', fontSize: 32, mb: 0.5 }} />
-                <Typography variant="h3" fontWeight={700}>
-                  {uniqueTreatments}
-                </Typography>
-                <Typography variant="caption" color="text.secondary" display="block">
-                  {uniqueTreatments === 1 ? 'Tratamiento evaluado' : 'Tratamientos evaluados'}
-                </Typography>
-              </CardContent>
-            </Card>
-
-            {criterionAverages.map((c) => (
-              <Card key={c.code} variant="outlined">
-                <CardContent sx={{ textAlign: 'center' }}>
-                  <TrendingUpIcon sx={{ color: 'primary.main', fontSize: 28, mb: 0.5 }} />
-                  <Typography variant="h4" fontWeight={700}>
-                    {c.avg.toFixed(1)}
-                  </Typography>
-                  <LinearProgress
-                    variant="determinate"
-                    value={(c.avg / 5) * 100}
-                    sx={{ height: 6, borderRadius: 3, my: 0.75 }}
+            {/* Hero KPI — overall score */}
+            <Paper
+              sx={{
+                p: { xs: 3, md: 4 },
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: theme.palette.primary.container,
+                color: theme.palette.primary.onContainer,
+                border: `1px solid ${theme.palette.outlineVariant}`,
+                textAlign: 'center',
+              }}
+            >
+              <Typography variant="displayMedium" fontWeight={700} sx={{ lineHeight: 1 }}>
+                {overallAvg.toFixed(1)}
+              </Typography>
+              <Rating
+                value={overallAvg}
+                readOnly
+                precision={0.1}
+                size="large"
+                sx={{ my: 1.5 }}
+              />
+              <Typography variant="titleMedium" fontWeight={600}>
+                Promedio general
+              </Typography>
+              <Stack
+                direction="row"
+                spacing={2}
+                sx={{ mt: 2 }}
+                divider={
+                  <Divider
+                    orientation="vertical"
+                    flexItem
+                    sx={{ borderColor: 'inherit', opacity: 0.3 }}
                   />
-                  <Typography variant="caption" color="text.secondary" display="block" noWrap>
-                    {c.displayName}
+                }
+              >
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="titleLarge" fontWeight={700}>
+                    {totalFeedbacks}
                   </Typography>
-                </CardContent>
-              </Card>
-            ))}
+                  <Typography variant="labelSmall">
+                    {totalFeedbacks === 1 ? 'evaluación' : 'evaluaciones'}
+                  </Typography>
+                </Box>
+                <Box sx={{ textAlign: 'center' }}>
+                  <Typography variant="titleLarge" fontWeight={700}>
+                    {uniquePatients}
+                  </Typography>
+                  <Typography variant="labelSmall">
+                    {uniquePatients === 1 ? 'paciente' : 'pacientes'}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Paper>
+
+            {/* Per-criterion scorecard */}
+            <Paper
+              sx={{
+                p: { xs: 2.5, md: 3 },
+                backgroundColor: theme.palette.surfaces.containerLow,
+                border: `1px solid ${theme.palette.outlineVariant}`,
+              }}
+            >
+              <Typography variant="titleMedium" fontWeight={700} sx={{ mb: 2.5 }}>
+                Rendimiento por criterio
+              </Typography>
+              {criterionAverages.length === 0 ? (
+                <Typography variant="bodyMedium" color="text.secondary">
+                  Sin datos de criterio disponibles.
+                </Typography>
+              ) : (
+                <Stack spacing={2.5}>
+                  {criterionAverages.map((c) => {
+                    const pct = (c.avg / 5) * 100;
+                    return (
+                      <Box key={c.code}>
+                        <Stack
+                          direction="row"
+                          justifyContent="space-between"
+                          alignItems="baseline"
+                          sx={{ mb: 0.75 }}
+                        >
+                          <Typography variant="bodyMedium" fontWeight={500}>
+                            {c.displayName}
+                          </Typography>
+                          <Typography variant="titleMedium" fontWeight={700}>
+                            {c.avg.toFixed(1)}
+                            <Typography
+                              component="span"
+                              variant="labelSmall"
+                              color="text.secondary"
+                              sx={{ ml: 0.25 }}
+                            >
+                              /5
+                            </Typography>
+                          </Typography>
+                        </Stack>
+                        <Box
+                          sx={{
+                            height: 8,
+                            width: '100%',
+                            backgroundColor: theme.palette.surfaces.containerHigh,
+                            overflow: 'hidden',
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              height: '100%',
+                              width: `${pct}%`,
+                              backgroundColor: theme.palette.primary.main,
+                              transition: `width ${theme.motion?.duration?.short3 ?? 200}ms ${theme.motion?.easing?.standard ?? 'ease'}`,
+                            }}
+                          />
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Stack>
+              )}
+            </Paper>
           </Box>
 
-          {/* Filters */}
-          <Card variant="outlined" sx={{ mb: 3 }}>
-            <CardContent sx={{ pb: '16px !important' }}>
-              <Stack
-                direction={{ xs: 'column', md: 'row' }}
-                spacing={1.5}
-                alignItems={{ xs: 'stretch', md: 'center' }}
+          {/* ── Filters ── */}
+          <Paper
+            sx={{
+              p: 2,
+              mb: 3,
+              backgroundColor: theme.palette.surfaces.containerLow,
+              border: `1px solid ${theme.palette.outlineVariant}`,
+            }}
+          >
+            <Stack
+              direction={{ xs: 'column', md: 'row' }}
+              spacing={1.5}
+              alignItems={{ xs: 'stretch', md: 'center' }}
+            >
+              <TextField
+                placeholder="Buscar por paciente, tratamiento o comentario…"
+                size="small"
+                value={search}
+                onChange={(e) => { setSearch(e.target.value); setPage(0); }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon fontSize="small" color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ flex: { md: 2 }, minWidth: 200 }}
+              />
+              <TextField
+                label="Desde"
+                type="date"
+                size="small"
+                value={startDate}
+                onChange={(e) => { setStartDate(e.target.value); setPage(0); }}
+                InputLabelProps={{ shrink: true }}
+                sx={{ minWidth: 150 }}
+              />
+              <TextField
+                label="Hasta"
+                type="date"
+                size="small"
+                value={endDate}
+                onChange={(e) => { setEndDate(e.target.value); setPage(0); }}
+                InputLabelProps={{ shrink: true }}
+                sx={{ minWidth: 150 }}
+              />
+              <TextField
+                select
+                label="Ordenar"
+                size="small"
+                value={`${sortKey}_${sortDir}`}
+                onChange={(e) => {
+                  const [k, d] = e.target.value.split('_') as [SortKey, SortDir];
+                  setSortKey(k);
+                  setSortDir(d);
+                  setPage(0);
+                }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SortIcon fontSize="small" color="action" />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{ minWidth: 200 }}
               >
-                <TextField
-                  placeholder="Buscar por paciente, tratamiento o comentario…"
-                  size="small"
-                  value={search}
-                  onChange={(e) => { setSearch(e.target.value); setPage(0); }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SearchIcon fontSize="small" color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{ flex: { md: 2 }, minWidth: 200 }}
-                />
-                <TextField
-                  label="Desde"
-                  type="date"
-                  size="small"
-                  value={startDate}
-                  onChange={(e) => { setStartDate(e.target.value); setPage(0); }}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ minWidth: 150 }}
-                />
-                <TextField
-                  label="Hasta"
-                  type="date"
-                  size="small"
-                  value={endDate}
-                  onChange={(e) => { setEndDate(e.target.value); setPage(0); }}
-                  InputLabelProps={{ shrink: true }}
-                  sx={{ minWidth: 150 }}
-                />
-                <TextField
-                  select
-                  label="Ordenar"
-                  size="small"
-                  value={`${sortKey}_${sortDir}`}
-                  onChange={(e) => {
-                    const [k, d] = e.target.value.split('_') as [SortKey, SortDir];
-                    setSortKey(k);
-                    setSortDir(d);
-                    setPage(0);
-                  }}
-                  InputProps={{
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <SortIcon fontSize="small" color="action" />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{ minWidth: 200 }}
-                >
-                  <MenuItem value="date_desc">Más recientes primero</MenuItem>
-                  <MenuItem value="date_asc">Más antiguos primero</MenuItem>
-                  <MenuItem value="avg_desc">Mayor calificación</MenuItem>
-                  <MenuItem value="avg_asc">Menor calificación</MenuItem>
-                  <MenuItem value="patient_asc">Paciente A-Z</MenuItem>
-                  <MenuItem value="patient_desc">Paciente Z-A</MenuItem>
-                  <MenuItem value="treatment_asc">Tratamiento A-Z</MenuItem>
-                  <MenuItem value="treatment_desc">Tratamiento Z-A</MenuItem>
-                </TextField>
-                {hasFilters && (
-                  <IconButton onClick={clearFilters} color="primary" sx={{ border: 1, borderColor: 'divider' }}>
+                <MenuItem value="date_desc">Más recientes primero</MenuItem>
+                <MenuItem value="date_asc">Más antiguos primero</MenuItem>
+                <MenuItem value="avg_desc">Mayor calificación</MenuItem>
+                <MenuItem value="avg_asc">Menor calificación</MenuItem>
+                <MenuItem value="patient_asc">Paciente A-Z</MenuItem>
+                <MenuItem value="patient_desc">Paciente Z-A</MenuItem>
+                <MenuItem value="treatment_asc">Tratamiento A-Z</MenuItem>
+                <MenuItem value="treatment_desc">Tratamiento Z-A</MenuItem>
+              </TextField>
+              {hasFilters && (
+                <Tooltip title="Limpiar filtros">
+                  <IconButton
+                    onClick={clearFilters}
+                    color="primary"
+                    sx={{ border: `1px solid ${theme.palette.outlineVariant}` }}
+                  >
                     <ClearFiltersIcon />
                   </IconButton>
-                )}
-              </Stack>
-            </CardContent>
-          </Card>
+                </Tooltip>
+              )}
+            </Stack>
+          </Paper>
 
           {/* Results count */}
           {hasFilters && (
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <Typography variant="labelMedium" color="text.secondary" sx={{ mb: 2, display: 'block' }}>
               {filtered.length} resultado{filtered.length !== 1 ? 's' : ''} encontrado{filtered.length !== 1 ? 's' : ''}
             </Typography>
           )}
 
-          {/* Feedback list */}
+          {/* ── Feedback list ── */}
           {filtered.length === 0 ? (
-            <Card variant="outlined" sx={{ textAlign: 'center', py: 6 }}>
-              <CardContent>
-                <SearchIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
-                <Typography variant="h6" color="text.secondary" gutterBottom>
-                  Sin resultados
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Probá ajustando los filtros o la búsqueda.
-                </Typography>
-              </CardContent>
-            </Card>
+            <Paper
+              sx={{
+                textAlign: 'center',
+                py: 6,
+                px: 3,
+                backgroundColor: theme.palette.surfaces.containerLow,
+                border: `1px solid ${theme.palette.outlineVariant}`,
+              }}
+            >
+              <SearchIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
+              <Typography variant="titleMedium" fontWeight={600} gutterBottom>
+                Sin resultados
+              </Typography>
+              <Typography variant="bodyMedium" color="text.secondary">
+                Probá ajustando los filtros o la búsqueda.
+              </Typography>
+            </Paper>
           ) : isMobile ? (
-            /* Mobile: card list */
             <Stack spacing={1.5}>
               {paged.map((fb) => (
-                <Card
+                <Paper
                   key={fb.id}
-                  variant="outlined"
-                  sx={{ cursor: 'pointer', '&:hover': { borderColor: 'primary.main' } }}
+                  sx={{
+                    p: 2,
+                    cursor: 'pointer',
+                    backgroundColor: theme.palette.surfaces.containerLow,
+                    border: `1px solid ${theme.palette.outlineVariant}`,
+                    transition: `border-color ${theme.motion?.duration?.short3 ?? 200}ms`,
+                    '&:hover': { borderColor: theme.palette.primary.main },
+                  }}
                   onClick={() => setDetailTarget(fb)}
                 >
-                  <CardContent>
-                    <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-                      <Box sx={{ minWidth: 0, flex: 1 }}>
-                        <Typography variant="subtitle2" fontWeight={700} noWrap>
-                          {fb.patientNameLocal}
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                          {fb.treatmentNameLocal}
-                        </Typography>
-                      </Box>
-                      <FeedbackScoresDisplay scores={fb.scores} variant="compact" />
-                    </Stack>
-                    {fb.comment && (
-                      <>
-                        <Divider sx={{ my: 1.5 }} />
+                  <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography variant="titleSmall" fontWeight={700} noWrap>
+                        {fb.patientNameLocal}
+                      </Typography>
+                      <Typography variant="labelSmall" color="text.secondary">
+                        {fb.treatmentNameLocal}
+                      </Typography>
+                    </Box>
+                    <FeedbackScoresDisplay scores={fb.scores} variant="compact" />
+                  </Stack>
+                  {fb.comment && (
+                    <>
+                      <Divider sx={{ my: 1.5 }} />
+                      <Stack direction="row" spacing={1} alignItems="flex-start">
+                        <QuoteIcon sx={{ fontSize: 16, color: 'text.disabled', mt: 0.25, flexShrink: 0 }} />
                         <Typography
-                          variant="body2"
+                          variant="bodySmall"
                           color="text.secondary"
                           sx={{
                             fontStyle: 'italic',
@@ -476,23 +581,30 @@ export default function FeedbackPage() {
                             WebkitBoxOrient: 'vertical',
                           }}
                         >
-                          "{fb.comment}"
+                          {fb.comment}
                         </Typography>
-                      </>
-                    )}
-                    <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
-                      {formatDate(fb.createdAt)}
-                    </Typography>
-                  </CardContent>
-                </Card>
+                      </Stack>
+                    </>
+                  )}
+                  <Typography variant="labelSmall" color="text.secondary" sx={{ mt: 1, display: 'block' }}>
+                    {formatDate(fb.createdAt)}
+                  </Typography>
+                </Paper>
               ))}
             </Stack>
           ) : (
-            /* Desktop: table */
-            <TableContainer component={Paper} variant="outlined">
+            <TableContainer
+              component={Paper}
+              sx={{
+                backgroundColor: theme.palette.surfaces.containerLow,
+                border: `1px solid ${theme.palette.outlineVariant}`,
+              }}
+            >
               <Table>
                 <TableHead>
-                  <TableRow sx={{ bgcolor: 'background.default' }}>
+                  <TableRow
+                    sx={{ backgroundColor: theme.palette.surfaces.container }}
+                  >
                     <TableCell sx={{ fontWeight: 700 }}>Fecha</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Paciente</TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>Tratamiento</TableCell>
@@ -517,36 +629,53 @@ export default function FeedbackPage() {
                           onClick={() => setDetailTarget(fb)}
                         >
                           <TableCell>
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="bodySmall" color="text.secondary">
                               {formatDate(fb.createdAt)}
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <Typography variant="body2" fontWeight={600}>
+                            <Typography variant="bodyMedium" fontWeight={600}>
                               {fb.patientNameLocal}
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <Chip label={fb.treatmentNameLocal} size="small" variant="outlined" />
+                            <Chip
+                              label={fb.treatmentNameLocal}
+                              size="small"
+                              sx={{
+                                backgroundColor: theme.palette.tertiary.container,
+                                color: theme.palette.tertiary.onContainer,
+                                fontWeight: 600,
+                              }}
+                            />
                           </TableCell>
                           <TableCell>
                             <FeedbackScoresDisplay scores={fb.scores} variant="compact" />
                           </TableCell>
                           <TableCell sx={{ maxWidth: 300 }}>
-                            <Typography
-                              variant="body2"
-                              color={fb.comment ? 'text.primary' : 'text.secondary'}
-                              sx={{
-                                fontStyle: fb.comment ? 'italic' : 'normal',
-                                overflow: 'hidden',
-                                textOverflow: 'ellipsis',
-                                display: '-webkit-box',
-                                WebkitLineClamp: 2,
-                                WebkitBoxOrient: 'vertical',
-                              }}
-                            >
-                              {fb.comment ? `"${fb.comment}"` : '— sin comentario —'}
-                            </Typography>
+                            {fb.comment ? (
+                              <Stack direction="row" spacing={0.75} alignItems="flex-start">
+                                <QuoteIcon sx={{ fontSize: 14, color: 'text.disabled', mt: 0.3, flexShrink: 0 }} />
+                                <Typography
+                                  variant="bodySmall"
+                                  color="text.secondary"
+                                  sx={{
+                                    fontStyle: 'italic',
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    display: '-webkit-box',
+                                    WebkitLineClamp: 2,
+                                    WebkitBoxOrient: 'vertical',
+                                  }}
+                                >
+                                  {fb.comment}
+                                </Typography>
+                              </Stack>
+                            ) : (
+                              <Typography variant="bodySmall" color="text.disabled">
+                                Sin comentario
+                              </Typography>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -569,18 +698,17 @@ export default function FeedbackPage() {
         </>
       )}
 
-      {/* Detail dialog */}
+      {/* ── Detail dialog ── */}
       <Dialog
         open={detailTarget !== null}
         onClose={() => setDetailTarget(null)}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3 } }}
       >
         {detailTarget && (
           <>
             <DialogTitle sx={{ pb: 1, pr: 6 }}>
-              <Typography variant="h6" fontWeight={700}>
+              <Typography variant="titleLarge" fontWeight={700}>
                 Detalle del feedback
               </Typography>
               <IconButton
@@ -592,54 +720,111 @@ export default function FeedbackPage() {
               </IconButton>
             </DialogTitle>
             <DialogContent>
+              {/* Context card */}
               <Paper
-                variant="outlined"
-                sx={{ p: 2.5, mb: 3, borderRadius: 2, bgcolor: 'action.hover' }}
+                sx={{
+                  p: 2.5,
+                  mb: 3,
+                  backgroundColor: theme.palette.surfaces.container,
+                  border: `1px solid ${theme.palette.outlineVariant}`,
+                }}
               >
-                <Stack spacing={1}>
+                <Stack spacing={1.25}>
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <PersonIcon fontSize="small" color="action" />
-                    <Typography variant="body2">
-                      Paciente: <strong>{detailTarget.patientNameLocal}</strong>
-                    </Typography>
+                    <Box
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        backgroundColor: theme.palette.primary.container,
+                        color: theme.palette.primary.onContainer,
+                      }}
+                    >
+                      <PersonIcon sx={{ fontSize: 18 }} />
+                    </Box>
+                    <Box>
+                      <Typography variant="titleSmall" fontWeight={600}>
+                        {detailTarget.patientNameLocal}
+                      </Typography>
+                      <Typography variant="labelSmall" color="text.secondary">
+                        Paciente
+                      </Typography>
+                    </Box>
                   </Stack>
-                  <Stack direction="row" spacing={1} alignItems="center">
-                    <TreatmentIcon fontSize="small" color="action" />
-                    <Typography variant="body2">
-                      Tratamiento: <strong>{detailTarget.treatmentNameLocal}</strong>
-                    </Typography>
+                  <Stack direction="row" spacing={1.5} flexWrap="wrap" useFlexGap>
+                    <Chip
+                      icon={<TreatmentIcon />}
+                      label={detailTarget.treatmentNameLocal}
+                      size="small"
+                      sx={{
+                        backgroundColor: theme.palette.tertiary.container,
+                        color: theme.palette.tertiary.onContainer,
+                        fontWeight: 600,
+                        '& .MuiChip-icon': { color: 'inherit' },
+                      }}
+                    />
+                    <Chip
+                      label={formatDate(detailTarget.createdAt)}
+                      size="small"
+                      sx={{
+                        backgroundColor: theme.palette.surfaces.containerHigh,
+                        fontWeight: 500,
+                      }}
+                    />
                   </Stack>
-                  <Typography variant="caption" color="text.secondary">
-                    {formatDateLong(detailTarget.createdAt)}
-                  </Typography>
                 </Stack>
               </Paper>
 
-              <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2 }}>
+              {/* Scores */}
+              <Typography variant="titleSmall" fontWeight={700} sx={{ mb: 2 }}>
                 Calificación por criterio
               </Typography>
-              <FeedbackScoresDisplay scores={detailTarget.scores} variant="expanded" size="medium" />
+              <Box
+                sx={{
+                  p: 2.5,
+                  mb: 3,
+                  backgroundColor: theme.palette.surfaces.containerLow,
+                  border: `1px solid ${theme.palette.outlineVariant}`,
+                }}
+              >
+                <FeedbackScoresDisplay scores={detailTarget.scores} variant="expanded" size="medium" />
+              </Box>
 
-              <Divider sx={{ my: 3 }} />
-
-              <Typography variant="subtitle2" fontWeight={700} gutterBottom>
+              {/* Comment */}
+              <Typography variant="titleSmall" fontWeight={700} gutterBottom>
                 Comentario
               </Typography>
               <Paper
-                variant="outlined"
-                sx={{ p: 2, borderRadius: 2, bgcolor: 'background.paper' }}
+                sx={{
+                  p: 2,
+                  backgroundColor: detailTarget.comment
+                    ? theme.palette.surfaces.containerLow
+                    : 'transparent',
+                  border: `1px solid ${theme.palette.outlineVariant}`,
+                }}
               >
-                <Typography
-                  variant="body2"
-                  color={detailTarget.comment ? 'text.primary' : 'text.secondary'}
-                  sx={{
-                    fontStyle: detailTarget.comment ? 'italic' : 'normal',
-                    whiteSpace: 'pre-wrap',
-                  }}
-                >
-                  {detailTarget.comment || 'El paciente no dejó un comentario.'}
-                </Typography>
+                {detailTarget.comment ? (
+                  <Stack direction="row" spacing={1} alignItems="flex-start">
+                    <QuoteIcon sx={{ fontSize: 18, color: 'text.disabled', mt: 0.25, flexShrink: 0 }} />
+                    <Typography
+                      variant="bodyMedium"
+                      sx={{ fontStyle: 'italic', whiteSpace: 'pre-wrap' }}
+                    >
+                      {detailTarget.comment}
+                    </Typography>
+                  </Stack>
+                ) : (
+                  <Typography variant="bodyMedium" color="text.secondary">
+                    El paciente no dejó un comentario.
+                  </Typography>
+                )}
               </Paper>
+
+              <Typography variant="labelSmall" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
+                {formatDateLong(detailTarget.createdAt)}
+              </Typography>
             </DialogContent>
             <DialogActions sx={{ p: 2.5 }}>
               <Button onClick={() => setDetailTarget(null)} variant="contained" fullWidth>
