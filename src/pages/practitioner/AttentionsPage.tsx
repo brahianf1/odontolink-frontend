@@ -51,11 +51,7 @@ import type {
   FeedbackResponseDTO,
 } from '../../types/feedback.types';
 import { useAuthStore } from '../../store/authStore';
-
-const isPractitionerRole = (role?: string | null) => {
-  if (!role) return false;
-  return String(role).toUpperCase().includes('PRACT');
-};
+import { isPractitionerRole } from '../../utils/roles';
 
 type ViewMode = 'cards' | 'list';
 

@@ -18,6 +18,7 @@ import { getMyAttentions } from '../../services/api/practitionerService';
 import { getFeedbackForAttention } from '../../services/api/feedbackService';
 import type { AttentionResponseDTO } from '../../types/attention.types';
 import type { FeedbackResponseDTO } from '../../types/feedback.types';
+import { isPatientRole } from '../../utils/roles';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -41,13 +42,6 @@ export default function FeedbackPage() {
       
       // Obtener todas las atenciones (no filtramos por estado para no omitir feedback)
       const attentions = await getMyAttentions();
-
-      // Helper: detectar roles de paciente en diferentes formatos
-      const isPatientRole = (role?: string | null) => {
-        if (!role) return false;
-        const r = String(role).toUpperCase();
-        return r.includes('PATIENT') || r.includes('PAT');
-      };
 
       // Cargar feedback para cada atención
       const attentionsWithFeedbackData = await Promise.all(

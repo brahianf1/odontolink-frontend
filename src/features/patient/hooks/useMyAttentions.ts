@@ -3,6 +3,7 @@ import patientService from '../../../services/api/patientService';
 import type { AttentionResponseDTO } from '../../../types/attention.types';
 import type { FeedbackResponseDTO } from '../../../types/feedback.types';
 import { mapBusinessError } from '../utils/apiErrors';
+import { isPatientRole } from '../../../utils/roles';
 
 interface UseMyAttentionsResult {
   attentions: AttentionResponseDTO[];
@@ -32,17 +33,6 @@ export function useMyAttentions(): UseMyAttentionsResult {
         completed.map(async (attention) => {
           try {
             const list = await patientService.getFeedbackForAttention(attention.id);
-            // The endpoint returns feedback in both directions for the same
-            // attention (patient -> practitioner and practitioner -> patient).
-            // We only want the one the patient submitted; otherwise the UI
-            // mistakes the practitioner's rating for the patient's own and
-            // hides the "Calificar" CTA.
-            const isPatientRole = (role?: string | null) => {
-              if (!role) return false;
-              const r = String(role).toUpperCase();
-              return r.includes('PATIENT') || r.includes('PAT');
-            };
-
             const own = list?.find((f) => isPatientRole(f.submittedByRole)) ?? null;
             return [attention.id, own] as const;
           } catch {
