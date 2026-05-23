@@ -37,8 +37,13 @@ export function useMyAttentions(): UseMyAttentionsResult {
             // We only want the one the patient submitted; otherwise the UI
             // mistakes the practitioner's rating for the patient's own and
             // hides the "Calificar" CTA.
-            const own =
-              list?.find((f) => String(f.submittedByRole).toUpperCase() === 'PATIENT') ?? null;
+            const isPatientRole = (role?: string | null) => {
+              if (!role) return false;
+              const r = String(role).toUpperCase();
+              return r.includes('PATIENT') || r.includes('PAT');
+            };
+
+            const own = list?.find((f) => isPatientRole(f.submittedByRole)) ?? null;
             return [attention.id, own] as const;
           } catch {
             return [attention.id, null] as const;
