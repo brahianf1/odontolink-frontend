@@ -167,16 +167,17 @@ export default function AttentionsPage() {
       setFeedbackError('El comentario no puede exceder 1000 caracteres.');
       return;
     }
+    const targetId = feedbackCreateTarget.id;
     try {
       const payload: CreateFeedbackRequestDTO = {
-        attentionId: feedbackCreateTarget.id,
+        attentionId: targetId,
         rating: feedbackRating,
         comment: feedbackComment.trim() || undefined,
       };
       await createFeedback(payload);
       setEnrichedAttentions((current) =>
         current.map((attention) =>
-          attention.id === feedbackCreateTarget.id
+          attention.id === targetId
             ? {
                 ...attention,
                 hasMyFeedback: true,
