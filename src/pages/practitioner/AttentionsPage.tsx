@@ -174,6 +174,17 @@ export default function AttentionsPage() {
         comment: feedbackComment.trim() || undefined,
       };
       await createFeedback(payload);
+      setEnrichedAttentions((current) =>
+        current.map((attention) =>
+          attention.id === feedbackCreateTarget.id
+            ? {
+                ...attention,
+                hasMyFeedback: true,
+                feedbackCount: (attention.feedbackCount ?? 0) + 1,
+              }
+            : attention
+        )
+      );
       setFeedbackSuccess('Feedback enviado.');
       setFeedbackCreateTarget(null);
     } catch (err: unknown) {
