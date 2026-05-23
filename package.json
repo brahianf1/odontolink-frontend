@@ -41,6 +41,7 @@
     "react-hook-form": "^7.75.0",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.9.5",
+    "recharts": "^3.8.1",
     "remark-gfm": "^4.0.1",
     "temporal-polyfill": "0.3.0",
     "zod": "^4.4.3",

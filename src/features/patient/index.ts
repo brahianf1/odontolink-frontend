@@ -13,6 +13,7 @@ export {
 export type { TreatmentFilters } from './hooks/useAvailableTreatments';
 export { useMyAppointments } from './hooks/useMyAppointments';
 export { useMyAttentions } from './hooks/useMyAttentions';
+export { useFeedbackCriteria } from './hooks/useFeedbackCriteria';
 
 export {
   PatientFeedbackProvider,

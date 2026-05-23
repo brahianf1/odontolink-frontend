@@ -5,7 +5,6 @@ import {
   Alert,
   CircularProgress,
   Paper,
-  Rating,
   Chip,
   Divider,
 } from '@mui/material';
@@ -15,6 +14,7 @@ import { es } from 'date-fns/locale';
 import patientService from '../../services/api/patientService';
 import type { AttentionResponseDTO } from '../../types/attention.types';
 import type { FeedbackResponseDTO } from '../../types/feedback.types';
+import FeedbackScoresDisplay from '../../components/common/FeedbackScoresDisplay';
 
 interface FeedbackItem {
   attention: AttentionResponseDTO;
@@ -65,12 +65,10 @@ export default function PatientFeedbackPage() {
           isPractitionerRole(feedback.submittedByRole)
         );
 
-        // Build items, synthesizing attention data when missing to ensure we display something
         const feedbackData: FeedbackItem[] = feedbackFromPractitioner
           .map((feedback) => {
             let attention = completedAttentions.find((item) => item.id === feedback.attentionId);
             if (!attention) {
-              // synthesize minimal attention object from feedback
               attention = {
                 id: feedback.attentionId,
                 status: 'COMPLETED',
@@ -90,8 +88,6 @@ export default function PatientFeedbackPage() {
           .filter(Boolean);
 
         setFeedbackItems(feedbackData);
-
-        // removed diagnostics text (no UI debug output)
       } catch (err) {
         console.error('Error loading feedback:', err);
         setError('Error al cargar el feedback recibido');
@@ -119,8 +115,6 @@ export default function PatientFeedbackPage() {
       <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
         Revisa las evaluaciones que tu practicante dejó sobre tus atenciones.
       </Typography>
-
-      {/* diagnostics removed: no debug string shown in UI */}
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>
@@ -210,19 +204,12 @@ export default function PatientFeedbackPage() {
                   borderColor: 'divider',
                 }}
               >
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', gap: 2, alignItems: 'center', mb: 1.5 }}>
-                  <Typography variant="subtitle1" fontWeight={700}>
-                    Calificación general
-                  </Typography>
-                  <Box sx={{ textAlign: 'right' }}>
-                    <Rating value={feedback.rating} readOnly size="medium" />
-                    <Typography variant="caption" color="text.secondary" fontWeight={700} display="block">
-                      {feedback.rating}/5
-                    </Typography>
-                  </Box>
-                </Box>
+                <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
+                  Calificación por criterio
+                </Typography>
+                <FeedbackScoresDisplay scores={feedback.scores} variant="expanded" size="medium" />
 
-                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mt: 2 }}>
                   <Typography variant="body2" color="text.secondary">
                     Paciente: <strong>{attention.patientName}</strong>
                   </Typography>

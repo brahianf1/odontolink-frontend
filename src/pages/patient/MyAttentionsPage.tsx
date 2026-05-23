@@ -12,12 +12,10 @@ import {
   DialogTitle,
   IconButton,
   Paper,
-  Rating,
   Skeleton,
   Stack,
   Tab,
   Tabs,
-  TextField,
   Typography,
 } from '@mui/material';
 import {
@@ -33,6 +31,8 @@ import { es } from 'date-fns/locale';
 import patientService from '../../services/api/patientService';
 import type { AttentionResponseDTO } from '../../types/attention.types';
 import StatusChip from '../../components/common/StatusChip';
+import FeedbackSurveyForm from '../../components/common/FeedbackSurveyForm';
+import FeedbackScoresDisplay from '../../components/common/FeedbackScoresDisplay';
 import {
   EmptyState,
   getAppointmentStatusLabel,
@@ -40,6 +40,7 @@ import {
   getAttentionStatusLabel,
   getAttentionStatusTone,
   mapBusinessError,
+  useFeedbackCriteria,
   useMyAttentions,
   usePatientFeedback,
 } from '../../features/patient';
@@ -47,13 +48,14 @@ import {
 export default function MyAttentionsPage() {
   const { attentions, feedbackByAttentionId, loading, error, reload } = useMyAttentions();
   const { notifySuccess, notifyError } = usePatientFeedback();
+  const { criteria, loading: criteriaLoading, error: criteriaError } = useFeedbackCriteria('PATIENT_TO_PRACTITIONER');
   const [tabValue, setTabValue] = useState(0);
   const [expandedId, setExpandedId] = useState<string | false>(false);
 
   const [createOpen, setCreateOpen] = useState(false);
   const [viewOpen, setViewOpen] = useState(false);
   const [selected, setSelected] = useState<AttentionResponseDTO | null>(null);
-  const [rating, setRating] = useState(0);
+  const [scores, setScores] = useState<Record<string, number>>({});
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -61,25 +63,34 @@ export default function MyAttentionsPage() {
   const completedAttentions = attentions.filter((a) => a.status === 'COMPLETED');
   const displayed = tabValue === 0 ? activeAttentions : completedAttentions;
 
+  const allScored = criteria.length > 0 && criteria.every((c) => scores[c.code] > 0);
+
   const openFeedbackFor = (attention: AttentionResponseDTO) => {
     const existing = feedbackByAttentionId[attention.id];
     setSelected(attention);
     if (existing) {
       setViewOpen(true);
     } else {
-      setRating(0);
+      setScores({});
       setComment('');
       setCreateOpen(true);
     }
   };
 
+  const handleScoreChange = (code: string, score: number) => {
+    setScores((prev) => ({ ...prev, [code]: score }));
+  };
+
   const submitFeedback = async () => {
-    if (!selected || rating === 0) return;
+    if (!selected || !allScored) return;
     setSubmitting(true);
     try {
       await patientService.createFeedback({
         attentionId: selected.id,
-        rating,
+        scores: criteria.map((c) => ({
+          criterionCode: c.code,
+          score: scores[c.code],
+        })),
         comment: comment.trim() || undefined,
       });
       notifySuccess('Calificación enviada correctamente.');
@@ -343,35 +354,15 @@ export default function MyAttentionsPage() {
             </Paper>
           )}
 
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-            sx={{ mb: 3 }}
-          >
-            <Typography variant="subtitle2" fontWeight={600}>
-              Satisfacción general
-            </Typography>
-            <Rating
-              value={rating}
-              onChange={(_, v) => setRating(v ?? 0)}
-              size="large"
-              sx={{ '& .MuiRating-icon': { fontSize: '2.3rem' } }}
-            />
-          </Stack>
-
-          <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1 }}>
-            Comentarios (opcional)
-          </Typography>
-          <TextField
-            fullWidth
-            multiline
-            rows={4}
-            placeholder="Escribe un comentario adicional…"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-            inputProps={{ maxLength: 1000 }}
-            helperText={`${comment.length}/1000 caracteres`}
+          <FeedbackSurveyForm
+            criteria={criteria}
+            criteriaLoading={criteriaLoading}
+            criteriaError={criteriaError}
+            scores={scores}
+            onScoreChange={handleScoreChange}
+            comment={comment}
+            onCommentChange={setComment}
+            disabled={submitting}
           />
         </DialogContent>
         <DialogActions sx={{ p: 2.5, gap: 1 }}>
@@ -381,7 +372,7 @@ export default function MyAttentionsPage() {
           <Button
             onClick={submitFeedback}
             variant="contained"
-            disabled={rating === 0 || submitting}
+            disabled={!allScored || submitting}
             sx={{ flex: 1 }}
           >
             {submitting ? 'Enviando…' : 'Enviar calificación'}
@@ -423,14 +414,15 @@ export default function MyAttentionsPage() {
 
               <Box sx={{ mb: 3 }}>
                 <Typography variant="overline" fontWeight={600} color="text.secondary">
-                  Satisfacción general
+                  Calificación por criterio
                 </Typography>
-                <Rating
-                  value={feedbackByAttentionId[selected.id]?.rating}
-                  readOnly
-                  size="large"
-                  sx={{ display: 'flex', mt: 1, '& .MuiRating-icon': { fontSize: '2.3rem' } }}
-                />
+                <Box sx={{ mt: 1 }}>
+                  <FeedbackScoresDisplay
+                    scores={feedbackByAttentionId[selected.id]?.scores ?? []}
+                    variant="expanded"
+                    size="medium"
+                  />
+                </Box>
               </Box>
 
               <Box sx={{ mb: 3 }}>

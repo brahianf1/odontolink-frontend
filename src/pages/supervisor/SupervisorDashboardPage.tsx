@@ -26,6 +26,7 @@ import { useMyPractitioners } from '../../features/supervisor/hooks/useMyPractit
 import { useFeedbackDashboard } from '../../features/supervisor/hooks/useFeedbackDashboard';
 import FeedbackMetricCard from '../../features/supervisor/components/FeedbackMetricCard';
 import RatingDisplay from '../../features/supervisor/components/RatingDisplay';
+import FeedbackScoresDisplay from '../../components/common/FeedbackScoresDisplay';
 
 const formatDate = (value: string): string => {
   try {
@@ -175,7 +176,7 @@ export default function SupervisorDashboardPage() {
                           </Typography>
                         </Box>
                         <Stack alignItems="flex-end">
-                          <RatingDisplay value={feedback.rating} />
+                          <FeedbackScoresDisplay scores={feedback.scores} variant="compact" />
                           <Typography variant="caption" color="text.secondary">
                             {formatDate(feedback.createdAt)}
                           </Typography>

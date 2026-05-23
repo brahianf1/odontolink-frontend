@@ -7,7 +7,6 @@ import {
   Alert,
   CircularProgress,
   Grid,
-  Rating,
   Divider,
   Chip,
   Paper,
@@ -19,8 +18,10 @@ import { getFeedbackForAttention } from '../../services/api/feedbackService';
 import type { AttentionResponseDTO } from '../../types/attention.types';
 import type { FeedbackResponseDTO } from '../../types/feedback.types';
 import { isPatientRole } from '../../utils/roles';
+import { averageScore } from '../../utils/feedbackScores';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
+import FeedbackScoresDisplay from '../../components/common/FeedbackScoresDisplay';
 
 interface AttentionWithFeedback extends AttentionResponseDTO {
   feedback: FeedbackResponseDTO[];
@@ -39,16 +40,13 @@ export default function FeedbackPage() {
     try {
       setLoading(true);
       setError(null);
-      
-      // Obtener todas las atenciones (no filtramos por estado para no omitir feedback)
+
       const attentions = await getMyAttentions();
 
-      // Cargar feedback para cada atención
       const attentionsWithFeedbackData = await Promise.all(
         attentions.map(async (attention) => {
           try {
             const allFeedback = await getFeedbackForAttention(attention.id);
-            // FILTRAR: Solo el feedback que el practicante RECIBIÓ (de pacientes)
             const feedbackRecibido = allFeedback.filter((f) => isPatientRole(f.submittedByRole));
             return { ...attention, feedback: feedbackRecibido };
           } catch (err) {
@@ -57,12 +55,11 @@ export default function FeedbackPage() {
           }
         })
       );
-      
-      // Filtrar solo las atenciones que tienen al menos un feedback RECIBIDO
+
       const attentionsWithActualFeedback = attentionsWithFeedbackData.filter(
         (attention) => attention.feedback.length > 0
       );
-      
+
       setAttentionsWithFeedback(attentionsWithActualFeedback);
     } catch (err) {
       console.error('Error loading attentions and feedback:', err);
@@ -72,16 +69,15 @@ export default function FeedbackPage() {
     }
   };
 
-  // Calcular estadísticas generales
   const totalFeedbacks = attentionsWithFeedback.reduce(
     (sum, attention) => sum + attention.feedback.length,
     0
   );
-  
-  const averageRating = totalFeedbacks > 0
+
+  const overallAverage = totalFeedbacks > 0
     ? attentionsWithFeedback.reduce(
-        (sum, attention) => 
-          sum + attention.feedback.reduce((s, f) => s + f.rating, 0),
+        (sum, attention) =>
+          sum + attention.feedback.reduce((s, f) => s + averageScore(f.scores), 0),
         0
       ) / totalFeedbacks
     : 0;
@@ -105,23 +101,20 @@ export default function FeedbackPage() {
 
       {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
 
-      {/* Tarjeta de resumen */}
       {totalFeedbacks > 0 && (
         <Card sx={{ mb: 4, borderRadius: 3, background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)' }}>
           <CardContent sx={{ textAlign: 'center', color: 'white' }}>
             <Star sx={{ fontSize: 48, mb: 1 }} />
             <Typography variant="h2" fontWeight={700}>
-              {averageRating.toFixed(1)}
+              {overallAverage.toFixed(1)}
             </Typography>
-            <Rating value={averageRating} readOnly precision={0.1} size="large" sx={{ color: '#fff' }} />
             <Typography variant="body1" sx={{ mt: 1 }}>
-              Promedio de {totalFeedbacks} calificación{totalFeedbacks !== 1 ? 'es' : ''} en {attentionsWithFeedback.length} atención{attentionsWithFeedback.length !== 1 ? 'es' : ''}
+              Promedio general de {totalFeedbacks} calificación{totalFeedbacks !== 1 ? 'es' : ''} en {attentionsWithFeedback.length} atención{attentionsWithFeedback.length !== 1 ? 'es' : ''}
             </Typography>
           </CardContent>
         </Card>
       )}
 
-      {/* Lista de atenciones con feedback */}
       {attentionsWithFeedback.length === 0 ? (
         <Card sx={{ textAlign: 'center', py: 8, borderRadius: 3 }}>
           <CardContent>
@@ -139,7 +132,6 @@ export default function FeedbackPage() {
           {attentionsWithFeedback.map((attention) => (
             <Grid size={{ xs: 12 }} key={attention.id}>
               <Card sx={{ borderRadius: 3, overflow: 'hidden' }}>
-                {/* Encabezado de la atención */}
                 <Box sx={{ bgcolor: 'primary.main', color: 'white', p: 2 }}>
                   <Stack direction="row" spacing={2} alignItems="center" flexWrap="wrap">
                     <MedicalServices />
@@ -157,23 +149,22 @@ export default function FeedbackPage() {
                         </Typography>
                       </Stack>
                     </Box>
-                    <Chip 
-                      label={`${attention.feedback.length} feedback${attention.feedback.length !== 1 ? 's' : ''}`} 
+                    <Chip
+                      label={`${attention.feedback.length} feedback${attention.feedback.length !== 1 ? 's' : ''}`}
                       sx={{ bgcolor: 'white', color: 'primary.main', fontWeight: 600 }}
                     />
                   </Stack>
                 </Box>
 
-                {/* Feedbacks de esta atención */}
                 <CardContent>
                   <Grid container spacing={2}>
                     {attention.feedback.map((feedback) => (
                       <Grid size={{ xs: 12, md: 6 }} key={feedback.id}>
-                        <Paper 
-                          elevation={0} 
-                          sx={{ 
-                            p: 2.5, 
-                            borderRadius: 2, 
+                        <Paper
+                          elevation={0}
+                          sx={{
+                            p: 2.5,
+                            borderRadius: 2,
                             border: '2px solid',
                             borderColor: 'success.light',
                             bgcolor: 'success.50',
@@ -185,13 +176,12 @@ export default function FeedbackPage() {
                             }
                           }}
                         >
-                          {/* Autor del feedback - Solo se muestran feedbacks de PACIENTES */}
                           <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', mb: 1.5 }}>
                             <Box>
-                              <Chip 
-                                label="Calificación Recibida" 
+                              <Chip
+                                label="Calificación Recibida"
                                 size="small"
-                                sx={{ 
+                                sx={{
                                   mb: 0.5,
                                   fontSize: '0.7rem',
                                   height: 20,
@@ -207,15 +197,10 @@ export default function FeedbackPage() {
                                 Paciente
                               </Typography>
                             </Box>
-                            <Box sx={{ textAlign: 'right' }}>
-                              <Rating value={feedback.rating} readOnly size="small" />
-                              <Typography variant="caption" display="block" color="text.secondary" fontWeight={600}>
-                                {feedback.rating}/5
-                              </Typography>
-                            </Box>
                           </Box>
 
-                          {/* Comentario */}
+                          <FeedbackScoresDisplay scores={feedback.scores} variant="expanded" size="small" />
+
                           {feedback.comment && (
                             <>
                               <Divider sx={{ my: 1.5 }} />
@@ -225,7 +210,6 @@ export default function FeedbackPage() {
                             </>
                           )}
 
-                          {/* Fecha */}
                           <Typography variant="caption" color="text.secondary" sx={{ mt: 2, display: 'block' }}>
                             {format(parseISO(feedback.createdAt), "dd 'de' MMMM 'de' yyyy 'a las' HH:mm", { locale: es })}
                           </Typography>

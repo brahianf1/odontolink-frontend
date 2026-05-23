@@ -21,6 +21,7 @@ import { useMyPractitioners } from '../../features/supervisor/hooks/useMyPractit
 import FeedbackMetricCard from '../../features/supervisor/components/FeedbackMetricCard';
 import FeedbackFiltersBar from '../../features/supervisor/components/FeedbackFiltersBar';
 import FeedbackTable from '../../features/supervisor/components/FeedbackTable';
+import FeedbackCharts from '../../features/supervisor/components/FeedbackCharts';
 import RatingDisplay from '../../features/supervisor/components/RatingDisplay';
 import type {
   FeedbackDashboardQuery,
@@ -203,6 +204,8 @@ export default function FeedbackDashboardPage() {
           />
         </CardContent>
       </Card>
+
+      <FeedbackCharts />
 
       {error && (
         <Alert severity="error" sx={{ mb: 3 }}>

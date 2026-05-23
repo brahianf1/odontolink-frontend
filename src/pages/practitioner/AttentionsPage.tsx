@@ -15,12 +15,10 @@ import {
   Grid,
   IconButton,
   Paper,
-  Rating,
   Snackbar,
   Stack,
   Tab,
   Tabs,
-  TextField,
   ToggleButton,
   ToggleButtonGroup,
   Tooltip,
@@ -46,12 +44,12 @@ import {
 import AttentionListTable from '../../features/practitioner/components/attentions/AttentionListTable';
 import { createFeedback, getFeedbackForAttention } from '../../services/api/feedbackService';
 import type { AttentionResponseDTO } from '../../types/attention.types';
-import type {
-  CreateFeedbackRequestDTO,
-  FeedbackResponseDTO,
-} from '../../types/feedback.types';
+import type { FeedbackResponseDTO } from '../../types/feedback.types';
 import { useAuthStore } from '../../store/authStore';
 import { isPractitionerRole } from '../../utils/roles';
+import { useFeedbackCriteria } from '../../features/patient/hooks/useFeedbackCriteria';
+import FeedbackSurveyForm from '../../components/common/FeedbackSurveyForm';
+import FeedbackScoresDisplay from '../../components/common/FeedbackScoresDisplay';
 
 type ViewMode = 'cards' | 'list';
 
@@ -65,6 +63,7 @@ export default function AttentionsPage() {
   const { user } = useAuthStore();
   const { attentions, loading } = useMyAttentions();
   const { offers } = useOfferedTreatments();
+  const { criteria, loading: criteriaLoading, error: criteriaError } = useFeedbackCriteria('PRACTITIONER_TO_PATIENT');
 
   const offersByTreatmentId = useMemo(() => {
     const map = new Map<number, (typeof offers)[number]>();
@@ -77,18 +76,16 @@ export default function AttentionsPage() {
   const [enrichedAttentions, setEnrichedAttentions] = useState<AttentionWithFeedback[]>([]);
   const [enrichLoading, setEnrichLoading] = useState(false);
 
-  // Academic feedback dialogs (orthogonal concern, kept inline because they
-  // do not need the full detail page context).
   const [feedbackViewTarget, setFeedbackViewTarget] = useState<AttentionResponseDTO | null>(null);
   const [feedbackCreateTarget, setFeedbackCreateTarget] = useState<AttentionResponseDTO | null>(null);
   const [feedbackList, setFeedbackList] = useState<FeedbackResponseDTO[]>([]);
-  const [feedbackRating, setFeedbackRating] = useState<number | null>(null);
+  const [feedbackScores, setFeedbackScores] = useState<Record<string, number>>({});
   const [feedbackComment, setFeedbackComment] = useState('');
   const [feedbackError, setFeedbackError] = useState<string | null>(null);
   const [feedbackSuccess, setFeedbackSuccess] = useState<string | null>(null);
 
-  // Enrich completed attentions with feedback metadata so the cards/rows can
-  // show whether the practitioner already left a rating.
+  const allScored = criteria.length > 0 && criteria.every((c) => feedbackScores[c.code] > 0);
+
   useEffect(() => {
     let cancelled = false;
     const enrich = async () => {
@@ -149,14 +146,18 @@ export default function AttentionsPage() {
 
   const handleOpenFeedbackCreate = (attention: AttentionResponseDTO) => {
     setFeedbackCreateTarget(attention);
-    setFeedbackRating(null);
+    setFeedbackScores({});
     setFeedbackComment('');
     setFeedbackError(null);
   };
 
+  const handleScoreChange = (code: string, score: number) => {
+    setFeedbackScores((prev) => ({ ...prev, [code]: score }));
+  };
+
   const handleSubmitFeedback = async () => {
-    if (!feedbackCreateTarget || !feedbackRating) {
-      setFeedbackError('Debes seleccionar una calificación.');
+    if (!feedbackCreateTarget || !allScored) {
+      setFeedbackError('Debes calificar todos los criterios.');
       return;
     }
     if (feedbackComment.length > 1000) {
@@ -165,12 +166,14 @@ export default function AttentionsPage() {
     }
     const targetId = feedbackCreateTarget.id;
     try {
-      const payload: CreateFeedbackRequestDTO = {
+      await createFeedback({
         attentionId: targetId,
-        rating: feedbackRating,
+        scores: criteria.map((c) => ({
+          criterionCode: c.code,
+          score: feedbackScores[c.code],
+        })),
         comment: feedbackComment.trim() || undefined,
-      };
-      await createFeedback(payload);
+      });
       setEnrichedAttentions((current) =>
         current.map((attention) =>
           attention.id === targetId
@@ -336,7 +339,7 @@ export default function AttentionsPage() {
         </Box>
       )}
 
-      {/* Academic feedback — view */}
+      {/* View feedback dialog */}
       <Dialog
         open={feedbackViewTarget != null}
         onClose={() => setFeedbackViewTarget(null)}
@@ -398,27 +401,29 @@ export default function AttentionsPage() {
                     <Box>
                       <Chip
                         label={
-                          feedback.submittedByRole === 'PATIENT'
+                          feedback.submittedByRole === 'PATIENT' ||
+                          feedback.submittedByRole === 'ROLE_PATIENT'
                             ? 'Calificación del paciente'
                             : 'Tu calificación'
                         }
                         size="small"
-                        color={feedback.submittedByRole === 'PATIENT' ? 'success' : 'info'}
+                        color={
+                          feedback.submittedByRole === 'PATIENT' ||
+                          feedback.submittedByRole === 'ROLE_PATIENT'
+                            ? 'success'
+                            : 'info'
+                        }
                         sx={{ mb: 1, fontWeight: 600 }}
                       />
                       <Typography variant="subtitle1" fontWeight={600}>
-                        {feedback.submittedByRole === 'PATIENT'
+                        {feedback.submittedByRole === 'PATIENT' ||
+                        feedback.submittedByRole === 'ROLE_PATIENT'
                           ? `${feedback.submittedByName} te calificó`
                           : `Calificaste a ${feedback.patientName}`}
                       </Typography>
                     </Box>
-                    <Box sx={{ textAlign: 'right' }}>
-                      <Rating value={feedback.rating} readOnly size="small" />
-                      <Typography variant="caption" display="block" fontWeight={600}>
-                        {feedback.rating}/5
-                      </Typography>
-                    </Box>
                   </Box>
+                  <FeedbackScoresDisplay scores={feedback.scores} variant="expanded" size="small" />
                   {feedback.comment && (
                     <>
                       <Divider sx={{ my: 1.5 }} />
@@ -452,7 +457,7 @@ export default function AttentionsPage() {
         </DialogActions>
       </Dialog>
 
-      {/* Academic feedback — create */}
+      {/* Create feedback dialog */}
       <Dialog
         open={feedbackCreateTarget != null}
         onClose={() => setFeedbackCreateTarget(null)}
@@ -492,30 +497,17 @@ export default function AttentionsPage() {
             </Alert>
           )}
 
-          <Box sx={{ textAlign: 'center', py: 3 }}>
-            <Typography variant="subtitle2" gutterBottom>
-              ¿Cómo fue tu experiencia con este paciente?
-            </Typography>
-            <Rating
-              value={feedbackRating}
-              onChange={(_, v) => setFeedbackRating(v)}
-              size="large"
-              sx={{ mt: 1 }}
+          <Box sx={{ mt: 2 }}>
+            <FeedbackSurveyForm
+              criteria={criteria}
+              criteriaLoading={criteriaLoading}
+              criteriaError={criteriaError}
+              scores={feedbackScores}
+              onScoreChange={handleScoreChange}
+              comment={feedbackComment}
+              onCommentChange={setFeedbackComment}
             />
           </Box>
-
-          <TextField
-            label="Comentario (opcional)"
-            value={feedbackComment}
-            onChange={(e) => setFeedbackComment(e.target.value)}
-            fullWidth
-            multiline
-            rows={4}
-            placeholder="Puntualidad, colaboración, seguimiento de indicaciones…"
-            helperText={`${feedbackComment.length}/1000 caracteres`}
-            error={feedbackComment.length > 1000}
-            inputProps={{ maxLength: 1000 }}
-          />
 
           <Alert severity="info" sx={{ mt: 2 }}>
             Tu calificación será visible para el docente supervisor.
@@ -526,7 +518,7 @@ export default function AttentionsPage() {
           <Button
             onClick={handleSubmitFeedback}
             variant="contained"
-            disabled={!feedbackRating}
+            disabled={!allScored}
           >
             Enviar calificación
           </Button>

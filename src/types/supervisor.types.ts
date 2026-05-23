@@ -1,7 +1,9 @@
 // Supervisor (Docente) DTOs aligned with the backend OpenAPI spec.
 
 import type { PageResponse } from './common.types';
-import type { FeedbackResponseDTO } from './feedback.types';
+import type { FeedbackResponseDTO, FeedbackDirection } from './feedback.types';
+
+export type { FeedbackDirection };
 
 export interface UserBasicDTO {
   id: number;
@@ -22,10 +24,6 @@ export interface BatchLinkPractitionersRequestDTO {
   practitionerIds: number[];
 }
 
-export type FeedbackDirection =
-  | 'PATIENT_TO_PRACTITIONER'
-  | 'PRACTITIONER_TO_PATIENT';
-
 export interface FeedbackDashboardQuery {
   practitionerId?: number;
   patientId?: number;
@@ -37,7 +35,6 @@ export interface FeedbackDashboardQuery {
   size?: number;
   sortBy?:
     | 'createdAt'
-    | 'rating'
     | 'practitionerId'
     | 'patientId'
     | 'treatmentId'

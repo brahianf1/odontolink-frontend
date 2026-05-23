@@ -19,7 +19,7 @@ import {
 } from '@mui/material';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
-import RatingDisplay from './RatingDisplay';
+import FeedbackScoresDisplay from '../../../components/common/FeedbackScoresDisplay';
 import type { PageResponse } from '../../../types/common.types';
 import type { FeedbackResponseDTO } from '../../../types/feedback.types';
 
@@ -112,7 +112,7 @@ export default function FeedbackTable({
                         {formatDate(feedback.createdAt)}
                       </Typography>
                     </Box>
-                    <RatingDisplay value={feedback.rating} />
+                    <FeedbackScoresDisplay scores={feedback.scores} variant="compact" />
                   </Stack>
                   <Divider sx={{ my: 1.5 }} />
                   <Typography variant="caption" color="text.secondary" display="block">
@@ -182,7 +182,7 @@ export default function FeedbackTable({
                       <Typography variant="body2">{feedback.treatmentName}</Typography>
                     </TableCell>
                     <TableCell>
-                      <RatingDisplay value={feedback.rating} />
+                      <FeedbackScoresDisplay scores={feedback.scores} variant="compact" />
                     </TableCell>
                     <TableCell sx={{ maxWidth: 320 }}>
                       <Typography
