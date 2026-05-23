@@ -18,6 +18,7 @@ import { getMyAttentions } from '../../services/api/practitionerService';
 import { getFeedbackForAttention } from '../../services/api/feedbackService';
 import type { AttentionResponseDTO } from '../../types/attention.types';
 import type { FeedbackResponseDTO } from '../../types/feedback.types';
+import { isPatientRole } from '../../utils/roles';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -39,23 +40,16 @@ export default function FeedbackPage() {
       setLoading(true);
       setError(null);
       
-      // Obtener todas las atenciones
+      // Obtener todas las atenciones (no filtramos por estado para no omitir feedback)
       const attentions = await getMyAttentions();
-      
-      // Filtrar solo las atenciones completadas
-      const completedAttentions = attentions.filter(
-        (attention) => attention.status === 'COMPLETED'
-      );
-      
-      // Cargar feedback para cada atención completada
+
+      // Cargar feedback para cada atención
       const attentionsWithFeedbackData = await Promise.all(
-        completedAttentions.map(async (attention) => {
+        attentions.map(async (attention) => {
           try {
             const allFeedback = await getFeedbackForAttention(attention.id);
             // FILTRAR: Solo el feedback que el practicante RECIBIÓ (de pacientes)
-            const feedbackRecibido = allFeedback.filter(
-              (f) => f.submittedByRole === 'PATIENT'
-            );
+            const feedbackRecibido = allFeedback.filter((f) => isPatientRole(f.submittedByRole));
             return { ...attention, feedback: feedbackRecibido };
           } catch (err) {
             console.error(`Error loading feedback for attention ${attention.id}:`, err);

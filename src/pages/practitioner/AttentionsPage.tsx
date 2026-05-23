@@ -51,11 +51,7 @@ import type {
   FeedbackResponseDTO,
 } from '../../types/feedback.types';
 import { useAuthStore } from '../../store/authStore';
-
-const isPractitionerRole = (role?: string | null) => {
-  if (!role) return false;
-  return String(role).toUpperCase().includes('PRACT');
-};
+import { isPractitionerRole } from '../../utils/roles';
 
 type ViewMode = 'cards' | 'list';
 
@@ -167,13 +163,25 @@ export default function AttentionsPage() {
       setFeedbackError('El comentario no puede exceder 1000 caracteres.');
       return;
     }
+    const targetId = feedbackCreateTarget.id;
     try {
       const payload: CreateFeedbackRequestDTO = {
-        attentionId: feedbackCreateTarget.id,
+        attentionId: targetId,
         rating: feedbackRating,
         comment: feedbackComment.trim() || undefined,
       };
       await createFeedback(payload);
+      setEnrichedAttentions((current) =>
+        current.map((attention) =>
+          attention.id === targetId
+            ? {
+                ...attention,
+                hasMyFeedback: true,
+                feedbackCount: (attention.feedbackCount ?? 0) + 1,
+              }
+            : attention
+        )
+      );
       setFeedbackSuccess('Feedback enviado.');
       setFeedbackCreateTarget(null);
     } catch (err: unknown) {
