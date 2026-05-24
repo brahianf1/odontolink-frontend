@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   Alert,
   Box,
@@ -32,7 +32,6 @@ const DEFAULT_QUERY: FeedbackDashboardQuery = {
 
 export default function FeedbackDashboardPage() {
   const theme = useTheme();
-  const tableRef = useRef<HTMLDivElement>(null);
   const { data, loading, error, query, setQuery, refresh } = useFeedbackDashboard({
     direction: 'PATIENT_TO_PRACTITIONER',
   });
@@ -76,15 +75,17 @@ export default function FeedbackDashboardPage() {
         direction: 'PATIENT_TO_PRACTITIONER' as const,
         page: 0,
       }));
-      setTimeout(() => {
-        tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 100);
     },
     [setQuery]
   );
 
   const avgPtoP = data?.averageRatingPatientToPractitioner ?? 0;
   const totalPtoP = data?.totalPatientToPractitioner ?? 0;
+
+  const uniquePatients = useMemo(() => {
+    if (!data?.feedbacks.content) return 0;
+    return new Set(data.feedbacks.content.map((f) => f.patientName)).size;
+  }, [data?.feedbacks.content]);
 
   return (
     <Box>
@@ -180,11 +181,11 @@ export default function FeedbackDashboardPage() {
                   <Stack direction="row" spacing={0.5} alignItems="center">
                     <SchoolIcon sx={{ fontSize: 20 }} />
                     <Typography variant="titleLarge" fontWeight={700}>
-                      {practitioners.length}
+                      {selectedPractitioner ? uniquePatients : practitioners.length}
                     </Typography>
                   </Stack>
                   <Typography variant="labelSmall">
-                    practicantes
+                    {selectedPractitioner ? 'pacientes atendidos' : 'practicantes'}
                   </Typography>
                 </Box>
               </Stack>
@@ -227,12 +228,10 @@ export default function FeedbackDashboardPage() {
 
       {/* Filters + Table */}
       <Paper
-        ref={tableRef}
         sx={{
           backgroundColor: theme.palette.surfaces.containerLow,
           border: `1px solid ${theme.palette.outlineVariant}`,
           overflow: 'hidden',
-          scrollMarginTop: 16,
         }}
       >
         <Box sx={{ p: { xs: 2, md: 2.5 } }}>
