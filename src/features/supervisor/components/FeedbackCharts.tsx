@@ -15,11 +15,12 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import { useTheme } from '@mui/material/styles';
+import { useTheme, alpha } from '@mui/material/styles';
 import { useFeedbackCharts } from '../hooks/useFeedbackCharts';
 
 interface FeedbackChartsProps {
   onPractitionerClick?: (practitionerId: number) => void;
+  selectedPractitionerId?: number | null;
 }
 
 function ChartEmptyState({ message }: { message: string }) {
@@ -41,7 +42,10 @@ function ChartEmptyState({ message }: { message: string }) {
   );
 }
 
-export default function FeedbackCharts({ onPractitionerClick }: FeedbackChartsProps) {
+export default function FeedbackCharts({
+  onPractitionerClick,
+  selectedPractitionerId,
+}: FeedbackChartsProps) {
   const { criterionCharts, combinedRanking, loading, error } = useFeedbackCharts();
   const theme = useTheme();
 
@@ -70,7 +74,6 @@ export default function FeedbackCharts({ onPractitionerClick }: FeedbackChartsPr
         sx={{
           p: 4,
           textAlign: 'center',
-          mb: 3,
           backgroundColor: theme.palette.surfaces.containerLow,
           border: `1px solid ${theme.palette.outlineVariant}`,
         }}
@@ -89,6 +92,13 @@ export default function FeedbackCharts({ onPractitionerClick }: FeedbackChartsPr
     if (onPractitionerClick && typeof data.practitionerId === 'number') {
       onPractitionerClick(data.practitionerId);
     }
+  };
+
+  const getBarFill = (entry: { practitionerId: number }, index: number) => {
+    const baseColor = chartColors[index % chartColors.length];
+    if (!selectedPractitionerId) return baseColor;
+    if (entry.practitionerId === selectedPractitionerId) return baseColor;
+    return alpha(baseColor, 0.2);
   };
 
   return (
@@ -132,13 +142,10 @@ export default function FeedbackCharts({ onPractitionerClick }: FeedbackChartsPr
                   type="category"
                   dataKey="practitionerName"
                   width={120}
-                  tick={{ fontSize: 12, fill: theme.palette.text.secondary, cursor: onPractitionerClick ? 'pointer' : 'default' }}
+                  tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
                 />
                 <Tooltip
-                  formatter={(value) => [
-                    `${Number(value).toFixed(2)}`,
-                    'Promedio',
-                  ]}
+                  formatter={(value) => [`${Number(value).toFixed(2)}`, 'Promedio']}
                   contentStyle={{
                     backgroundColor: theme.palette.surfaces.containerHighest,
                     border: `1px solid ${theme.palette.outlineVariant}`,
@@ -152,8 +159,13 @@ export default function FeedbackCharts({ onPractitionerClick }: FeedbackChartsPr
                   cursor={onPractitionerClick ? 'pointer' : 'default'}
                   onClick={(data) => handleBarClick(data as unknown as Record<string, unknown>)}
                 >
-                  {chart.entries.map((_entry, index) => (
-                    <Cell key={index} fill={chartColors[index % chartColors.length]} />
+                  {chart.entries.map((entry, index) => (
+                    <Cell
+                      key={index}
+                      fill={getBarFill(entry, index)}
+                      stroke={selectedPractitionerId === entry.practitionerId ? theme.palette.primary.main : 'none'}
+                      strokeWidth={selectedPractitionerId === entry.practitionerId ? 2 : 0}
+                    />
                   ))}
                 </Bar>
               </BarChart>
@@ -199,7 +211,7 @@ export default function FeedbackCharts({ onPractitionerClick }: FeedbackChartsPr
                   type="category"
                   dataKey="practitionerName"
                   width={120}
-                  tick={{ fontSize: 12, fill: theme.palette.text.secondary, cursor: onPractitionerClick ? 'pointer' : 'default' }}
+                  tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
                 />
                 <Tooltip
                   formatter={(value, _name, props) => {
@@ -225,8 +237,13 @@ export default function FeedbackCharts({ onPractitionerClick }: FeedbackChartsPr
                   cursor={onPractitionerClick ? 'pointer' : 'default'}
                   onClick={(data) => handleBarClick(data as unknown as Record<string, unknown>)}
                 >
-                  {combinedRanking.entries.map((_entry, index) => (
-                    <Cell key={index} fill={chartColors[index % chartColors.length]} />
+                  {combinedRanking.entries.map((entry, index) => (
+                    <Cell
+                      key={index}
+                      fill={getBarFill(entry, index)}
+                      stroke={selectedPractitionerId === entry.practitionerId ? theme.palette.primary.main : 'none'}
+                      strokeWidth={selectedPractitionerId === entry.practitionerId ? 2 : 0}
+                    />
                   ))}
                 </Bar>
               </BarChart>

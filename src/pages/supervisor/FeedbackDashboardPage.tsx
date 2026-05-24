@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 import {
   Alert,
   Box,
@@ -32,6 +32,7 @@ const DEFAULT_QUERY: FeedbackDashboardQuery = {
 
 export default function FeedbackDashboardPage() {
   const theme = useTheme();
+  const tableRef = useRef<HTMLDivElement>(null);
   const { data, loading, error, query, setQuery, refresh } = useFeedbackDashboard({
     direction: 'PATIENT_TO_PRACTITIONER',
   });
@@ -71,10 +72,13 @@ export default function FeedbackDashboardPage() {
     (practitionerId: number) => {
       setQuery((prev) => ({
         ...prev,
-        practitionerId,
+        practitionerId: prev.practitionerId === practitionerId ? undefined : practitionerId,
         direction: 'PATIENT_TO_PRACTITIONER' as const,
         page: 0,
       }));
+      setTimeout(() => {
+        tableRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
     },
     [setQuery]
   );
@@ -84,7 +88,7 @@ export default function FeedbackDashboardPage() {
 
   return (
     <Box>
-      {/* ── Header ── */}
+      {/* Header */}
       <Box
         sx={{
           display: 'flex',
@@ -113,7 +117,7 @@ export default function FeedbackDashboardPage() {
         </Button>
       </Box>
 
-      {/* ── KPI summary (P→Pr only, reactive to filters) ── */}
+      {/* KPI summary */}
       <Paper
         sx={{
           p: { xs: 2.5, md: 3 },
@@ -128,7 +132,6 @@ export default function FeedbackDashboardPage() {
           spacing={{ xs: 2.5, sm: 4 }}
           alignItems={{ xs: 'flex-start', sm: 'center' }}
         >
-          {/* Average score */}
           <Stack direction="row" spacing={1.5} alignItems="center">
             {loading ? (
               <Typography variant="displaySmall" fontWeight={700} sx={{ lineHeight: 1, opacity: 0.4 }}>
@@ -206,7 +209,7 @@ export default function FeedbackDashboardPage() {
         </Stack>
       </Paper>
 
-      {/* ── Charts (interactive — click to filter by practitioner) ── */}
+      {/* Charts */}
       <Box sx={{ mb: 3 }}>
         <Stack direction="row" spacing={1} alignItems="baseline" sx={{ mb: 2 }}>
           <Typography variant="titleMedium" fontWeight={700}>
@@ -216,18 +219,22 @@ export default function FeedbackDashboardPage() {
             Tocá una barra para filtrar por practicante
           </Typography>
         </Stack>
-        <FeedbackCharts onPractitionerClick={handlePractitionerClick} />
+        <FeedbackCharts
+          onPractitionerClick={handlePractitionerClick}
+          selectedPractitionerId={query.practitionerId}
+        />
       </Box>
 
-      {/* ── Filters + Table (grouped) ── */}
+      {/* Filters + Table */}
       <Paper
+        ref={tableRef}
         sx={{
           backgroundColor: theme.palette.surfaces.containerLow,
           border: `1px solid ${theme.palette.outlineVariant}`,
           overflow: 'hidden',
+          scrollMarginTop: 16,
         }}
       >
-        {/* Filters header */}
         <Box sx={{ p: { xs: 2, md: 2.5 } }}>
           <Typography variant="titleMedium" fontWeight={700} sx={{ mb: 2 }}>
             Evaluaciones de pacientes
@@ -249,15 +256,12 @@ export default function FeedbackDashboardPage() {
           </Alert>
         )}
 
-        {/* Table */}
-        <Box sx={{ p: { xs: 0, md: 0 } }}>
-          <FeedbackTable
-            page={data?.feedbacks ?? null}
-            loading={loading}
-            onPageChange={handlePageChange}
-            onPageSizeChange={handlePageSizeChange}
-          />
-        </Box>
+        <FeedbackTable
+          page={data?.feedbacks ?? null}
+          loading={loading}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+        />
       </Paper>
     </Box>
   );
