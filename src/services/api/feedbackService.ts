@@ -2,9 +2,20 @@ import apiClient from './apiClient';
 import type {
   FeedbackResponseDTO,
   CreateFeedbackRequestDTO,
+  FeedbackCriterionDTO,
+  FeedbackDirection,
 } from '../../types/feedback.types';
 
-// ============= Feedback =============
+export const getFeedbackCriteria = async (
+  direction?: FeedbackDirection
+): Promise<FeedbackCriterionDTO[]> => {
+  const response = await apiClient.get<FeedbackCriterionDTO[]>(
+    '/api/feedback/criteria',
+    { params: direction ? { direction } : undefined }
+  );
+  return response.data;
+};
+
 export const createFeedback = async (
   data: CreateFeedbackRequestDTO
 ): Promise<FeedbackResponseDTO> => {
@@ -21,7 +32,6 @@ export const getFeedbackForAttention = async (
   return response.data;
 };
 
-// Endpoint para supervisores - obtener feedback de un practicante específico
 export const getFeedbackForPractitioner = async (
   practitionerId: number
 ): Promise<FeedbackResponseDTO[]> => {

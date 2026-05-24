@@ -9,6 +9,10 @@ import type {
   AttentionResponseDTO,
   ProgressNoteResponseDTO,
 } from '../../types/attention.types';
+import type {
+  TopByCriterionResponseDTO,
+  PractitionersRankingResponseDTO,
+} from '../../types/feedback.types';
 
 const SUPERVISORS_BASE = '/api/supervisors';
 
@@ -99,6 +103,33 @@ export const getFeedbackDashboard = async (
         sortDirection: query.sortDirection || undefined,
       },
     }
+  );
+  return response.data;
+};
+
+export const getTopByCriterion = async (params: {
+  criterionCode: string;
+  topN?: number;
+  startDate?: string;
+  endDate?: string;
+  treatmentId?: number;
+}): Promise<TopByCriterionResponseDTO> => {
+  const response = await apiClient.get<TopByCriterionResponseDTO>(
+    `${SUPERVISORS_BASE}/feedbacks/charts/top-by-criterion`,
+    { params }
+  );
+  return response.data;
+};
+
+export const getPractitionersRanking = async (params?: {
+  topN?: number;
+  startDate?: string;
+  endDate?: string;
+  treatmentId?: number;
+}): Promise<PractitionersRankingResponseDTO> => {
+  const response = await apiClient.get<PractitionersRankingResponseDTO>(
+    `${SUPERVISORS_BASE}/feedbacks/charts/practitioners-ranking`,
+    { params }
   );
   return response.data;
 };

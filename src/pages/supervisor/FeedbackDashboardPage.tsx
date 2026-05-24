@@ -1,69 +1,56 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
-  Box,
-  Typography,
-  Stack,
-  Button,
   Alert,
-  Card,
-  CardContent,
-  Tabs,
-  Tab,
+  Box,
+  Button,
+  Chip,
+  Divider,
+  Paper,
+  Rating,
+  Stack,
+  Typography,
+  useTheme,
 } from '@mui/material';
 import {
   Refresh as RefreshIcon,
-  StarRate as StarIcon,
-  Forum as ForumIcon,
   School as SchoolIcon,
 } from '@mui/icons-material';
 import { useFeedbackDashboard } from '../../features/supervisor/hooks/useFeedbackDashboard';
 import { useMyPractitioners } from '../../features/supervisor/hooks/useMyPractitioners';
-import FeedbackMetricCard from '../../features/supervisor/components/FeedbackMetricCard';
 import FeedbackFiltersBar from '../../features/supervisor/components/FeedbackFiltersBar';
 import FeedbackTable from '../../features/supervisor/components/FeedbackTable';
-import RatingDisplay from '../../features/supervisor/components/RatingDisplay';
-import type {
-  FeedbackDashboardQuery,
-  FeedbackDirection,
-} from '../../types/supervisor.types';
+import FeedbackCharts from '../../features/supervisor/components/FeedbackCharts';
+import type { FeedbackDashboardQuery } from '../../types/supervisor.types';
 
-const DEFAULT_RESET_QUERY: FeedbackDashboardQuery = {
+const DEFAULT_QUERY: FeedbackDashboardQuery = {
   page: 0,
   size: 10,
   sortBy: 'createdAt',
   sortDirection: 'DESC',
-};
-
-type DirectionTab = 'ALL' | FeedbackDirection;
-
-const renderAverage = (
-  total: number,
-  average: number,
-  loading: boolean
-) => {
-  if (loading) return '—';
-  if (!total) return 'Sin datos';
-  return (
-    <Stack direction="row" spacing={1} alignItems="center">
-      <span>{average.toFixed(2)}</span>
-      <RatingDisplay value={average} showValue={false} size="medium" />
-    </Stack>
-  );
+  direction: 'PATIENT_TO_PRACTITIONER',
 };
 
 export default function FeedbackDashboardPage() {
-  const { data, loading, error, query, setQuery, refresh } = useFeedbackDashboard();
+  const theme = useTheme();
+  const { data, loading, error, query, setQuery, refresh } = useFeedbackDashboard({
+    direction: 'PATIENT_TO_PRACTITIONER',
+  });
   const { practitioners, loading: practitionersLoading } = useMyPractitioners();
+
+  const selectedPractitioner = useMemo(() => {
+    if (!query.practitionerId) return null;
+    return practitioners.find((p) => p.id === query.practitionerId) ?? null;
+  }, [query.practitionerId, practitioners]);
 
   const handleQueryChange = useCallback(
     (next: FeedbackDashboardQuery) => {
-      setQuery(() => next);
+      setQuery(() => ({ ...next, direction: 'PATIENT_TO_PRACTITIONER' }));
     },
     [setQuery]
   );
 
   const handleReset = useCallback(() => {
-    setQuery(() => ({ ...DEFAULT_RESET_QUERY }));
+    setQuery(() => ({ ...DEFAULT_QUERY }));
   }, [setQuery]);
 
   const handlePageChange = useCallback(
@@ -80,21 +67,29 @@ export default function FeedbackDashboardPage() {
     [setQuery]
   );
 
-  const directionTab: DirectionTab = query.direction ?? 'ALL';
-
-  const handleDirectionChange = useCallback(
-    (_event: React.SyntheticEvent, value: DirectionTab) => {
+  const handlePractitionerClick = useCallback(
+    (practitionerId: number) => {
       setQuery((prev) => ({
         ...prev,
-        direction: value === 'ALL' ? undefined : value,
+        practitionerId: prev.practitionerId === practitionerId ? undefined : practitionerId,
+        direction: 'PATIENT_TO_PRACTITIONER' as const,
         page: 0,
       }));
     },
     [setQuery]
   );
 
+  const avgPtoP = data?.averageRatingPatientToPractitioner ?? 0;
+  const totalPtoP = data?.totalPatientToPractitioner ?? 0;
+
+  const uniquePatients = useMemo(() => {
+    if (!data?.feedbacks.content) return 0;
+    return new Set(data.feedbacks.content.map((f) => f.patientName)).size;
+  }, [data?.feedbacks.content]);
+
   return (
     <Box>
+      {/* Header */}
       <Box
         sx={{
           display: 'flex',
@@ -109,8 +104,8 @@ export default function FeedbackDashboardPage() {
           <Typography variant="h4" fontWeight={700} gutterBottom>
             Panel docente de feedback
           </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Supervisión de calificaciones y comentarios sobre las atenciones brindadas.
+          <Typography variant="bodyMedium" color="text.secondary">
+            Evaluaciones que los pacientes dejaron sobre tus practicantes a cargo.
           </Typography>
         </Box>
         <Button
@@ -123,77 +118,126 @@ export default function FeedbackDashboardPage() {
         </Button>
       </Box>
 
-      <Box
+      {/* KPI summary */}
+      <Paper
         sx={{
-          display: 'grid',
-          gap: 2,
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', lg: 'repeat(4, 1fr)' },
+          p: { xs: 2.5, md: 3 },
           mb: 3,
+          backgroundColor: theme.palette.primary.container,
+          color: theme.palette.primary.onContainer,
+          border: `1px solid ${theme.palette.outlineVariant}`,
         }}
       >
-        <FeedbackMetricCard
-          title="Calificación recibida del paciente"
-          icon={<StarIcon />}
-          loading={loading}
-          value={
-            data
-              ? renderAverage(
-                  data.totalPatientToPractitioner,
-                  data.averageRatingPatientToPractitioner,
-                  loading
-                )
-              : '—'
-          }
-          caption={
-            data
-              ? `${data.totalPatientToPractitioner.toLocaleString('es-AR')} feedbacks de pacientes`
-              : 'Métrica clave para evaluación docente'
-          }
-        />
-        <FeedbackMetricCard
-          title="Calificación dada al paciente"
-          icon={<ForumIcon />}
-          loading={loading}
-          value={
-            data
-              ? renderAverage(
-                  data.totalPractitionerToPatient,
-                  data.averageRatingPractitionerToPatient,
-                  loading
-                )
-              : '—'
-          }
-          caption={
-            data
-              ? `${data.totalPractitionerToPatient.toLocaleString('es-AR')} feedbacks del practicante`
-              : 'Calificación complementaria'
-          }
-        />
-        <FeedbackMetricCard
-          title="Total bidireccional"
-          icon={<ForumIcon />}
-          loading={loading}
-          value={
-            data
-              ? (
-                  data.totalPatientToPractitioner +
-                  data.totalPractitionerToPatient
-                ).toLocaleString('es-AR')
-              : '—'
-          }
-          caption="Suma de ambas direcciones según filtros"
-        />
-        <FeedbackMetricCard
-          title="Practicantes a cargo"
-          icon={<SchoolIcon />}
-          loading={practitionersLoading}
-          value={practitioners.length}
-          caption="Universo bajo tu supervisión"
+        <Stack
+          direction={{ xs: 'column', sm: 'row' }}
+          spacing={{ xs: 2.5, sm: 4 }}
+          alignItems={{ xs: 'flex-start', sm: 'center' }}
+        >
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            {loading ? (
+              <Typography variant="displaySmall" fontWeight={700} sx={{ lineHeight: 1, opacity: 0.4 }}>
+                —
+              </Typography>
+            ) : totalPtoP === 0 ? (
+              <Typography variant="titleLarge" fontWeight={600}>
+                Sin evaluaciones aún
+              </Typography>
+            ) : (
+              <>
+                <Typography variant="displaySmall" fontWeight={700} sx={{ lineHeight: 1 }}>
+                  {avgPtoP.toFixed(1)}
+                </Typography>
+                <Box>
+                  <Rating value={avgPtoP} readOnly precision={0.1} size="medium" />
+                  <Typography variant="labelSmall" sx={{ display: 'block' }}>
+                    {selectedPractitioner
+                      ? `${selectedPractitioner.user.firstName} ${selectedPractitioner.user.lastName}`
+                      : 'Todos los practicantes'}
+                  </Typography>
+                </Box>
+              </>
+            )}
+          </Stack>
+
+          {totalPtoP > 0 && (
+            <>
+              <Divider
+                orientation="vertical"
+                flexItem
+                sx={{ borderColor: 'inherit', opacity: 0.25, display: { xs: 'none', sm: 'block' } }}
+              />
+              <Divider sx={{ borderColor: 'inherit', opacity: 0.25, display: { xs: 'block', sm: 'none' }, width: '100%' }} />
+
+              <Stack direction="row" spacing={3}>
+                <Box>
+                  <Typography variant="titleLarge" fontWeight={700}>
+                    {totalPtoP}
+                  </Typography>
+                  <Typography variant="labelSmall">
+                    {totalPtoP === 1 ? 'evaluación' : 'evaluaciones'}
+                  </Typography>
+                </Box>
+                <Box>
+                  <Stack direction="row" spacing={0.5} alignItems="center">
+                    <SchoolIcon sx={{ fontSize: 20 }} />
+                    <Typography variant="titleLarge" fontWeight={700}>
+                      {selectedPractitioner ? uniquePatients : practitioners.length}
+                    </Typography>
+                  </Stack>
+                  <Typography variant="labelSmall">
+                    {selectedPractitioner ? 'pacientes atendidos' : 'practicantes'}
+                  </Typography>
+                </Box>
+              </Stack>
+            </>
+          )}
+
+          {selectedPractitioner && (
+            <>
+              <Box sx={{ flex: 1 }} />
+              <Chip
+                label={`Filtrando: ${selectedPractitioner.user.firstName} ${selectedPractitioner.user.lastName}`}
+                onDelete={handleReset}
+                sx={{
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  color: 'inherit',
+                  fontWeight: 600,
+                  '& .MuiChip-deleteIcon': { color: 'inherit', opacity: 0.7 },
+                }}
+              />
+            </>
+          )}
+        </Stack>
+      </Paper>
+
+      {/* Charts */}
+      <Box sx={{ mb: 3 }}>
+        <Stack direction="row" spacing={1} alignItems="baseline" sx={{ mb: 2 }}>
+          <Typography variant="titleMedium" fontWeight={700}>
+            Rendimiento comparativo
+          </Typography>
+          <Typography variant="labelSmall" color="text.secondary">
+            Tocá una barra para filtrar por practicante
+          </Typography>
+        </Stack>
+        <FeedbackCharts
+          onPractitionerClick={handlePractitionerClick}
+          selectedPractitionerId={query.practitionerId}
         />
       </Box>
 
-      <Card variant="outlined" sx={{ mb: 3 }}>
-        <CardContent>
+      {/* Filters + Table */}
+      <Paper
+        sx={{
+          backgroundColor: theme.palette.surfaces.containerLow,
+          border: `1px solid ${theme.palette.outlineVariant}`,
+          overflow: 'hidden',
+        }}
+      >
+        <Box sx={{ p: { xs: 2, md: 2.5 } }}>
+          <Typography variant="titleMedium" fontWeight={700} sx={{ mb: 2 }}>
+            Evaluaciones de pacientes
+          </Typography>
           <FeedbackFiltersBar
             query={query}
             practitioners={practitioners}
@@ -201,33 +245,23 @@ export default function FeedbackDashboardPage() {
             onChange={handleQueryChange}
             onReset={handleReset}
           />
-        </CardContent>
-      </Card>
+        </Box>
 
-      {error && (
-        <Alert severity="error" sx={{ mb: 3 }}>
-          {error}
-        </Alert>
-      )}
+        <Divider sx={{ borderColor: theme.palette.outlineVariant }} />
 
-      <Tabs
-        value={directionTab}
-        onChange={handleDirectionChange}
-        sx={{ mb: 2 }}
-        variant="scrollable"
-        allowScrollButtonsMobile
-      >
-        <Tab value="ALL" label="Todos los feedbacks" />
-        <Tab value="PATIENT_TO_PRACTITIONER" label="Recibidos del paciente" />
-        <Tab value="PRACTITIONER_TO_PATIENT" label="Dados al paciente" />
-      </Tabs>
+        {error && (
+          <Alert severity="error" sx={{ m: 2 }}>
+            {error}
+          </Alert>
+        )}
 
-      <FeedbackTable
-        page={data?.feedbacks ?? null}
-        loading={loading}
-        onPageChange={handlePageChange}
-        onPageSizeChange={handlePageSizeChange}
-      />
+        <FeedbackTable
+          page={data?.feedbacks ?? null}
+          loading={loading}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+        />
+      </Paper>
     </Box>
   );
 }
