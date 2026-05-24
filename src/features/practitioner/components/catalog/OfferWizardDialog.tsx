@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Box,
@@ -32,7 +32,8 @@ import {
   Schedule,
 } from '@mui/icons-material';
 import { Controller, useForm } from 'react-hook-form';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+import { es } from 'date-fns/locale';
 import type {
   AddOfferedTreatmentRequestDTO,
   AvailabilitySlotDTO,
@@ -41,6 +42,8 @@ import type {
 } from '../../../../types/practitioner.types';
 import { findSlotConflicts } from '../../utils/slotValidation';
 import AvailabilitySlotsField from './AvailabilitySlotsField';
+import { useNonWorkingDays } from '../../../../hooks/useNonWorkingDays';
+import { findOverlappingNonWorkingDays } from '../../../../utils/nonWorkingDayUtils';
 
 type FormValues = {
   treatmentId: number | '';
@@ -198,6 +201,25 @@ export default function OfferWizardDialog({
   const selectedTreatmentName = formValues.treatmentId
     ? catalog.find((t) => t.id === Number(formValues.treatmentId))?.name ?? ''
     : '';
+
+  const nwdYears = useMemo(() => {
+    const years: number[] = [];
+    if (formValues.offerStartDate) years.push(parseInt(formValues.offerStartDate.substring(0, 4)));
+    if (formValues.offerEndDate) years.push(parseInt(formValues.offerEndDate.substring(0, 4)));
+    return [...new Set(years)];
+  }, [formValues.offerStartDate, formValues.offerEndDate]);
+  const { nonWorkingDays } = useNonWorkingDays(nwdYears);
+
+  const overlappingNwd = useMemo(
+    () =>
+      findOverlappingNonWorkingDays(
+        formValues.offerStartDate,
+        formValues.offerEndDate,
+        formValues.availabilitySlots,
+        nonWorkingDays,
+      ),
+    [formValues.offerStartDate, formValues.offerEndDate, formValues.availabilitySlots, nonWorkingDays],
+  );
 
   return (
     <Dialog
@@ -462,6 +484,23 @@ export default function OfferWizardDialog({
                 </Typography>
               </Stack>
             </Paper>
+            {overlappingNwd.length > 0 && (
+              <Alert severity="info" sx={{ borderRadius: 2 }}>
+                <Typography variant="body2" fontWeight={600} gutterBottom>
+                  {overlappingNwd.length === 1
+                    ? '1 día no laborable dentro del período:'
+                    : `${overlappingNwd.length} días no laborables dentro del período:`}
+                </Typography>
+                {overlappingNwd.map((nwd) => (
+                  <Typography key={nwd.date} variant="body2">
+                    {format(parseISO(nwd.date), "EEEE d 'de' MMM", { locale: es })} — {nwd.name}
+                  </Typography>
+                ))}
+                <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                  Esos días no estarán disponibles para turnos.
+                </Typography>
+              </Alert>
+            )}
           </Stack>
         )}
       </DialogContent>

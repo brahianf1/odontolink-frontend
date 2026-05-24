@@ -52,6 +52,7 @@ import { useAvailableSlots } from '../hooks/useAvailableSlots';
 import { useAvailabilityCounts } from '../hooks/useAvailabilityCounts';
 import { mapBusinessError } from '../utils/apiErrors';
 import { usePatientFeedback } from '../context/PatientFeedbackProvider';
+import { useNonWorkingDays } from '../../../hooks/useNonWorkingDays';
 
 interface AppointmentBookingDialogProps {
   open: boolean;
@@ -109,6 +110,15 @@ export default function AppointmentBookingDialog({
   const offerStart = treatment.offerStartDate ? parseISO(treatment.offerStartDate) : null;
   const offerEnd = treatment.offerEndDate ? parseISO(treatment.offerEndDate) : null;
 
+  const nonWorkingYears = useMemo(() => {
+    const startYear = (offerStart ?? today).getFullYear();
+    const endYear = (offerEnd ?? addMonths(today, 3)).getFullYear();
+    const years: number[] = [];
+    for (let y = startYear; y <= endYear; y++) years.push(y);
+    return years;
+  }, [offerStart, offerEnd, today]);
+  const { isNonWorkingDay, getNonWorkingDayName } = useNonWorkingDays(nonWorkingYears);
+
   const availableDaysOfWeek = useMemo(
     () => new Set(treatment.availabilitySlots.map((slot) => DAY_MAP[slot.dayOfWeek])),
     [treatment.availabilitySlots]
@@ -129,6 +139,7 @@ export default function AppointmentBookingDialog({
     const dayStart = startOfDay(date);
     if (isBefore(dayStart, minBookableDate)) return false;
     if (isBefore(maxBookableDate, dayStart)) return false;
+    if (isNonWorkingDay(format(date, 'yyyy-MM-dd'))) return false;
     return availableDaysOfWeek.has(getDay(date));
   };
 
@@ -154,7 +165,7 @@ export default function AppointmentBookingDialog({
         )
         .map((day) => format(day, 'yyyy-MM-dd')),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [monthGridDays, currentMonth, treatment, minBookableDate, maxBookableDate, availableDaysOfWeek]
+    [monthGridDays, currentMonth, treatment, minBookableDate, maxBookableDate, availableDaysOfWeek, isNonWorkingDay]
   );
 
   const { counts: dayCounts, loading: countsLoading } = useAvailabilityCounts(
@@ -168,7 +179,7 @@ export default function AppointmentBookingDialog({
     const startFrom = addDays(endOfMonth(currentMonth), 1);
     return findNextAvailable(startFrom);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, currentMonth, treatment, minBookableDate, maxBookableDate]);
+  }, [open, currentMonth, treatment, minBookableDate, maxBookableDate, isNonWorkingDay]);
 
   const hasAnyAvailableInMonth = monthBookableDateKeys.length > 0;
 
@@ -183,8 +194,9 @@ export default function AppointmentBookingDialog({
   }, [currentMonth, maxBookableDate]);
 
   const dateString = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
+  const isSelectedNonWorking = dateString ? isNonWorkingDay(dateString) : false;
   const { slots: rawSlots, loading: slotsLoading, error: slotsError } = useAvailableSlots(
-    open && selectedDate ? treatment.id : null,
+    open && selectedDate && !isSelectedNonWorking ? treatment.id : null,
     dateString
   );
 
@@ -464,6 +476,7 @@ export default function AppointmentBookingDialog({
             countsLoading={countsLoading}
             hasAnyAvailableInMonth={hasAnyAvailableInMonth}
             nextAvailableFromNextMonth={nextAvailableFromNextMonth}
+            getNonWorkingDayName={getNonWorkingDayName}
             onPrevMonth={() => setCurrentMonth(addMonths(currentMonth, -1))}
             onNextMonth={() => setCurrentMonth(addMonths(currentMonth, 1))}
             onSelectDate={handleDateSelect}
@@ -595,6 +608,7 @@ interface MonthCalendarProps {
   countsLoading: boolean;
   hasAnyAvailableInMonth: boolean;
   nextAvailableFromNextMonth: Date | null;
+  getNonWorkingDayName: (dateKey: string) => string | null;
   onPrevMonth: () => void;
   onNextMonth: () => void;
   onSelectDate: (date: Date) => void;
@@ -616,6 +630,7 @@ function MonthCalendar({
   countsLoading,
   hasAnyAvailableInMonth,
   nextAvailableFromNextMonth,
+  getNonWorkingDayName,
   onPrevMonth,
   onNextMonth,
   onSelectDate,
@@ -718,6 +733,7 @@ function MonthCalendar({
             isDateAvailable,
             dayCounts,
             countsLoading,
+            getNonWorkingDayName,
             onSelect: onSelectDate,
           })
         )}
@@ -756,11 +772,12 @@ interface MonthCellConfig {
   isDateAvailable: (date: Date) => boolean;
   dayCounts: Map<string, number>;
   countsLoading: boolean;
+  getNonWorkingDayName: (dateKey: string) => string | null;
   onSelect: (date: Date) => void;
 }
 
 function renderMonthCell(day: Date, cfg: MonthCellConfig) {
-  const { theme, currentMonth, today, selectedDate, isDateAvailable, dayCounts, countsLoading, onSelect } = cfg;
+  const { theme, currentMonth, today, selectedDate, isDateAvailable, dayCounts, countsLoading, getNonWorkingDayName, onSelect } = cfg;
 
   const inMonth = isSameMonth(day, currentMonth);
   const isPast = isBefore(startOfDay(day), today);
@@ -771,6 +788,7 @@ function renderMonthCell(day: Date, cfg: MonthCellConfig) {
   const clickable = inMonth && availableByDay && (hasSlots ?? true);
   const isSelected = selectedDate ? isSameDay(day, selectedDate) : false;
   const isToday = isSameDay(day, new Date());
+  const holidayName = inMonth && !isPast ? getNonWorkingDayName(dateKey) : null;
 
   let opacity: number;
   if (!inMonth) opacity = 0.25;
@@ -787,9 +805,8 @@ function renderMonthCell(day: Date, cfg: MonthCellConfig) {
 
   const textColor = isSelected ? theme.palette.primary.contrastText : 'text.primary';
 
-  return (
+  const cell = (
     <Box
-      key={day.toISOString()}
       onClick={() => clickable && onSelect(day)}
       sx={{
         aspectRatio: '1 / 1',
@@ -847,6 +864,12 @@ function renderMonthCell(day: Date, cfg: MonthCellConfig) {
         />
       )}
     </Box>
+  );
+
+  return (
+    <Tooltip key={day.toISOString()} title={holidayName ? `Feriado — ${holidayName}` : ''} arrow>
+      {cell}
+    </Tooltip>
   );
 }
 
