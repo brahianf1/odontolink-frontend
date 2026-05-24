@@ -11,12 +11,11 @@ import {
   Box,
   Stack,
   Skeleton,
-  Card,
-  CardContent,
   Divider,
   useTheme,
   useMediaQuery,
 } from '@mui/material';
+import { FormatQuote as QuoteIcon } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import FeedbackScoresDisplay from '../../../components/common/FeedbackScoresDisplay';
@@ -65,16 +64,14 @@ export default function FeedbackTable({
 
   if (!loading && items.length === 0) {
     return (
-      <Card variant="outlined" sx={{ textAlign: 'center', py: 6 }}>
-        <CardContent>
-          <Typography variant="h6" color="text.secondary" gutterBottom>
-            No hay feedback para mostrar
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Ajusta los filtros o vuelve más tarde.
-          </Typography>
-        </CardContent>
-      </Card>
+      <Box sx={{ textAlign: 'center', py: 6, px: 3 }}>
+        <Typography variant="titleMedium" fontWeight={600} color="text.secondary" gutterBottom>
+          Sin evaluaciones para mostrar
+        </Typography>
+        <Typography variant="bodyMedium" color="text.secondary">
+          Ajustá los filtros o volvé más tarde.
+        </Typography>
+      </Box>
     );
   }
 
@@ -82,52 +79,58 @@ export default function FeedbackTable({
     return (
       <Box>
         {loading ? (
-          <Stack spacing={1.5}>
+          <Stack spacing={0} divider={<Divider sx={{ borderColor: theme.palette.outlineVariant }} />}>
             {Array.from({ length: 4 }).map((_, idx) => (
-              <Card variant="outlined" key={idx}>
-                <CardContent>
-                  <Skeleton variant="text" width="60%" />
-                  <Skeleton variant="text" width="40%" />
-                  <Skeleton variant="text" />
-                </CardContent>
-              </Card>
+              <Box key={idx} sx={{ p: 2 }}>
+                <Skeleton variant="text" width="60%" />
+                <Skeleton variant="text" width="40%" />
+                <Skeleton variant="text" />
+              </Box>
             ))}
           </Stack>
         ) : (
-          <Stack spacing={1.5}>
+          <Stack spacing={0} divider={<Divider sx={{ borderColor: theme.palette.outlineVariant }} />}>
             {items.map((feedback) => (
-              <Card key={feedback.id} variant="outlined">
-                <CardContent>
-                  <Stack
-                    direction="row"
-                    justifyContent="space-between"
-                    alignItems="flex-start"
-                    spacing={1}
-                  >
-                    <Box>
-                      <Typography variant="body2" fontWeight={700}>
-                        {feedback.practitionerName}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        {formatDate(feedback.createdAt)}
-                      </Typography>
-                    </Box>
-                    <FeedbackScoresDisplay scores={feedback.scores} variant="compact" />
-                  </Stack>
-                  <Divider sx={{ my: 1.5 }} />
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    Paciente: <strong>{feedback.patientName}</strong>
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary" display="block">
-                    Tratamiento: <strong>{feedback.treatmentName}</strong>
-                  </Typography>
-                  {feedback.comment && (
-                    <Typography variant="body2" sx={{ mt: 1, fontStyle: 'italic' }}>
-                      “{feedback.comment}”
+              <Box key={feedback.id} sx={{ p: 2 }}>
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="flex-start"
+                  spacing={1}
+                >
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography variant="titleSmall" fontWeight={700}>
+                      {feedback.practitionerName}
                     </Typography>
-                  )}
-                </CardContent>
-              </Card>
+                    <Typography variant="labelSmall" color="text.secondary">
+                      {feedback.patientName} · {formatDate(feedback.createdAt)}
+                    </Typography>
+                  </Box>
+                  <FeedbackScoresDisplay scores={feedback.scores} variant="compact" />
+                </Stack>
+                <Typography variant="labelSmall" color="text.secondary" sx={{ mt: 0.5 }}>
+                  {feedback.treatmentName}
+                </Typography>
+                {feedback.comment && (
+                  <Stack direction="row" spacing={0.5} alignItems="flex-start" sx={{ mt: 1 }}>
+                    <QuoteIcon sx={{ fontSize: 13, color: 'text.disabled', mt: 0.2, flexShrink: 0 }} />
+                    <Typography
+                      variant="bodySmall"
+                      color="text.secondary"
+                      sx={{
+                        fontStyle: 'italic',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                      }}
+                    >
+                      {feedback.comment}
+                    </Typography>
+                  </Stack>
+                )}
+              </Box>
             ))}
           </Stack>
         )}
@@ -139,7 +142,7 @@ export default function FeedbackTable({
           rowsPerPage={pageSize}
           onRowsPerPageChange={(event) => onPageSizeChange(parseInt(event.target.value, 10))}
           rowsPerPageOptions={[5, 10, 20, 50]}
-          labelRowsPerPage="Filas por página"
+          labelRowsPerPage="Por página"
           labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
         />
       </Box>
@@ -148,10 +151,10 @@ export default function FeedbackTable({
 
   return (
     <Box>
-      <TableContainer component={Paper} variant="outlined">
+      <TableContainer component={Paper} elevation={0} sx={{ backgroundColor: 'transparent' }}>
         <Table>
           <TableHead>
-            <TableRow sx={{ bgcolor: 'background.default' }}>
+            <TableRow sx={{ backgroundColor: theme.palette.surfaces.container }}>
               <TableCell sx={{ fontWeight: 700 }}>Fecha</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Practicante</TableCell>
               <TableCell sx={{ fontWeight: 700 }}>Paciente</TableCell>
@@ -166,39 +169,48 @@ export default function FeedbackTable({
               : items.map((feedback) => (
                   <TableRow key={feedback.id} hover>
                     <TableCell>
-                      <Typography variant="body2" color="text.secondary">
+                      <Typography variant="bodySmall" color="text.secondary">
                         {formatDate(feedback.createdAt)}
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2" fontWeight={600}>
+                      <Typography variant="bodyMedium" fontWeight={600}>
                         {feedback.practitionerName}
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">{feedback.patientName}</Typography>
+                      <Typography variant="bodyMedium">{feedback.patientName}</Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="body2">{feedback.treatmentName}</Typography>
+                      <Typography variant="bodySmall">{feedback.treatmentName}</Typography>
                     </TableCell>
                     <TableCell>
                       <FeedbackScoresDisplay scores={feedback.scores} variant="compact" />
                     </TableCell>
-                    <TableCell sx={{ maxWidth: 320 }}>
-                      <Typography
-                        variant="body2"
-                        color={feedback.comment ? 'text.primary' : 'text.secondary'}
-                        sx={{
-                          fontStyle: feedback.comment ? 'italic' : 'normal',
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          display: '-webkit-box',
-                          WebkitLineClamp: 2,
-                          WebkitBoxOrient: 'vertical',
-                        }}
-                      >
-                        {feedback.comment ? `“${feedback.comment}”` : '— sin comentario —'}
-                      </Typography>
+                    <TableCell sx={{ maxWidth: 300 }}>
+                      {feedback.comment ? (
+                        <Stack direction="row" spacing={0.5} alignItems="flex-start">
+                          <QuoteIcon sx={{ fontSize: 13, color: 'text.disabled', mt: 0.3, flexShrink: 0 }} />
+                          <Typography
+                            variant="bodySmall"
+                            color="text.secondary"
+                            sx={{
+                              fontStyle: 'italic',
+                              overflow: 'hidden',
+                              textOverflow: 'ellipsis',
+                              display: '-webkit-box',
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: 'vertical',
+                            }}
+                          >
+                            {feedback.comment}
+                          </Typography>
+                        </Stack>
+                      ) : (
+                        <Typography variant="bodySmall" color="text.disabled">
+                          Sin comentario
+                        </Typography>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}
@@ -213,7 +225,7 @@ export default function FeedbackTable({
         rowsPerPage={pageSize}
         onRowsPerPageChange={(event) => onPageSizeChange(parseInt(event.target.value, 10))}
         rowsPerPageOptions={[5, 10, 20, 50]}
-        labelRowsPerPage="Filas por página"
+        labelRowsPerPage="Por página"
         labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count}`}
       />
     </Box>

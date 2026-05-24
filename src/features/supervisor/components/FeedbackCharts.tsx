@@ -1,9 +1,8 @@
 import {
   Alert,
   Box,
-  Card,
-  CardContent,
   CircularProgress,
+  Paper,
   Typography,
 } from '@mui/material';
 import {
@@ -19,21 +18,36 @@ import {
 import { useTheme } from '@mui/material/styles';
 import { useFeedbackCharts } from '../hooks/useFeedbackCharts';
 
-const CHART_COLORS = ['#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe', '#ede9fe', '#f5f3ff', '#818cf8', '#7c3aed', '#5b21b6'];
+interface FeedbackChartsProps {
+  onPractitionerClick?: (practitionerId: number) => void;
+}
 
 function ChartEmptyState({ message }: { message: string }) {
+  const theme = useTheme();
   return (
-    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: 200 }}>
-      <Typography variant="body2" color="text.secondary">
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: 200,
+        backgroundColor: theme.palette.surfaces.container,
+      }}
+    >
+      <Typography variant="bodyMedium" color="text.secondary">
         {message}
       </Typography>
     </Box>
   );
 }
 
-export default function FeedbackCharts() {
+export default function FeedbackCharts({ onPractitionerClick }: FeedbackChartsProps) {
   const { criterionCharts, combinedRanking, loading, error } = useFeedbackCharts();
   const theme = useTheme();
+
+  const chartColors = theme.palette.charts?.length
+    ? theme.palette.charts as unknown as string[]
+    : ['#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe', '#818cf8', '#7c3aed', '#5b21b6', '#4f46e5', '#312e81'];
 
   if (loading) {
     return (
@@ -52,11 +66,30 @@ export default function FeedbackCharts() {
 
   if (!hasAnyData) {
     return (
-      <Alert severity="info" sx={{ mb: 3 }}>
-        No hay datos suficientes para generar los gráficos de rendimiento.
-      </Alert>
+      <Paper
+        sx={{
+          p: 4,
+          textAlign: 'center',
+          mb: 3,
+          backgroundColor: theme.palette.surfaces.containerLow,
+          border: `1px solid ${theme.palette.outlineVariant}`,
+        }}
+      >
+        <Typography variant="titleMedium" fontWeight={600} gutterBottom>
+          Sin datos suficientes
+        </Typography>
+        <Typography variant="bodyMedium" color="text.secondary">
+          Los gráficos comparativos aparecerán cuando haya suficientes evaluaciones de pacientes.
+        </Typography>
+      </Paper>
     );
   }
+
+  const handleBarClick = (data: Record<string, unknown>) => {
+    if (onPractitionerClick && typeof data.practitionerId === 'number') {
+      onPractitionerClick(data.practitionerId);
+    }
+  };
 
   return (
     <Box
@@ -64,122 +97,142 @@ export default function FeedbackCharts() {
         display: 'grid',
         gap: 2,
         gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, 1fr)' },
-        mb: 3,
       }}
     >
       {criterionCharts.map((chart) => (
-        <Card key={chart.criterion.code} variant="outlined">
-          <CardContent>
-            <Typography variant="h6" fontWeight={700} gutterBottom>
-              Top practicantes — {chart.criterion.displayName}
+        <Paper
+          key={chart.criterion.code}
+          sx={{
+            p: { xs: 2, md: 2.5 },
+            backgroundColor: theme.palette.surfaces.containerLow,
+            border: `1px solid ${theme.palette.outlineVariant}`,
+          }}
+        >
+          <Typography variant="titleMedium" fontWeight={700} gutterBottom>
+            {chart.criterion.displayName}
+          </Typography>
+          {chart.minSamplesThreshold > 1 && (
+            <Typography variant="labelSmall" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+              Mínimo {chart.minSamplesThreshold} evaluaciones para aparecer
             </Typography>
-            {chart.minSamplesThreshold > 1 && (
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                Solo practicantes con {chart.minSamplesThreshold}+ feedbacks
-              </Typography>
-            )}
+          )}
 
-            {chart.entries.length === 0 ? (
-              <ChartEmptyState message="Sin datos suficientes para este criterio" />
-            ) : (
-              <ResponsiveContainer width="100%" height={Math.max(200, chart.entries.length * 40 + 40)}>
-                <BarChart
-                  data={chart.entries}
-                  layout="vertical"
-                  margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+          {chart.entries.length === 0 ? (
+            <ChartEmptyState message="Sin datos suficientes" />
+          ) : (
+            <ResponsiveContainer width="100%" height={Math.max(180, chart.entries.length * 40 + 30)}>
+              <BarChart
+                data={chart.entries}
+                layout="vertical"
+                margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme.palette.outlineVariant} />
+                <XAxis type="number" domain={[0, 5]} tickCount={6} tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
+                <YAxis
+                  type="category"
+                  dataKey="practitionerName"
+                  width={120}
+                  tick={{ fontSize: 12, fill: theme.palette.text.secondary, cursor: onPractitionerClick ? 'pointer' : 'default' }}
+                />
+                <Tooltip
+                  formatter={(value) => [
+                    `${Number(value).toFixed(2)}`,
+                    'Promedio',
+                  ]}
+                  contentStyle={{
+                    backgroundColor: theme.palette.surfaces.containerHighest,
+                    border: `1px solid ${theme.palette.outlineVariant}`,
+                    borderRadius: 0,
+                    fontSize: 13,
+                  }}
+                />
+                <Bar
+                  dataKey="average"
+                  radius={[0, 2, 2, 0]}
+                  cursor={onPractitionerClick ? 'pointer' : 'default'}
+                  onClick={(data) => handleBarClick(data as unknown as Record<string, unknown>)}
                 >
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" domain={[0, 5]} tickCount={6} />
-                  <YAxis
-                    type="category"
-                    dataKey="practitionerName"
-                    width={120}
-                    tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
-                  />
-                  <Tooltip
-                    formatter={(value, _name, props) => [
-                      `${Number(value).toFixed(2)} (${(props.payload as { feedbackCount: number }).feedbackCount} feedbacks)`,
-                      'Promedio',
-                    ]}
-                    contentStyle={{
-                      backgroundColor: theme.palette.background.paper,
-                      border: `1px solid ${theme.palette.divider}`,
-                      borderRadius: 8,
-                    }}
-                  />
-                  <Bar dataKey="average" radius={[0, 4, 4, 0]}>
-                    {chart.entries.map((_entry, index) => (
-                      <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
+                  {chart.entries.map((_entry, index) => (
+                    <Cell key={index} fill={chartColors[index % chartColors.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </Paper>
       ))}
 
       {combinedRanking && (
-        <Card variant="outlined">
-          <CardContent>
-            <Typography variant="h6" fontWeight={700} gutterBottom>
-              Ranking combinado de practicantes
+        <Paper
+          sx={{
+            p: { xs: 2, md: 2.5 },
+            backgroundColor: theme.palette.surfaces.containerLow,
+            border: `1px solid ${theme.palette.outlineVariant}`,
+          }}
+        >
+          <Typography variant="titleMedium" fontWeight={700} gutterBottom>
+            Ranking combinado
+          </Typography>
+          {combinedRanking.criteriaUsed.length > 0 && (
+            <Typography variant="labelSmall" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
+              Promedio de: {combinedRanking.criteriaUsed.map((c) => c.displayName).join(', ')}
             </Typography>
-            {combinedRanking.criteriaUsed.length > 0 && (
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-                Promedio de: {combinedRanking.criteriaUsed.map((c) => c.displayName).join(', ')}
-              </Typography>
-            )}
-            {combinedRanking.minSamplesThreshold > 1 && (
-              <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-                Solo practicantes con {combinedRanking.minSamplesThreshold}+ feedbacks
-              </Typography>
-            )}
+          )}
+          {combinedRanking.minSamplesThreshold > 1 && (
+            <Typography variant="labelSmall" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+              Mínimo {combinedRanking.minSamplesThreshold} evaluaciones para aparecer
+            </Typography>
+          )}
 
-            {combinedRanking.entries.length === 0 ? (
-              <ChartEmptyState message="Sin datos suficientes para el ranking" />
-            ) : (
-              <ResponsiveContainer width="100%" height={Math.max(200, combinedRanking.entries.length * 40 + 40)}>
-                <BarChart
-                  data={combinedRanking.entries}
-                  layout="vertical"
-                  margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+          {combinedRanking.entries.length === 0 ? (
+            <ChartEmptyState message="Sin datos suficientes" />
+          ) : (
+            <ResponsiveContainer width="100%" height={Math.max(180, combinedRanking.entries.length * 40 + 30)}>
+              <BarChart
+                data={combinedRanking.entries}
+                layout="vertical"
+                margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme.palette.outlineVariant} />
+                <XAxis type="number" domain={[0, 5]} tickCount={6} tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
+                <YAxis
+                  type="category"
+                  dataKey="practitionerName"
+                  width={120}
+                  tick={{ fontSize: 12, fill: theme.palette.text.secondary, cursor: onPractitionerClick ? 'pointer' : 'default' }}
+                />
+                <Tooltip
+                  formatter={(value, _name, props) => {
+                    const payload = props.payload as { feedbackCount: number; perCriterionAverages: Record<string, number> };
+                    const details = combinedRanking.criteriaUsed
+                      .map((c) => `${c.displayName}: ${(payload.perCriterionAverages[c.code] ?? 0).toFixed(2)}`)
+                      .join(' · ');
+                    return [
+                      `${Number(value).toFixed(2)} (${payload.feedbackCount} eval.)\n${details}`,
+                      'Combinado',
+                    ];
+                  }}
+                  contentStyle={{
+                    backgroundColor: theme.palette.surfaces.containerHighest,
+                    border: `1px solid ${theme.palette.outlineVariant}`,
+                    borderRadius: 0,
+                    fontSize: 13,
+                  }}
+                />
+                <Bar
+                  dataKey="combinedAverage"
+                  radius={[0, 2, 2, 0]}
+                  cursor={onPractitionerClick ? 'pointer' : 'default'}
+                  onClick={(data) => handleBarClick(data as unknown as Record<string, unknown>)}
                 >
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                  <XAxis type="number" domain={[0, 5]} tickCount={6} />
-                  <YAxis
-                    type="category"
-                    dataKey="practitionerName"
-                    width={120}
-                    tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
-                  />
-                  <Tooltip
-                    formatter={(value, _name, props) => {
-                      const payload = props.payload as { feedbackCount: number; perCriterionAverages: Record<string, number> };
-                      const details = combinedRanking.criteriaUsed
-                        .map((c) => `${c.displayName}: ${(payload.perCriterionAverages[c.code] ?? 0).toFixed(2)}`)
-                        .join(' · ');
-                      return [
-                        `${Number(value).toFixed(2)} (${payload.feedbackCount} feedbacks)\n${details}`,
-                        'Promedio combinado',
-                      ];
-                    }}
-                    contentStyle={{
-                      backgroundColor: theme.palette.background.paper,
-                      border: `1px solid ${theme.palette.divider}`,
-                      borderRadius: 8,
-                    }}
-                  />
-                  <Bar dataKey="combinedAverage" radius={[0, 4, 4, 0]}>
-                    {combinedRanking.entries.map((_entry, index) => (
-                      <Cell key={index} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            )}
-          </CardContent>
-        </Card>
+                  {combinedRanking.entries.map((_entry, index) => (
+                    <Cell key={index} fill={chartColors[index % chartColors.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </Paper>
       )}
     </Box>
   );
