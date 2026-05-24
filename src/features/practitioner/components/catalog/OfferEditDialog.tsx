@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import {
+  Alert,
   Box,
   Button,
   Dialog,
@@ -25,6 +26,8 @@ import type {
 } from '../../../../types/practitioner.types';
 import { findSlotConflicts } from '../../utils/slotValidation';
 import AvailabilitySlotsField from './AvailabilitySlotsField';
+import { useNonWorkingDays } from '../../../../hooks/useNonWorkingDays';
+import { findOverlappingNonWorkingDays } from '../../../../utils/nonWorkingDayUtils';
 
 const todayLocal = (): string => format(new Date(), 'yyyy-MM-dd');
 const maxDate = (a: string, b: string): string => (a > b ? a : b);
@@ -140,12 +143,27 @@ export default function OfferEditDialog({
   };
 
   const startDate = watch('offerStartDate');
+  const endDate = watch('offerEndDate');
+  const slots = watch('availabilitySlots');
   const today = todayLocal();
   const originalStart = offer?.offerStartDate ?? '';
   const originalStartIsPast = Boolean(originalStart) && originalStart < today;
   const startHelperText = originalStartIsPast
     ? `Oferta vigente desde el ${format(parseISO(originalStart), "d 'de' MMM yyyy", { locale: es })}. Solo podés adelantar la fecha.`
     : undefined;
+
+  const nwdYears = useMemo(() => {
+    const years: number[] = [];
+    if (startDate) years.push(parseInt(startDate.substring(0, 4)));
+    if (endDate) years.push(parseInt(endDate.substring(0, 4)));
+    return [...new Set(years)];
+  }, [startDate, endDate]);
+  const { nonWorkingDays } = useNonWorkingDays(nwdYears);
+
+  const overlappingNwd = useMemo(
+    () => findOverlappingNonWorkingDays(startDate, endDate, slots, nonWorkingDays),
+    [startDate, endDate, slots, nonWorkingDays],
+  );
 
   return (
     <Dialog
@@ -298,6 +316,24 @@ export default function OfferEditDialog({
           />
 
           <AvailabilitySlotsField control={control} errors={errors} />
+
+          {overlappingNwd.length > 0 && (
+            <Alert severity="info" sx={{ borderRadius: 2 }}>
+              <Typography variant="body2" fontWeight={600} gutterBottom>
+                {overlappingNwd.length === 1
+                  ? '1 día no laborable dentro del período:'
+                  : `${overlappingNwd.length} días no laborables dentro del período:`}
+              </Typography>
+              {overlappingNwd.map((nwd) => (
+                <Typography key={nwd.date} variant="body2">
+                  {format(parseISO(nwd.date), "EEEE d 'de' MMM", { locale: es })} — {nwd.name}
+                </Typography>
+              ))}
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                Esos días no estarán disponibles para turnos.
+              </Typography>
+            </Alert>
+          )}
         </Stack>
       </DialogContent>
 
