@@ -152,7 +152,7 @@ export default function FeedbackDashboardPage() {
                   <Typography variant="labelSmall" sx={{ display: 'block' }}>
                     {selectedPractitioner
                       ? `${selectedPractitioner.user.firstName} ${selectedPractitioner.user.lastName}`
-                      : 'Promedio general'}
+                      : 'Todos los practicantes'}
                   </Typography>
                 </Box>
               </>

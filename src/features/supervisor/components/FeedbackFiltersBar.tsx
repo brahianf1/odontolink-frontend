@@ -1,12 +1,16 @@
 import {
   Box,
+  InputAdornment,
   TextField,
   MenuItem,
   Stack,
   IconButton,
   Tooltip,
 } from '@mui/material';
-import { FilterAltOff as ClearIcon } from '@mui/icons-material';
+import {
+  FilterAltOff as ClearIcon,
+  Sort as SortIcon,
+} from '@mui/icons-material';
 import type { PractitionerDTO, FeedbackDashboardQuery } from '../../../types/supervisor.types';
 
 interface FeedbackFiltersBarProps {
@@ -16,6 +20,17 @@ interface FeedbackFiltersBarProps {
   onChange: (next: FeedbackDashboardQuery) => void;
   onReset: () => void;
 }
+
+type SortOption = `${NonNullable<FeedbackDashboardQuery['sortBy']>}_${'ASC' | 'DESC'}`;
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'createdAt_DESC', label: 'Más recientes primero' },
+  { value: 'createdAt_ASC', label: 'Más antiguos primero' },
+  { value: 'practitionerId_ASC', label: 'Practicante A-Z' },
+  { value: 'practitionerId_DESC', label: 'Practicante Z-A' },
+  { value: 'patientId_ASC', label: 'Paciente A-Z' },
+  { value: 'patientId_DESC', label: 'Paciente Z-A' },
+];
 
 export default function FeedbackFiltersBar({
   query,
@@ -39,6 +54,16 @@ export default function FeedbackFiltersBar({
   const handleEndDateChange = (value: string) => {
     onChange({ ...query, endDate: value || undefined, page: 0 });
   };
+
+  const handleSortChange = (value: string) => {
+    const [sortBy, sortDirection] = value.split('_') as [
+      NonNullable<FeedbackDashboardQuery['sortBy']>,
+      'ASC' | 'DESC',
+    ];
+    onChange({ ...query, sortBy, sortDirection, page: 0 });
+  };
+
+  const currentSort: SortOption = `${query.sortBy ?? 'createdAt'}_${query.sortDirection ?? 'DESC'}`;
 
   const hasActiveFilters =
     Boolean(query.practitionerId) || Boolean(query.startDate) || Boolean(query.endDate);
@@ -76,7 +101,7 @@ export default function FeedbackFiltersBar({
           value={query.startDate ?? ''}
           onChange={(e) => handleStartDateChange(e.target.value)}
           InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 160 }}
+          sx={{ minWidth: 150 }}
         />
 
         <TextField
@@ -86,8 +111,30 @@ export default function FeedbackFiltersBar({
           value={query.endDate ?? ''}
           onChange={(e) => handleEndDateChange(e.target.value)}
           InputLabelProps={{ shrink: true }}
-          sx={{ minWidth: 160 }}
+          sx={{ minWidth: 150 }}
         />
+
+        <TextField
+          select
+          label="Ordenar"
+          size="small"
+          value={currentSort}
+          onChange={(e) => handleSortChange(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <SortIcon fontSize="small" color="action" />
+              </InputAdornment>
+            ),
+          }}
+          sx={{ minWidth: 200 }}
+        >
+          {SORT_OPTIONS.map((opt) => (
+            <MenuItem key={opt.value} value={opt.value}>
+              {opt.label}
+            </MenuItem>
+          ))}
+        </TextField>
 
         <Tooltip title="Limpiar filtros">
           <span>
