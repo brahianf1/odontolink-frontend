@@ -223,6 +223,7 @@ export default function FeedbackDashboardPage() {
         <FeedbackCharts
           onPractitionerClick={handlePractitionerClick}
           selectedPractitionerId={query.practitionerId}
+          globalAverage={avgPtoP}
         />
       </Box>
 

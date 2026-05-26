@@ -17,10 +17,12 @@ import {
 } from 'recharts';
 import { useTheme, alpha } from '@mui/material/styles';
 import { useFeedbackCharts } from '../hooks/useFeedbackCharts';
+import CombinedRankingChart from './CombinedRankingChart';
 
 interface FeedbackChartsProps {
   onPractitionerClick?: (practitionerId: number) => void;
   selectedPractitionerId?: number | null;
+  globalAverage?: number;
 }
 
 function ChartEmptyState({ message }: { message: string }) {
@@ -45,6 +47,7 @@ function ChartEmptyState({ message }: { message: string }) {
 export default function FeedbackCharts({
   onPractitionerClick,
   selectedPractitionerId,
+  globalAverage,
 }: FeedbackChartsProps) {
   const { criterionCharts, combinedRanking, loading, error } = useFeedbackCharts();
   const theme = useTheme();
@@ -109,6 +112,15 @@ export default function FeedbackCharts({
         gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, 1fr)' },
       }}
     >
+      {combinedRanking && (
+        <CombinedRankingChart
+          data={combinedRanking}
+          selectedPractitionerId={selectedPractitionerId}
+          onPractitionerClick={onPractitionerClick}
+          globalAverage={globalAverage}
+        />
+      )}
+
       {criterionCharts.map((chart) => (
         <Paper
           key={chart.criterion.code}
@@ -173,84 +185,6 @@ export default function FeedbackCharts({
           )}
         </Paper>
       ))}
-
-      {combinedRanking && (
-        <Paper
-          sx={{
-            p: { xs: 2, md: 2.5 },
-            backgroundColor: theme.palette.surfaces.containerLow,
-            border: `1px solid ${theme.palette.outlineVariant}`,
-          }}
-        >
-          <Typography variant="titleMedium" fontWeight={700} gutterBottom>
-            Ranking combinado
-          </Typography>
-          {combinedRanking.criteriaUsed.length > 0 && (
-            <Typography variant="labelSmall" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
-              Promedio de: {combinedRanking.criteriaUsed.map((c) => c.displayName).join(', ')}
-            </Typography>
-          )}
-          {combinedRanking.minSamplesThreshold > 1 && (
-            <Typography variant="labelSmall" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-              Mínimo {combinedRanking.minSamplesThreshold} evaluaciones para aparecer
-            </Typography>
-          )}
-
-          {combinedRanking.entries.length === 0 ? (
-            <ChartEmptyState message="Sin datos suficientes" />
-          ) : (
-            <ResponsiveContainer width="100%" height={Math.max(180, combinedRanking.entries.length * 40 + 30)}>
-              <BarChart
-                data={combinedRanking.entries}
-                layout="vertical"
-                margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme.palette.outlineVariant} />
-                <XAxis type="number" domain={[0, 5]} tickCount={6} tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
-                <YAxis
-                  type="category"
-                  dataKey="practitionerName"
-                  width={120}
-                  tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
-                />
-                <Tooltip
-                  formatter={(value, _name, props) => {
-                    const payload = props.payload as { feedbackCount: number; perCriterionAverages: Record<string, number> };
-                    const details = combinedRanking.criteriaUsed
-                      .map((c) => `${c.displayName}: ${(payload.perCriterionAverages[c.code] ?? 0).toFixed(2)}`)
-                      .join(' · ');
-                    return [
-                      `${Number(value).toFixed(2)} (${payload.feedbackCount} eval.)\n${details}`,
-                      'Combinado',
-                    ];
-                  }}
-                  contentStyle={{
-                    backgroundColor: theme.palette.surfaces.containerHighest,
-                    border: `1px solid ${theme.palette.outlineVariant}`,
-                    borderRadius: 0,
-                    fontSize: 13,
-                  }}
-                />
-                <Bar
-                  dataKey="combinedAverage"
-                  radius={[0, 2, 2, 0]}
-                  cursor={onPractitionerClick ? 'pointer' : 'default'}
-                  onClick={(data) => handleBarClick(data as unknown as Record<string, unknown>)}
-                >
-                  {combinedRanking.entries.map((entry, index) => (
-                    <Cell
-                      key={index}
-                      fill={getBarFill(entry, index)}
-                      stroke={selectedPractitionerId === entry.practitionerId ? theme.palette.primary.main : 'none'}
-                      strokeWidth={selectedPractitionerId === entry.practitionerId ? 2 : 0}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </Paper>
-      )}
     </Box>
   );
 }
