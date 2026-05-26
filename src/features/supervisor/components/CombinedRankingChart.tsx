@@ -204,7 +204,7 @@ export default function CombinedRankingChart({
               <LabelList
                 dataKey="combinedAverage"
                 position="right"
-                formatter={(v: number) => v.toFixed(2)}
+                formatter={(v) => Number(v).toFixed(2)}
                 style={{
                   fontSize: 11,
                   fontWeight: 600,

@@ -1,14 +1,17 @@
 import { useMemo } from 'react';
 import { Box, Divider, Rating, Stack, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import type { TooltipProps } from 'recharts';
 import type {
   CriterionRef,
   PractitionersRankingEntryDTO,
 } from '../../../types/feedback.types';
 
-interface CombinedRankingTooltipInnerProps
-  extends TooltipProps<number, string> {
+interface TooltipContentProps {
+  active?: boolean;
+  payload?: ReadonlyArray<{ payload?: unknown }>;
+}
+
+interface CombinedRankingTooltipInnerProps extends TooltipContentProps {
   criteriaUsed: CriterionRef[];
   groupAverage: number;
 }
@@ -127,7 +130,7 @@ export function useRankingTooltip(
 ) {
   return useMemo(
     () =>
-      function RankingTooltip(props: TooltipProps<number, string>) {
+      function RankingTooltip(props: TooltipContentProps) {
         return (
           <CombinedRankingTooltipInner
             {...props}

@@ -1,10 +1,14 @@
 import { useMemo } from 'react';
 import { Box, Divider, Rating, Stack, Typography } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
-import type { TooltipProps } from 'recharts';
 import type { TopByCriterionEntryDTO } from '../../../types/feedback.types';
 
-interface CriterionTooltipInnerProps extends TooltipProps<number, string> {
+interface TooltipContentProps {
+  active?: boolean;
+  payload?: ReadonlyArray<{ payload?: unknown }>;
+}
+
+interface CriterionTooltipInnerProps extends TooltipContentProps {
   referenceAverage: number;
 }
 
@@ -82,7 +86,7 @@ export function useCriterionTooltip(
 ) {
   return useMemo(
     () =>
-      function CriterionTooltipWrapper(props: TooltipProps<number, string>) {
+      function CriterionTooltipWrapper(props: TooltipContentProps) {
         return (
           <CriterionTooltipInner
             {...props}
