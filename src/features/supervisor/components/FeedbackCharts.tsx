@@ -5,43 +5,15 @@ import {
   Paper,
   Typography,
 } from '@mui/material';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-} from 'recharts';
-import { useTheme, alpha } from '@mui/material/styles';
+import { useTheme } from '@mui/material/styles';
 import { useFeedbackCharts } from '../hooks/useFeedbackCharts';
 import CombinedRankingChart from './CombinedRankingChart';
+import CriterionChart from './CriterionChart';
 
 interface FeedbackChartsProps {
   onPractitionerClick?: (practitionerId: number) => void;
   selectedPractitionerId?: number | null;
   globalAverage?: number;
-}
-
-function ChartEmptyState({ message }: { message: string }) {
-  const theme = useTheme();
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: 200,
-        backgroundColor: theme.palette.surfaces.container,
-      }}
-    >
-      <Typography variant="bodyMedium" color="text.secondary">
-        {message}
-      </Typography>
-    </Box>
-  );
 }
 
 export default function FeedbackCharts({
@@ -51,10 +23,6 @@ export default function FeedbackCharts({
 }: FeedbackChartsProps) {
   const { criterionCharts, combinedRanking, loading, error } = useFeedbackCharts();
   const theme = useTheme();
-
-  const chartColors = theme.palette.charts?.length
-    ? theme.palette.charts as unknown as string[]
-    : ['#6366f1', '#8b5cf6', '#a78bfa', '#c4b5fd', '#ddd6fe', '#818cf8', '#7c3aed', '#5b21b6', '#4f46e5', '#312e81'];
 
   if (loading) {
     return (
@@ -91,19 +59,6 @@ export default function FeedbackCharts({
     );
   }
 
-  const handleBarClick = (data: Record<string, unknown>) => {
-    if (onPractitionerClick && typeof data.practitionerId === 'number') {
-      onPractitionerClick(data.practitionerId);
-    }
-  };
-
-  const getBarFill = (entry: { practitionerId: number }, index: number) => {
-    const baseColor = chartColors[index % chartColors.length];
-    if (!selectedPractitionerId) return baseColor;
-    if (entry.practitionerId === selectedPractitionerId) return baseColor;
-    return alpha(baseColor, 0.2);
-  };
-
   return (
     <Box
       sx={{
@@ -121,69 +76,14 @@ export default function FeedbackCharts({
         />
       )}
 
-      {criterionCharts.map((chart) => (
-        <Paper
+      {criterionCharts.map((chart, index) => (
+        <CriterionChart
           key={chart.criterion.code}
-          sx={{
-            p: { xs: 2, md: 2.5 },
-            backgroundColor: theme.palette.surfaces.containerLow,
-            border: `1px solid ${theme.palette.outlineVariant}`,
-          }}
-        >
-          <Typography variant="titleMedium" fontWeight={700} gutterBottom>
-            {chart.criterion.displayName}
-          </Typography>
-          {chart.minSamplesThreshold > 1 && (
-            <Typography variant="labelSmall" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-              Mínimo {chart.minSamplesThreshold} evaluaciones para aparecer
-            </Typography>
-          )}
-
-          {chart.entries.length === 0 ? (
-            <ChartEmptyState message="Sin datos suficientes" />
-          ) : (
-            <ResponsiveContainer width="100%" height={Math.max(180, chart.entries.length * 40 + 30)}>
-              <BarChart
-                data={chart.entries}
-                layout="vertical"
-                margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke={theme.palette.outlineVariant} />
-                <XAxis type="number" domain={[0, 5]} tickCount={6} tick={{ fontSize: 11, fill: theme.palette.text.secondary }} />
-                <YAxis
-                  type="category"
-                  dataKey="practitionerName"
-                  width={120}
-                  tick={{ fontSize: 12, fill: theme.palette.text.secondary }}
-                />
-                <Tooltip
-                  formatter={(value) => [`${Number(value).toFixed(2)}`, 'Promedio']}
-                  contentStyle={{
-                    backgroundColor: theme.palette.surfaces.containerHighest,
-                    border: `1px solid ${theme.palette.outlineVariant}`,
-                    borderRadius: 0,
-                    fontSize: 13,
-                  }}
-                />
-                <Bar
-                  dataKey="average"
-                  radius={[0, 2, 2, 0]}
-                  cursor={onPractitionerClick ? 'pointer' : 'default'}
-                  onClick={(data) => handleBarClick(data as unknown as Record<string, unknown>)}
-                >
-                  {chart.entries.map((entry, index) => (
-                    <Cell
-                      key={index}
-                      fill={getBarFill(entry, index)}
-                      stroke={selectedPractitionerId === entry.practitionerId ? theme.palette.primary.main : 'none'}
-                      strokeWidth={selectedPractitionerId === entry.practitionerId ? 2 : 0}
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </Paper>
+          data={chart}
+          selectedPractitionerId={selectedPractitionerId}
+          onPractitionerClick={onPractitionerClick}
+          colorIndex={index + 1}
+        />
       ))}
     </Box>
   );
