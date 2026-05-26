@@ -1,8 +1,13 @@
+import { useMemo, useState } from 'react';
 import {
   Alert,
   Box,
+  Chip,
   CircularProgress,
   Paper,
+  Stack,
+  Tab,
+  Tabs,
   Typography,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
@@ -23,6 +28,14 @@ export default function FeedbackCharts({
 }: FeedbackChartsProps) {
   const { criterionCharts, combinedRanking, loading, error } = useFeedbackCharts();
   const theme = useTheme();
+  const [activeTab, setActiveTab] = useState(0);
+
+  const activeChart = criterionCharts[activeTab];
+
+  const activeCriterionAverage = useMemo(() => {
+    if (!activeChart || activeChart.entries.length === 0) return 0;
+    return activeChart.entries.reduce((sum, e) => sum + e.average, 0) / activeChart.entries.length;
+  }, [activeChart]);
 
   if (loading) {
     return (
@@ -60,13 +73,7 @@ export default function FeedbackCharts({
   }
 
   return (
-    <Box
-      sx={{
-        display: 'grid',
-        gap: 2,
-        gridTemplateColumns: { xs: '1fr', lg: 'repeat(2, 1fr)' },
-      }}
-    >
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
       {combinedRanking && (
         <CombinedRankingChart
           data={combinedRanking}
@@ -76,15 +83,68 @@ export default function FeedbackCharts({
         />
       )}
 
-      {criterionCharts.map((chart, index) => (
-        <CriterionChart
-          key={chart.criterion.code}
-          data={chart}
-          selectedPractitionerId={selectedPractitionerId}
-          onPractitionerClick={onPractitionerClick}
-          colorIndex={index + 1}
-        />
-      ))}
+      {criterionCharts.length > 0 && (
+        <Paper
+          sx={{
+            backgroundColor: theme.palette.surfaces.containerLow,
+            border: `1px solid ${theme.palette.outlineVariant}`,
+            overflow: 'hidden',
+          }}
+        >
+          <Box sx={{ px: { xs: 2, md: 2.5 }, pt: { xs: 2, md: 2.5 } }}>
+            <Stack direction="row" alignItems="center" justifyContent="space-between" flexWrap="wrap" gap={1} sx={{ mb: 1.5 }}>
+              <Typography variant="titleMedium" fontWeight={700}>
+                Detalle por criterio
+              </Typography>
+              {activeCriterionAverage > 0 && (
+                <Chip
+                  label={`Media del criterio: ${activeCriterionAverage.toFixed(2)}`}
+                  size="small"
+                  sx={{
+                    backgroundColor: theme.palette.secondary.container,
+                    color: theme.palette.secondary.onContainer,
+                    fontWeight: 600,
+                    fontSize: 12,
+                    borderRadius: 0,
+                  }}
+                />
+              )}
+            </Stack>
+            <Tabs
+              value={activeTab}
+              onChange={(_e, v: number) => setActiveTab(v)}
+              variant="scrollable"
+              scrollButtons="auto"
+              sx={{
+                minHeight: 36,
+                '& .MuiTab-root': {
+                  minHeight: 36,
+                  textTransform: 'none',
+                  fontWeight: 600,
+                  fontSize: 13,
+                  borderRadius: 0,
+                },
+              }}
+            >
+              {criterionCharts.map((chart) => (
+                <Tab key={chart.criterion.code} label={chart.criterion.displayName} />
+              ))}
+            </Tabs>
+          </Box>
+
+          {activeChart && (
+            <Box sx={{ p: { xs: 2, md: 2.5 }, pt: 1 }}>
+              <CriterionChart
+                data={activeChart}
+                selectedPractitionerId={selectedPractitionerId}
+                onPractitionerClick={onPractitionerClick}
+                colorIndex={activeTab + 1}
+                compact
+              />
+            </Box>
+          )}
+        </Paper>
+      )}
     </Box>
   );
 }

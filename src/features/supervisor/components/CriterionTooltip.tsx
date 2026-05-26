@@ -5,17 +5,13 @@ import type { TooltipProps } from 'recharts';
 import type { TopByCriterionEntryDTO } from '../../../types/feedback.types';
 
 interface CriterionTooltipInnerProps extends TooltipProps<number, string> {
-  criterionName: string;
   referenceAverage: number;
-  accentColor: string;
 }
 
 function CriterionTooltipInner({
   active,
   payload,
-  criterionName,
   referenceAverage,
-  accentColor,
 }: CriterionTooltipInnerProps) {
   const theme = useTheme();
 
@@ -49,7 +45,7 @@ function CriterionTooltipInner({
           <Typography
             variant="labelMedium"
             fontWeight={700}
-            sx={{ color: entry.rankPosition <= 3 ? accentColor : theme.palette.text.secondary }}
+            sx={{ color: entry.rankPosition <= 3 ? theme.palette.primary.main : theme.palette.text.secondary }}
           >
             #{entry.rankPosition}
           </Typography>
@@ -62,7 +58,7 @@ function CriterionTooltipInner({
         </Typography>
       </Stack>
 
-      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1 }}>
+      <Stack direction="row" alignItems="center" spacing={1} sx={{ mb: 1.5 }}>
         <Rating value={entry.average} readOnly precision={0.1} size="small" />
         <Typography variant="labelSmall" color="text.secondary">
           ({entry.feedbackCount} {entry.feedbackCount === 1 ? 'evaluación' : 'evaluaciones'})
@@ -71,44 +67,18 @@ function CriterionTooltipInner({
 
       <Divider sx={{ borderColor: theme.palette.outlineVariant, mb: 1 }} />
 
-      <Stack direction="row" justifyContent="space-between" alignItems="baseline" sx={{ mb: 0.5 }}>
-        <Typography variant="bodySmall" color="text.secondary">
-          {criterionName}
+      <Typography variant="labelSmall" color="text.secondary">
+        Media del criterio: {referenceAverage.toFixed(2)}{' '}
+        <Typography component="span" variant="labelSmall" sx={{ color: deltaColor }}>
+          ({deltaSign}{delta.toFixed(2)} {deltaArrow})
         </Typography>
-        <Typography variant="labelMedium" fontWeight={700}>
-          {entry.average.toFixed(2)}
-        </Typography>
-      </Stack>
-      <Box
-        sx={{
-          height: 6,
-          width: '100%',
-          backgroundColor: theme.palette.surfaces.containerHigh,
-          overflow: 'hidden',
-          mb: 1.5,
-        }}
-      >
-        <Box
-          sx={{
-            height: '100%',
-            width: `${(entry.average / 5) * 100}%`,
-            backgroundColor: accentColor,
-            transition: 'width 300ms ease',
-          }}
-        />
-      </Box>
-
-      <Typography variant="labelSmall" sx={{ color: deltaColor }}>
-        vs media del criterio: {deltaSign}{delta.toFixed(2)} {deltaArrow}
       </Typography>
     </Box>
   );
 }
 
 export function useCriterionTooltip(
-  criterionName: string,
   referenceAverage: number,
-  accentColor: string,
 ) {
   return useMemo(
     () =>
@@ -116,12 +86,10 @@ export function useCriterionTooltip(
         return (
           <CriterionTooltipInner
             {...props}
-            criterionName={criterionName}
             referenceAverage={referenceAverage}
-            accentColor={accentColor}
           />
         );
       },
-    [criterionName, referenceAverage, accentColor],
+    [referenceAverage],
   );
 }

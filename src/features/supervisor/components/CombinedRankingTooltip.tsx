@@ -111,8 +111,11 @@ function CombinedRankingTooltipInner({
 
       <Divider sx={{ borderColor: theme.palette.outlineVariant, mt: 1.5, mb: 1 }} />
 
-      <Typography variant="labelSmall" sx={{ color: deltaColor }}>
-        vs promedio general: {deltaSign}{delta.toFixed(2)} {deltaArrow}
+      <Typography variant="labelSmall" color="text.secondary">
+        Promedio general: {groupAverage.toFixed(2)}{' '}
+        <Typography component="span" variant="labelSmall" sx={{ color: deltaColor }}>
+          ({deltaSign}{delta.toFixed(2)} {deltaArrow})
+        </Typography>
       </Typography>
     </Box>
   );

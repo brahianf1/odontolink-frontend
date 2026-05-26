@@ -21,6 +21,7 @@ interface CriterionChartProps {
   selectedPractitionerId?: number | null;
   onPractitionerClick?: (practitionerId: number) => void;
   colorIndex?: number;
+  compact?: boolean;
 }
 
 function ChartEmptyState({ message }: { message: string }) {
@@ -47,6 +48,7 @@ export default function CriterionChart({
   selectedPractitionerId,
   onPractitionerClick,
   colorIndex = 1,
+  compact = false,
 }: CriterionChartProps) {
   const theme = useTheme();
 
@@ -59,7 +61,7 @@ export default function CriterionChart({
     return data.entries.reduce((sum, e) => sum + e.average, 0) / data.entries.length;
   }, [data.entries]);
 
-  const TooltipContent = useCriterionTooltip(data.criterion.displayName, criterionAverage, baseColor);
+  const TooltipContent = useCriterionTooltip(criterionAverage);
 
   const getRankOpacity = (rankPosition: number): number => {
     if (totalEntries <= 1) return 1;
@@ -120,21 +122,19 @@ export default function CriterionChart({
     );
   };
 
-  return (
-    <Paper
-      sx={{
-        p: { xs: 2, md: 2.5 },
-        backgroundColor: theme.palette.surfaces.containerLow,
-        border: `1px solid ${theme.palette.outlineVariant}`,
-      }}
-    >
-      <Typography variant="titleMedium" fontWeight={700} gutterBottom>
-        {data.criterion.displayName}
-      </Typography>
-      {data.minSamplesThreshold > 1 && (
-        <Typography variant="labelSmall" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
-          Mín. {data.minSamplesThreshold} evaluaciones recibidas
-        </Typography>
+  const content = (
+    <>
+      {!compact && (
+        <>
+          <Typography variant="titleMedium" fontWeight={700} gutterBottom>
+            {data.criterion.displayName}
+          </Typography>
+          {data.minSamplesThreshold > 1 && (
+            <Typography variant="labelSmall" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
+              Mín. {data.minSamplesThreshold} evaluaciones recibidas
+            </Typography>
+          )}
+        </>
       )}
 
       {data.entries.length === 0 ? (
@@ -202,6 +202,20 @@ export default function CriterionChart({
           </BarChart>
         </ResponsiveContainer>
       )}
+    </>
+  );
+
+  if (compact) return content;
+
+  return (
+    <Paper
+      sx={{
+        p: { xs: 2, md: 2.5 },
+        backgroundColor: theme.palette.surfaces.containerLow,
+        border: `1px solid ${theme.palette.outlineVariant}`,
+      }}
+    >
+      {content}
     </Paper>
   );
 }
