@@ -98,7 +98,7 @@ export default function FeedbackCharts({
               </Typography>
               {activeCriterionAverage > 0 && (
                 <Chip
-                  label={`Media del criterio: ${activeCriterionAverage.toFixed(2)}`}
+                  label={`Promedio del criterio: ${activeCriterionAverage.toFixed(2)}`}
                   size="small"
                   sx={{
                     backgroundColor: theme.palette.secondary.container,

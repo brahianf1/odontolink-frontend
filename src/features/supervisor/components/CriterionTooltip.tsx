@@ -72,7 +72,7 @@ function CriterionTooltipInner({
       <Divider sx={{ borderColor: theme.palette.outlineVariant, mb: 1 }} />
 
       <Typography variant="labelSmall" color="text.secondary">
-        Media del criterio: {referenceAverage.toFixed(2)}{' '}
+        Promedio del criterio: {referenceAverage.toFixed(2)}{' '}
         <Typography component="span" variant="labelSmall" sx={{ color: deltaColor }}>
           ({deltaSign}{delta.toFixed(2)} {deltaArrow})
         </Typography>
