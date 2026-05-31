@@ -4,8 +4,10 @@ export interface ChatSessionResponseDTO {
   id: number;
   patientId: number;
   patientName: string;
+  patientProfilePictureUrl?: string | null;
   practitionerId: number;
   practitionerName: string;
+  practitionerProfilePictureUrl?: string | null;
   createdAt: string;
   unreadCount: number;
   lastMessageAt: string | null;
@@ -22,6 +24,7 @@ export interface ChatMessageResponseDTO {
   chatSessionId: number;
   senderId: number;
   senderName: string;
+  senderProfilePictureUrl?: string | null;
   content: string;
   sentAt: string;
   readAt: string | null;

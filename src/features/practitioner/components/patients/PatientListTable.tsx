@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import {
-  Avatar,
   Box,
   Button,
   Dialog,
@@ -21,20 +20,13 @@ import { Close as CloseIcon } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import StatusChip from '../../../../components/common/StatusChip';
+import UserAvatar from '../../../../components/common/UserAvatar';
 import PatientAttentionsList from './PatientAttentionsList';
 import type { PatientSummary } from './PatientCard';
 
 interface PatientListTableProps {
   patients: PatientSummary[];
 }
-
-const initialsOf = (name: string): string =>
-  (name || '?')
-    .split(' ')
-    .map((part) => part[0] ?? '')
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
 
 const lastAttentionDate = (patient: PatientSummary): string | null => {
   if (patient.attentions.length === 0) return null;
@@ -84,19 +76,16 @@ export default function PatientListTable({ patients }: PatientListTableProps) {
                 >
                   <TableCell>
                     <Stack direction="row" spacing={1.5} alignItems="center">
-                      <Avatar
+                      <UserAvatar
+                        src={patient.profilePictureUrl}
+                        name={patient.name}
+                        size={36}
                         sx={(theme) => ({
-                          bgcolor: 'primary.main',
-                          color: 'primary.contrastText',
-                          width: 36,
-                          height: 36,
                           fontSize: '0.85rem',
                           fontWeight: 700,
                           border: `1px solid ${theme.palette.divider}`,
                         })}
-                      >
-                        {initialsOf(patient.name)}
-                      </Avatar>
+                      />
                       <Typography variant="body2" fontWeight={600}>
                         {patient.name}
                       </Typography>

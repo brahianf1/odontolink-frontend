@@ -1,5 +1,4 @@
 import {
-  Avatar,
   Badge,
   Box,
   ListItemButton,
@@ -7,6 +6,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { Block as BlockIcon } from '@mui/icons-material';
+import UserAvatar from '../../../components/common/UserAvatar';
 import type {
   ChatSessionResponseDTO,
   ChatViewerRole,
@@ -76,18 +76,15 @@ export default function ChatSessionListItem({
           },
         }}
       >
-        <Avatar
+        <UserAvatar
+          src={counterpart.profilePictureUrl}
+          name={counterpart.name}
           sx={{
-            bgcolor: 'primary.main',
-            color: 'primary.contrastText',
             width: 42,
             height: 42,
             fontSize: '0.9rem',
-            fontWeight: 600,
           }}
-        >
-          {counterpart.initials}
-        </Avatar>
+        />
       </Badge>
 
       <Box sx={{ flex: 1, minWidth: 0 }}>

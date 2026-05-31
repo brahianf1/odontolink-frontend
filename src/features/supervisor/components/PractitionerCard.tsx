@@ -2,7 +2,6 @@ import {
   Card,
   CardContent,
   Box,
-  Avatar,
   Typography,
   Stack,
   Button,
@@ -18,6 +17,7 @@ import {
   Badge as BadgeIcon,
   School as SchoolIcon,
 } from '@mui/icons-material';
+import UserAvatar from '../../../components/common/UserAvatar';
 import type { PractitionerDTO } from '../../../types/supervisor.types';
 
 interface PractitionerCardProps {
@@ -32,17 +32,17 @@ export default function PractitionerCard({
   onUnlink,
 }: PractitionerCardProps) {
   const { user } = practitioner;
-  const initials = `${(user.firstName?.[0] ?? '?').toUpperCase()}${(
-    user.lastName?.[0] ?? ''
-  ).toUpperCase()}`;
 
   return (
     <Card variant="outlined" sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <CardContent sx={{ flexGrow: 1, p: 2.5 }}>
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 2 }}>
-          <Avatar sx={{ bgcolor: 'primary.50', color: 'primary.main', width: 48, height: 48 }}>
-            {initials}
-          </Avatar>
+          <UserAvatar
+            src={user.profilePictureUrl}
+            name={`${user.firstName ?? ''} ${user.lastName ?? ''}`}
+            size={48}
+            sx={{ bgcolor: 'primary.50', color: 'primary.main' }}
+          />
           <Box sx={{ minWidth: 0, flex: 1 }}>
             <Typography variant="body1" fontWeight={700} noWrap>
               {user.firstName} {user.lastName}

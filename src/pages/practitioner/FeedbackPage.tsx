@@ -35,7 +35,6 @@ import {
   FilterAltOff as ClearFiltersIcon,
   FormatQuote as QuoteIcon,
   MedicalServices as TreatmentIcon,
-  Person as PersonIcon,
   Refresh as RefreshIcon,
   Search as SearchIcon,
   Sort as SortIcon,
@@ -49,6 +48,7 @@ import type { FeedbackResponseDTO } from '../../types/feedback.types';
 import { isPatientRole } from '../../utils/roles';
 import { averageScore } from '../../utils/feedbackScores';
 import FeedbackScoresDisplay from '../../components/common/FeedbackScoresDisplay';
+import UserAvatar from '../../components/common/UserAvatar';
 
 interface FlatFeedback extends FeedbackResponseDTO {
   treatmentNameLocal: string;
@@ -554,14 +554,21 @@ export default function FeedbackPage() {
                   onClick={() => setDetailTarget(fb)}
                 >
                   <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-                    <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Typography variant="titleSmall" fontWeight={700} noWrap>
-                        {fb.patientNameLocal}
-                      </Typography>
-                      <Typography variant="labelSmall" color="text.secondary">
-                        {fb.treatmentNameLocal}
-                      </Typography>
-                    </Box>
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0, flex: 1 }}>
+                      <UserAvatar
+                        src={fb.patientProfilePictureUrl}
+                        name={fb.patientNameLocal}
+                        size={36}
+                      />
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="titleSmall" fontWeight={700} noWrap>
+                          {fb.patientNameLocal}
+                        </Typography>
+                        <Typography variant="labelSmall" color="text.secondary">
+                          {fb.treatmentNameLocal}
+                        </Typography>
+                      </Box>
+                    </Stack>
                     <FeedbackScoresDisplay scores={fb.scores} variant="compact" />
                   </Stack>
                   {fb.comment && (
@@ -634,9 +641,16 @@ export default function FeedbackPage() {
                             </Typography>
                           </TableCell>
                           <TableCell>
-                            <Typography variant="bodyMedium" fontWeight={600}>
-                              {fb.patientNameLocal}
-                            </Typography>
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <UserAvatar
+                                src={fb.patientProfilePictureUrl}
+                                name={fb.patientNameLocal}
+                                size={32}
+                              />
+                              <Typography variant="bodyMedium" fontWeight={600}>
+                                {fb.patientNameLocal}
+                              </Typography>
+                            </Stack>
                           </TableCell>
                           <TableCell>
                             <Chip
@@ -731,19 +745,15 @@ export default function FeedbackPage() {
               >
                 <Stack spacing={1.25}>
                   <Stack direction="row" spacing={1} alignItems="center">
-                    <Box
+                    <UserAvatar
+                      src={detailTarget.patientProfilePictureUrl}
+                      name={detailTarget.patientNameLocal}
+                      size={32}
                       sx={{
-                        width: 32,
-                        height: 32,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
                         backgroundColor: theme.palette.primary.container,
                         color: theme.palette.primary.onContainer,
                       }}
-                    >
-                      <PersonIcon sx={{ fontSize: 18 }} />
-                    </Box>
+                    />
                     <Box>
                       <Typography variant="titleSmall" fontWeight={600}>
                         {detailTarget.patientNameLocal}

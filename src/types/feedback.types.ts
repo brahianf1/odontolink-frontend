@@ -28,10 +28,13 @@ export interface FeedbackResponseDTO {
   submittedById: number;
   submittedByName: string;
   submittedByRole: string;
+  submittedByProfilePictureUrl?: string | null;
   attentionId: number;
   treatmentName: string;
   patientName: string;
+  patientProfilePictureUrl?: string | null;
   practitionerName: string;
+  practitionerProfilePictureUrl?: string | null;
 }
 
 export interface CreateFeedbackRequestDTO {

@@ -1,8 +1,9 @@
-import { Avatar, Box, Paper, Stack, Typography } from '@mui/material';
+import { Box, Paper, Stack, Typography } from '@mui/material';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { ProgressNoteResponseDTO } from '../../../types/attention.types';
 import StatusChip, { type StatusTone } from '../../../components/common/StatusChip';
+import UserAvatar from '../../../components/common/UserAvatar';
 
 const ROLE_LABELS: Record<string, string> = {
   ROLE_PRACTITIONER: 'Practicante',
@@ -28,14 +29,6 @@ const formatDateTime = (value: string): string => {
   }
 };
 
-const initialsOf = (name: string): string =>
-  (name || '?')
-    .split(' ')
-    .map((part) => part[0] ?? '')
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
-
 /**
  * One progress note rendered as a paper card. The role of the author is
  * displayed as a tonal chip (using the shared StatusChip) so it stays
@@ -48,19 +41,16 @@ export default function ProgressNoteItem({ note }: ProgressNoteItemProps) {
   return (
     <Paper variant="outlined" sx={{ p: 2 }}>
       <Stack direction="row" spacing={1.5} alignItems="flex-start">
-        <Avatar
+        <UserAvatar
+          src={note.authorProfilePictureUrl}
+          name={note.authorName}
+          size={40}
           sx={(theme) => ({
-            bgcolor: 'primary.main',
-            color: 'primary.contrastText',
-            width: 40,
-            height: 40,
             fontSize: '0.875rem',
             fontWeight: 700,
             border: `1px solid ${theme.palette.divider}`,
           })}
-        >
-          {initialsOf(note.authorName)}
-        </Avatar>
+        />
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Stack
             direction="row"

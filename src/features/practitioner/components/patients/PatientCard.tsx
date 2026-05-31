@@ -1,5 +1,4 @@
 import {
-  Avatar,
   Box,
   Card,
   CardActionArea,
@@ -16,11 +15,13 @@ import {
 } from '@mui/icons-material';
 import type { AttentionResponseDTO } from '../../../../types/attention.types';
 import StatusChip from '../../../../components/common/StatusChip';
+import UserAvatar from '../../../../components/common/UserAvatar';
 import PatientAttentionsList from './PatientAttentionsList';
 
 export interface PatientSummary {
   id: number;
   name: string;
+  profilePictureUrl: string | null;
   attentions: AttentionResponseDTO[];
   totalCount: number;
   activeCount: number;
@@ -31,14 +32,6 @@ interface PatientCardProps {
   expanded: boolean;
   onToggle: () => void;
 }
-
-const initialsOf = (name: string): string =>
-  (name || '?')
-    .split(' ')
-    .map((part) => part[0] ?? '')
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
 
 export default function PatientCard({ patient, expanded, onToggle }: PatientCardProps) {
   const hasActive = patient.activeCount > 0;
@@ -68,19 +61,16 @@ export default function PatientCard({ patient, expanded, onToggle }: PatientCard
             }}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, minWidth: 0 }}>
-              <Avatar
+              <UserAvatar
+                src={patient.profilePictureUrl}
+                name={patient.name}
+                size={52}
                 sx={(theme) => ({
-                  bgcolor: 'primary.main',
-                  color: 'primary.contrastText',
-                  width: 52,
-                  height: 52,
                   fontSize: '1.05rem',
                   fontWeight: 700,
                   border: `1px solid ${theme.palette.divider}`,
                 })}
-              >
-                {initialsOf(patient.name)}
-              </Avatar>
+              />
               <Box sx={{ minWidth: 0 }}>
                 <Typography
                   variant="h6"

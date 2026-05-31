@@ -14,8 +14,10 @@ export interface AttentionResponseDTO {
   startDate: string;
   patientId: number;
   patientName: string;
+  patientProfilePictureUrl?: string | null;
   practitionerId: number;
   practitionerName: string;
+  practitionerProfilePictureUrl?: string | null;
   treatmentId: number;
   treatmentName: string;
   appointments: AppointmentResponseDTO[];
@@ -28,6 +30,7 @@ export interface ProgressNoteResponseDTO {
   authorId: number;
   authorName: string;
   authorRole: string;
+  authorProfilePictureUrl?: string | null;
   attentionId: number;
 }
 

@@ -1,5 +1,4 @@
 import {
-  Avatar,
   Box,
   IconButton,
   Menu,
@@ -15,6 +14,7 @@ import {
   LockOpen as LockOpenIcon,
 } from '@mui/icons-material';
 import { useState } from 'react';
+import UserAvatar from '../../../components/common/UserAvatar';
 import type { ChatCounterpart } from '../utils/chatViewModel';
 
 interface ChatThreadHeaderProps {
@@ -70,18 +70,15 @@ export default function ChatThreadHeader({
         </Tooltip>
       )}
 
-      <Avatar
+      <UserAvatar
+        src={counterpart.profilePictureUrl}
+        name={counterpart.name}
         sx={{
-          bgcolor: 'primary.main',
-          color: 'primary.contrastText',
           width: 40,
           height: 40,
           fontSize: '0.85rem',
-          fontWeight: 600,
         }}
-      >
-        {counterpart.initials}
-      </Avatar>
+      />
 
       <Box sx={{ flex: 1, minWidth: 0 }}>
         <Typography
