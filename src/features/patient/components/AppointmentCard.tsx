@@ -1,9 +1,10 @@
-import { Box, Button, Paper, Typography } from '@mui/material';
+import { Box, Button, Paper, Stack, Typography } from '@mui/material';
 import { Cancel as CancelIcon } from '@mui/icons-material';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { AppointmentResponseDTO } from '../../../types/appointment.types';
 import StatusChip from '../../../components/common/StatusChip';
+import UserAvatar from '../../../components/common/UserAvatar';
 import {
   getAppointmentStatusLabel,
   getAppointmentStatusTone,
@@ -91,9 +92,17 @@ export default function AppointmentCard({
           />
         </Box>
 
-        <Typography variant="body2" color="text.secondary" sx={{ mb: 0.25 }}>
-          Practicante: {appointment.practitionerName}
-        </Typography>
+        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 0.5 }}>
+          <UserAvatar
+            src={appointment.practitionerProfilePictureUrl}
+            name={appointment.practitionerName}
+            size={28}
+            sx={{ fontSize: '0.75rem' }}
+          />
+          <Typography variant="body2" color="text.secondary">
+            Practicante: {appointment.practitionerName}
+          </Typography>
+        </Stack>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 0.25 }}>
           Duración: {appointment.durationInMinutes} minutos
         </Typography>

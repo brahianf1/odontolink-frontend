@@ -17,6 +17,7 @@ export interface OfferedTreatmentResponseDTO {
   id: number;
   practitionerId: number;
   practitionerName: string;
+  practitionerProfilePictureUrl?: string | null;
   treatment: TreatmentResponseDTO;
   requirements?: string;
   durationInMinutes: number;

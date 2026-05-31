@@ -24,6 +24,7 @@ export interface AdminUserDTO {
   dni: string;
   phone?: string;
   birthDate?: string;
+  profilePictureUrl?: string | null;
   createdAt: string;
   active: boolean;
 }

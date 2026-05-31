@@ -11,6 +11,7 @@ export interface UserBasicDTO {
   lastName: string;
   dni: string;
   email: string;
+  profilePictureUrl?: string | null;
 }
 
 export interface PractitionerDTO {

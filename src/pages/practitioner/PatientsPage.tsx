@@ -40,6 +40,7 @@ const groupByPatient = (attentions: AttentionResponseDTO[]): PatientSummary[] =>
       map.set(att.patientId, {
         id: att.patientId,
         name: att.patientName,
+        profilePictureUrl: att.patientProfilePictureUrl ?? null,
         totalCount: 1,
         activeCount: att.status === 'IN_PROGRESS' ? 1 : 0,
         attentions: [att],

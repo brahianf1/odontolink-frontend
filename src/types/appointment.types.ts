@@ -18,8 +18,10 @@ export interface AppointmentResponseDTO {
   treatmentName: string;
   patientId: number;
   patientName: string;
+  patientProfilePictureUrl?: string | null;
   practitionerId: number;
   practitionerName: string;
+  practitionerProfilePictureUrl?: string | null;
   attentionId?: number;
 }
 

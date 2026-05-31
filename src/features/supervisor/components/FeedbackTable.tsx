@@ -30,13 +30,13 @@ import {
   Close as CloseIcon,
   CompareArrows as CompareIcon,
   FormatQuote as QuoteIcon,
-  Person as PersonIcon,
   MedicalServices as TreatmentIcon,
   ExpandMore as ExpandMoreIcon,
 } from '@mui/icons-material';
 import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import FeedbackScoresDisplay from '../../../components/common/FeedbackScoresDisplay';
+import UserAvatar from '../../../components/common/UserAvatar';
 import { getFeedbackForAttention } from '../../../services/api/feedbackService';
 import { isPractitionerRole } from '../../../utils/roles';
 import type { PageResponse } from '../../../types/common.types';
@@ -181,16 +181,15 @@ export default function FeedbackTable({
             >
               <Stack spacing={1.25}>
                 <Stack direction="row" spacing={1.5} alignItems="center">
-                  <Box
+                  <UserAvatar
+                    src={detailTarget.patientProfilePictureUrl}
+                    name={detailTarget.patientName}
+                    size={32}
                     sx={{
-                      width: 32, height: 32,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
                       backgroundColor: theme.palette.primary.container,
                       color: theme.palette.primary.onContainer,
                     }}
-                  >
-                    <PersonIcon sx={{ fontSize: 18 }} />
-                  </Box>
+                  />
                   <Box>
                     <Typography variant="titleSmall" fontWeight={600}>
                       {detailTarget.patientName}
@@ -299,16 +298,15 @@ export default function FeedbackTable({
                     }}
                   >
                     <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
-                      <Box
+                      <UserAvatar
+                        src={reverseFeedback.practitionerProfilePictureUrl}
+                        name={reverseFeedback.practitionerName}
+                        size={28}
                         sx={{
-                          width: 28, height: 28,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
                           backgroundColor: theme.palette.tertiary.container,
                           color: theme.palette.tertiary.onContainer,
                         }}
-                      >
-                        <PersonIcon sx={{ fontSize: 16 }} />
-                      </Box>
+                      />
                       <Typography variant="titleSmall" fontWeight={600}>
                         {reverseFeedback.practitionerName}
                       </Typography>
@@ -366,14 +364,21 @@ export default function FeedbackTable({
                   onClick={() => handleOpenDetail(feedback)}
                 >
                   <Stack direction="row" justifyContent="space-between" alignItems="flex-start" spacing={1}>
-                    <Box sx={{ minWidth: 0, flex: 1 }}>
-                      <Typography variant="titleSmall" fontWeight={700}>
-                        {feedback.practitionerName}
-                      </Typography>
-                      <Typography variant="labelSmall" color="text.secondary">
-                        {feedback.patientName} · {formatDate(feedback.createdAt)}
-                      </Typography>
-                    </Box>
+                    <Stack direction="row" spacing={1} alignItems="center" sx={{ minWidth: 0, flex: 1 }}>
+                      <UserAvatar
+                        src={feedback.practitionerProfilePictureUrl}
+                        name={feedback.practitionerName}
+                        size={36}
+                      />
+                      <Box sx={{ minWidth: 0 }}>
+                        <Typography variant="titleSmall" fontWeight={700} noWrap>
+                          {feedback.practitionerName}
+                        </Typography>
+                        <Typography variant="labelSmall" color="text.secondary">
+                          {feedback.patientName} · {formatDate(feedback.createdAt)}
+                        </Typography>
+                      </Box>
+                    </Stack>
                     <FeedbackScoresDisplay scores={feedback.scores} variant="compact" />
                   </Stack>
                   <Typography variant="labelSmall" color="text.secondary" sx={{ mt: 0.5 }}>
@@ -447,12 +452,26 @@ export default function FeedbackTable({
                       </Typography>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="bodyMedium" fontWeight={600}>
-                        {feedback.practitionerName}
-                      </Typography>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <UserAvatar
+                          src={feedback.practitionerProfilePictureUrl}
+                          name={feedback.practitionerName}
+                          size={32}
+                        />
+                        <Typography variant="bodyMedium" fontWeight={600}>
+                          {feedback.practitionerName}
+                        </Typography>
+                      </Stack>
                     </TableCell>
                     <TableCell>
-                      <Typography variant="bodyMedium">{feedback.patientName}</Typography>
+                      <Stack direction="row" spacing={1} alignItems="center">
+                        <UserAvatar
+                          src={feedback.patientProfilePictureUrl}
+                          name={feedback.patientName}
+                          size={32}
+                        />
+                        <Typography variant="bodyMedium">{feedback.patientName}</Typography>
+                      </Stack>
                     </TableCell>
                     <TableCell>
                       <Typography variant="bodySmall">{feedback.treatmentName}</Typography>

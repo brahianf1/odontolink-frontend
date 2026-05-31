@@ -18,6 +18,7 @@ import { addMinutes, format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { AppointmentResponseDTO } from '../../../types/attention.types';
 import StatusBadge from './StatusBadge';
+import UserAvatar from '../../../components/common/UserAvatar';
 import { STATUS_CONFIG } from '../types/schedule.types';
 
 interface AppointmentCardProps {
@@ -73,20 +74,27 @@ export default function AppointmentCard({
           spacing={1}
           sx={{ mb: 1.5 }}
         >
-          <Box>
-            <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2 }}>
-              {appointment.patientName}
-            </Typography>
-            <Stack
-              direction="row"
-              spacing={0.75}
-              alignItems="center"
-              sx={{ color: 'text.secondary', mt: 0.5 }}
-            >
-              <MedicalServicesIcon sx={{ fontSize: 16 }} />
-              <Typography variant="body2">{appointment.treatmentName}</Typography>
-            </Stack>
-          </Box>
+          <Stack direction="row" spacing={1.5} alignItems="center">
+            <UserAvatar
+              src={appointment.patientProfilePictureUrl}
+              name={appointment.patientName}
+              size={44}
+            />
+            <Box>
+              <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2 }}>
+                {appointment.patientName}
+              </Typography>
+              <Stack
+                direction="row"
+                spacing={0.75}
+                alignItems="center"
+                sx={{ color: 'text.secondary', mt: 0.5 }}
+              >
+                <MedicalServicesIcon sx={{ fontSize: 16 }} />
+                <Typography variant="body2">{appointment.treatmentName}</Typography>
+              </Stack>
+            </Box>
+          </Stack>
           <StatusBadge status={appointment.status} />
         </Stack>
 

@@ -1,5 +1,4 @@
 import {
-  Avatar,
   Box,
   Button,
   CircularProgress,
@@ -28,6 +27,7 @@ import { addMinutes, format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { AppointmentResponseDTO } from '../../../types/attention.types';
 import StatusBadge from './StatusBadge';
+import UserAvatar from '../../../components/common/UserAvatar';
 import { STATUS_CONFIG } from '../types/schedule.types';
 
 interface AppointmentDetailsDialogProps {
@@ -123,22 +123,16 @@ export default function AppointmentDetailsDialog({
         </IconButton>
 
         <Stack direction="row" spacing={2} alignItems="center" sx={{ pr: 5 }}>
-          <Avatar
+          <UserAvatar
+            src={appointment.patientProfilePictureUrl}
+            name={appointment.patientName}
+            size={52}
             sx={{
-              width: 52,
-              height: 52,
               bgcolor: accentColor,
               fontWeight: 700,
               fontSize: '1.25rem',
             }}
-          >
-            {appointment.patientName
-              .split(' ')
-              .map((s) => s[0])
-              .slice(0, 2)
-              .join('')
-              .toUpperCase()}
-          </Avatar>
+          />
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography variant="h6" fontWeight={700} sx={{ lineHeight: 1.2 }}>
               {appointment.patientName}

@@ -11,7 +11,6 @@ import {
   ListItem,
   ListItemText,
   ListItemAvatar,
-  Avatar,
   Checkbox,
   Typography,
   CircularProgress,
@@ -22,6 +21,7 @@ import {
   Stack,
 } from '@mui/material';
 import { Search as SearchIcon, GroupAdd as GroupAddIcon } from '@mui/icons-material';
+import UserAvatar from '../../../components/common/UserAvatar';
 import { usePractitionerSearch } from '../hooks/usePractitionerSearch';
 import { linkMultiplePractitioners } from '../../../services/api/supervisorService';
 import { mapSupervisorError } from '../utils/supervisorApiErrors';
@@ -146,9 +146,6 @@ export default function LinkPractitionerDialog({
             <List disablePadding>
               {availableResults.map((p) => {
                 const checked = selectedIds.has(p.id);
-                const initials = `${(p.user.firstName?.[0] ?? '?').toUpperCase()}${(
-                  p.user.lastName?.[0] ?? ''
-                ).toUpperCase()}`;
                 return (
                   <ListItem
                     key={p.id}
@@ -164,9 +161,11 @@ export default function LinkPractitionerDialog({
                     }
                   >
                     <ListItemAvatar>
-                      <Avatar sx={{ bgcolor: 'primary.50', color: 'primary.main' }}>
-                        {initials}
-                      </Avatar>
+                      <UserAvatar
+                        src={p.user.profilePictureUrl}
+                        name={`${p.user.firstName ?? ''} ${p.user.lastName ?? ''}`}
+                        sx={{ bgcolor: 'primary.50', color: 'primary.main' }}
+                      />
                     </ListItemAvatar>
                     <ListItemText
                       primary={

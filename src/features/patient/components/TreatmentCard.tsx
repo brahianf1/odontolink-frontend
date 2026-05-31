@@ -10,10 +10,10 @@ import {
 } from '@mui/material';
 import {
   AccessTime as AccessTimeIcon,
-  Person as PersonIcon,
   EventAvailable as EventAvailableIcon,
 } from '@mui/icons-material';
 import type { OfferedTreatmentResponseDTO } from '../../../types/practitioner.types';
+import UserAvatar from '../../../components/common/UserAvatar';
 
 interface TreatmentCardProps {
   treatment: OfferedTreatmentResponseDTO;
@@ -81,7 +81,12 @@ export default function TreatmentCard({ treatment, onBook }: TreatmentCardProps)
 
         <Stack spacing={0.75}>
           <Stack direction="row" spacing={1} alignItems="center">
-            <PersonIcon fontSize="small" color="action" />
+            <UserAvatar
+              src={treatment.practitionerProfilePictureUrl}
+              name={treatment.practitionerName}
+              size={24}
+              sx={{ fontSize: '0.7rem' }}
+            />
             <Typography variant="body2" color="text.secondary">
               {treatment.practitionerName}
             </Typography>

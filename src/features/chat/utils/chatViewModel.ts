@@ -8,6 +8,7 @@ export interface ChatCounterpart {
   name: string;
   initials: string;
   roleLabel: string;
+  profilePictureUrl: string | null;
 }
 
 export function getInitials(name: string): string {
@@ -27,6 +28,7 @@ export function getCounterpart(
       name: session.patientName,
       initials: getInitials(session.patientName),
       roleLabel: 'Paciente',
+      profilePictureUrl: session.patientProfilePictureUrl ?? null,
     };
   }
   return {
@@ -34,6 +36,7 @@ export function getCounterpart(
     name: session.practitionerName,
     initials: getInitials(session.practitionerName),
     roleLabel: 'Practicante',
+    profilePictureUrl: session.practitionerProfilePictureUrl ?? null,
   };
 }
 

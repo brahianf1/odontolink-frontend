@@ -25,7 +25,6 @@ import {
   TablePagination,
   useMediaQuery,
   useTheme,
-  Avatar,
   Divider,
 } from '@mui/material';
 import {
@@ -53,6 +52,7 @@ import {
   reactivateUser,
 } from '../../services/api/adminService';
 import type { AdminUserDTO } from '../../types/admin.types';
+import UserAvatar from '../../components/common/UserAvatar';
 import { useAuthStore } from '../../store/authStore';
 import { mapAdminError } from '../../features/admin/utils/adminApiErrors';
 
@@ -255,10 +255,11 @@ export default function AdminUsersPage() {
             <TableRow key={user.id} hover>
               <TableCell>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Avatar sx={{ bgcolor: 'primary.50', color: 'primary.main' }}>
-                    {(user.firstName?.[0] ?? '?').toUpperCase()}
-                    {(user.lastName?.[0] ?? '').toUpperCase()}
-                  </Avatar>
+                  <UserAvatar
+                    src={user.profilePictureUrl}
+                    name={`${user.firstName ?? ''} ${user.lastName ?? ''}`}
+                    sx={{ bgcolor: 'primary.50', color: 'primary.main' }}
+                  />
                   <Box sx={{ minWidth: 0 }}>
                     <Typography variant="body2" fontWeight={600} noWrap>
                       {user.firstName} {user.lastName}
@@ -337,10 +338,11 @@ export default function AdminUsersPage() {
           <CardContent sx={{ p: 2 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1.5 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
-                <Avatar sx={{ bgcolor: 'primary.50', color: 'primary.main' }}>
-                  {(user.firstName?.[0] ?? '?').toUpperCase()}
-                  {(user.lastName?.[0] ?? '').toUpperCase()}
-                </Avatar>
+                <UserAvatar
+                  src={user.profilePictureUrl}
+                  name={`${user.firstName ?? ''} ${user.lastName ?? ''}`}
+                  sx={{ bgcolor: 'primary.50', color: 'primary.main' }}
+                />
                 <Box sx={{ minWidth: 0 }}>
                   <Typography variant="body1" fontWeight={700} noWrap>
                     {user.firstName} {user.lastName}
