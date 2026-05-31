@@ -123,8 +123,7 @@ export default function FeedbackDashboardPage() {
         sx={{
           p: { xs: 2.5, md: 3 },
           mb: 3,
-          backgroundColor: theme.palette.primary.container,
-          color: theme.palette.primary.onContainer,
+          backgroundColor: theme.palette.surfaces.containerLow,
           border: `1px solid ${theme.palette.outlineVariant}`,
         }}
       >
@@ -144,7 +143,7 @@ export default function FeedbackDashboardPage() {
               </Typography>
             ) : (
               <>
-                <Typography variant="displaySmall" fontWeight={700} sx={{ lineHeight: 1 }}>
+                <Typography variant="displaySmall" fontWeight={700} sx={{ lineHeight: 1, color: theme.palette.primary.main }}>
                   {avgPtoP.toFixed(1)}
                 </Typography>
                 <Box>
@@ -164,9 +163,9 @@ export default function FeedbackDashboardPage() {
               <Divider
                 orientation="vertical"
                 flexItem
-                sx={{ borderColor: 'inherit', opacity: 0.25, display: { xs: 'none', sm: 'block' } }}
+                sx={{ borderColor: theme.palette.outlineVariant, display: { xs: 'none', sm: 'block' } }}
               />
-              <Divider sx={{ borderColor: 'inherit', opacity: 0.25, display: { xs: 'block', sm: 'none' }, width: '100%' }} />
+              <Divider sx={{ borderColor: theme.palette.outlineVariant, display: { xs: 'block', sm: 'none' }, width: '100%' }} />
 
               <Stack direction="row" spacing={3}>
                 <Box>
@@ -199,10 +198,11 @@ export default function FeedbackDashboardPage() {
                 label={`Filtrando: ${selectedPractitioner.user.firstName} ${selectedPractitioner.user.lastName}`}
                 onDelete={handleReset}
                 sx={{
-                  backgroundColor: 'rgba(255,255,255,0.2)',
-                  color: 'inherit',
+                  backgroundColor: theme.palette.primary.container,
+                  color: theme.palette.primary.onContainer,
                   fontWeight: 600,
-                  '& .MuiChip-deleteIcon': { color: 'inherit', opacity: 0.7 },
+                  borderRadius: 0,
+                  '& .MuiChip-deleteIcon': { color: theme.palette.primary.onContainer, opacity: 0.7 },
                 }}
               />
             </>
@@ -223,6 +223,7 @@ export default function FeedbackDashboardPage() {
         <FeedbackCharts
           onPractitionerClick={handlePractitionerClick}
           selectedPractitionerId={query.practitionerId}
+          globalAverage={avgPtoP}
         />
       </Box>
 
