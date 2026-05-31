@@ -50,6 +50,7 @@ import { isPractitionerRole } from '../../utils/roles';
 import { useFeedbackCriteria } from '../../features/patient/hooks/useFeedbackCriteria';
 import FeedbackSurveyForm from '../../components/common/FeedbackSurveyForm';
 import FeedbackScoresDisplay from '../../components/common/FeedbackScoresDisplay';
+import UserAvatar from '../../components/common/UserAvatar';
 
 type ViewMode = 'cards' | 'list';
 
@@ -398,30 +399,47 @@ export default function AttentionsPage() {
                       mb: 1,
                     }}
                   >
-                    <Box>
-                      <Chip
-                        label={
+                    <Stack direction="row" spacing={1.5} alignItems="flex-start">
+                      <UserAvatar
+                        src={
                           feedback.submittedByRole === 'PATIENT' ||
                           feedback.submittedByRole === 'ROLE_PATIENT'
-                            ? 'Calificación del paciente'
-                            : 'Tu calificación'
+                            ? feedback.submittedByProfilePictureUrl
+                            : feedback.patientProfilePictureUrl
                         }
-                        size="small"
-                        color={
+                        name={
                           feedback.submittedByRole === 'PATIENT' ||
                           feedback.submittedByRole === 'ROLE_PATIENT'
-                            ? 'success'
-                            : 'info'
+                            ? feedback.submittedByName
+                            : feedback.patientName
                         }
-                        sx={{ mb: 1, fontWeight: 600 }}
+                        size={40}
                       />
-                      <Typography variant="subtitle1" fontWeight={600}>
-                        {feedback.submittedByRole === 'PATIENT' ||
-                        feedback.submittedByRole === 'ROLE_PATIENT'
-                          ? `${feedback.submittedByName} te calificó`
-                          : `Calificaste a ${feedback.patientName}`}
-                      </Typography>
-                    </Box>
+                      <Box>
+                        <Chip
+                          label={
+                            feedback.submittedByRole === 'PATIENT' ||
+                            feedback.submittedByRole === 'ROLE_PATIENT'
+                              ? 'Calificación del paciente'
+                              : 'Tu calificación'
+                          }
+                          size="small"
+                          color={
+                            feedback.submittedByRole === 'PATIENT' ||
+                            feedback.submittedByRole === 'ROLE_PATIENT'
+                              ? 'success'
+                              : 'info'
+                          }
+                          sx={{ mb: 1, fontWeight: 600 }}
+                        />
+                        <Typography variant="subtitle1" fontWeight={600}>
+                          {feedback.submittedByRole === 'PATIENT' ||
+                          feedback.submittedByRole === 'ROLE_PATIENT'
+                            ? `${feedback.submittedByName} te calificó`
+                            : `Calificaste a ${feedback.patientName}`}
+                        </Typography>
+                      </Box>
+                    </Stack>
                   </Box>
                   <FeedbackScoresDisplay scores={feedback.scores} variant="expanded" size="small" />
                   {feedback.comment && (

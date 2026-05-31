@@ -2,6 +2,7 @@ import {
   Box,
   IconButton,
   Paper,
+  Stack,
   Table,
   TableBody,
   TableCell,
@@ -16,6 +17,7 @@ import { format, parseISO } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { AttentionResponseDTO } from '../../../../types/attention.types';
 import { AttentionStatusChip } from '../../../attentions';
+import UserAvatar from '../../../../components/common/UserAvatar';
 
 interface AttentionListTableProps {
   attentions: AttentionResponseDTO[];
@@ -69,9 +71,16 @@ export default function AttentionListTable({
                   </Typography>
                 </TableCell>
                 <TableCell>
-                  <Typography variant="body2" fontWeight={600}>
-                    {attention.patientName}
-                  </Typography>
+                  <Stack direction="row" spacing={1.5} alignItems="center">
+                    <UserAvatar
+                      src={attention.patientProfilePictureUrl}
+                      name={attention.patientName}
+                      size={36}
+                    />
+                    <Typography variant="body2" fontWeight={600}>
+                      {attention.patientName}
+                    </Typography>
+                  </Stack>
                 </TableCell>
                 <TableCell>
                   <Typography variant="body2" color="text.secondary">

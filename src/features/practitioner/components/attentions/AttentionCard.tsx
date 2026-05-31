@@ -16,6 +16,7 @@ import { es } from 'date-fns/locale';
 import type { AttentionResponseDTO } from '../../../../types/attention.types';
 import type { OfferedTreatmentResponseDTO } from '../../../../types/practitioner.types';
 import { AttentionStatusChip } from '../../../attentions';
+import UserAvatar from '../../../../components/common/UserAvatar';
 
 interface AttentionCardProps {
   attention: AttentionResponseDTO;
@@ -64,17 +65,25 @@ export default function AttentionCard({
             gap: 2,
           }}
         >
-          <Box sx={{ minWidth: 0 }}>
-            <Typography variant="overline" color="text.secondary" fontWeight={700}>
-              Atención #{attention.id}
-            </Typography>
-            <Typography variant="h6" fontWeight={700}>
-              {attention.patientName}
-            </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-              {attention.treatmentName}
-            </Typography>
-          </Box>
+          <Stack direction="row" spacing={1.5} alignItems="center" sx={{ minWidth: 0 }}>
+            <UserAvatar
+              src={attention.patientProfilePictureUrl}
+              name={attention.patientName}
+              size={48}
+              sx={(theme) => ({ border: `1px solid ${theme.palette.divider}`, flexShrink: 0 })}
+            />
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="overline" color="text.secondary" fontWeight={700}>
+                Atención #{attention.id}
+              </Typography>
+              <Typography variant="h6" fontWeight={700} noWrap>
+                {attention.patientName}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }} noWrap>
+                {attention.treatmentName}
+              </Typography>
+            </Box>
+          </Stack>
           <AttentionStatusChip status={attention.status} />
         </Box>
 
